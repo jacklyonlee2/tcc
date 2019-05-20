@@ -4,19 +4,21 @@ project(TCC VERSION 0.0
             DESCRIPTION "End-to-End Ahead-of-Time ML Compiler"
             LANGUAGES CXX)
 
+# -- Compiler options --
 add_compile_options(-Wall -Wextra -Wpedantic)
 
-# Set variables
+# -- Set variables --
 set(TCC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Check dependencies
-find_package(Protobuf REQUIRED)
+# -- Build dependencies --
+find_package(Protobuf REQUIRED) # protobuf-3.7.1 (tested)
 
-# include headers
+set(WITH_GFLAGS OFF CACHE BOOL "Use gflags")
+add_subdirectory(extern/glog) # glog-0.4.0
+
+add_subdirectory(extern/googletest) # googletest-1.8.1
+
+# -- Build TCC --
 include_directories(${TCC_INCLUDE_DIR})
-
-# Build libraries
-add_subdirectory(src)
-
-# Build executables
-add_subdirectory(apps)
+add_subdirectory(src) # libraries
+add_subdirectory(apps) # executables
