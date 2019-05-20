@@ -14,3 +14,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HEADERS
 add_library(protos
     ${PROTO_HEADERS}
     ${PROTO_SRCS})
+
+target_link_libraries(protos
+    PRIVATE
+    ${PROTOBUF_LIBRARIES})
