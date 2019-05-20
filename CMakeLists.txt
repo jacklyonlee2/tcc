@@ -14,6 +14,7 @@ set(TCC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 find_package(Protobuf REQUIRED) # protobuf-3.7.1 (tested)
 
 set(WITH_GFLAGS OFF CACHE BOOL "Use gflags")
+set(BUILD_TESTING OFF CACHE BOOL "Enable unittesting")
 add_subdirectory(extern/glog) # glog-0.4.0
 
 add_subdirectory(extern/googletest) # googletest-1.8.1
