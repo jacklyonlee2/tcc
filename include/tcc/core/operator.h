@@ -8,6 +8,7 @@ namespace core {
 
 class Operator {
     public:
+        Operator() {}
         Operator(OperatorBuilder& builder);
 };
 

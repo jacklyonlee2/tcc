@@ -2,7 +2,7 @@
 
 #include <fstream>
 
-#include "tcc/core/register_op.h"
+#include "tcc/core/operator_registry.h"
 #include "protos/graph.pb.h"
 #include "protos/node_def.pb.h"
 #include "glog/logging.h"
@@ -21,4 +21,8 @@ void tcc::parser::ParseFrozenGraph(string file_path) {
         LOG(INFO) << tf_node.op() << " - " << tf_node.name();
     }
     LOG(INFO) << "Total nodes: " << tf_graph.node_size();
+
+    if (tcc::core::OperatorRegistry::GetTest("Test")) {
+        LOG(INFO) << "registered.";
+    }
 }
