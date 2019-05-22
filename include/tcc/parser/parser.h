@@ -8,7 +8,7 @@ namespace parser {
 
 void ParseFrozenGraph(std::string path);
 
-} // parser
-} // tcc
+} // namespace parser
+} // namespace tcc
 
 #endif // TCC_PARSER_H

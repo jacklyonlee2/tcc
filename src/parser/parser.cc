@@ -2,9 +2,10 @@
 
 #include <fstream>
 
-#include "glog/logging.h"
+#include "tcc/core/register_op.h"
 #include "protos/graph.pb.h"
 #include "protos/node_def.pb.h"
+#include "glog/logging.h"
 
 using namespace std;
 

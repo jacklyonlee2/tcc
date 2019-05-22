@@ -12,7 +12,7 @@ target_include_directories(parser
     ${CMAKE_CURRENT_BINARY_DIR}) # "proto/*.pb.h" includes
 
 target_link_libraries(parser
-    PUBLIC
-    glog::glog
     PRIVATE
+    ops
+    core
     protos)
