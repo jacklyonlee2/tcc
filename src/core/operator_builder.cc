@@ -12,6 +12,11 @@ OperatorBuilder::OperatorBuilder(std::string type_name) :
     LOG(INFO) << "Constructing builder of " << type_name;
 }
 
+OperatorBuilder& OperatorBuilder::Attr(std::string attr_name) {
+    LOG(INFO) << "Attr " << attr_name;
+    return *this;
+}
+
 OperatorBuilder& OperatorBuilder::Input(std::string input_name) {
     LOG(INFO) << "Input " << input_name;
     return *this;

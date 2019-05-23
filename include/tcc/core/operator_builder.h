@@ -12,6 +12,7 @@ class OperatorBuilder {
     public:
         OperatorBuilder(std::string type_name);
 
+        OperatorBuilder& Attr(std::string attr_name);
         OperatorBuilder& Input(std::string input_name);
         OperatorBuilder& Output(std::string output_name);
 

@@ -16,7 +16,6 @@ class OperatorRegistry {
         static Operator Instantiate(std::string type_name);
 
     private:
-        static void InitializeRegistry();
         static void Register(std::string type_name, Operator& op);
 
         static RegistryPtr registry_;
