@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "glog/logging.h"
+#include "tcc/util/logging.h"
 
 namespace tcc {
 namespace core {

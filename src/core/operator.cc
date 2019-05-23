@@ -2,7 +2,7 @@
 
 #include "tcc/core/operator_registry.h"
 #include "tcc/core/operator_builder.h"
-#include "glog/logging.h"
+#include "tcc/util/logging.h"
 
 namespace tcc {
 namespace core {

@@ -4,6 +4,5 @@ add_executable(tcc
 
 target_link_libraries(tcc
     PRIVATE
-    glog::glog
     parser)
 

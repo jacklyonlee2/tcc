@@ -2,6 +2,7 @@
 #define TCC_OPERATOR_REGISTRY_H
 
 #include <unordered_map>
+#include <memory>
 
 #include "tcc/core/operator.h"
 
@@ -10,12 +11,15 @@ namespace core {
 
 class OperatorRegistry {
     public:
-        static bool GetTest(std::string type_name);
+        typedef std::shared_ptr<std::unordered_map<std::string, Operator>> RegistryPtr;
+
+        static Operator Instantiate(std::string type_name);
 
     private:
-        static void Register(std::string type_name, Operator op);
+        static void InitializeRegistry();
+        static void Register(std::string type_name, Operator& op);
 
-        static std::unordered_map<std::string, Operator> registry_;
+        static RegistryPtr registry_;
 
     friend class Operator;
 };

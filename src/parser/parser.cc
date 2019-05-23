@@ -5,7 +5,7 @@
 #include "tcc/core/operator_registry.h"
 #include "protos/graph.pb.h"
 #include "protos/node_def.pb.h"
-#include "glog/logging.h"
+#include "tcc/util/logging.h"
 
 using namespace std;
 
@@ -22,7 +22,5 @@ void tcc::parser::ParseFrozenGraph(string file_path) {
     }
     LOG(INFO) << "Total nodes: " << tf_graph.node_size();
 
-    if (tcc::core::OperatorRegistry::GetTest("Test")) {
-        LOG(INFO) << "registered.";
-    }
+    tcc::core::OperatorRegistry::Instantiate("Test");
 }

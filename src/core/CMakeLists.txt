@@ -8,6 +8,10 @@ add_library(core
     operator_builder.cc
     operator.cc)
 
+target_compile_options(core
+    PRIVATE
+    "-fPIC") # allows shared ops libraries to work
+
 target_link_libraries(core
-    PUBLIC
-    glog::glog)
+    PRIVATE
+    util)

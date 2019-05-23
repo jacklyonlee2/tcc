@@ -13,6 +13,8 @@ target_include_directories(parser
 
 target_link_libraries(parser
     PRIVATE
+    util
     ops
-    core
-    protos)
+    protos
+    INTERFACE
+    core)

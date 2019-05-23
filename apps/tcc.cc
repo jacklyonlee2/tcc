@@ -1,11 +1,12 @@
-#include "glog/logging.h"
 #include "tcc/parser/parser.h"
 
 using namespace std;
 
 int main(int argc, char **argv) {
     // Parse frozen graph
-    CHECK(argc == 2) << "main accepts a single postional argument.";
+    if (argc != 2) {
+        throw "Must have 1 command line argment.";
+    }
     string file_path = argv[1];
     tcc::parser::ParseFrozenGraph(file_path);
 }
