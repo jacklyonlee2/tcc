@@ -22,3 +22,5 @@ A multi-level compiler stack to compile TensorFlow frozen graphs into optimized 
     ```
     ./apps/tcc ./PATH/TO/FROZEN/GRAPH
     ```
+
+* Pre-made frozen graphs can be found [here](https://github.com/tensorflow/models/tree/master/research/slim).
