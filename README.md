@@ -14,7 +14,8 @@ A multi-level compiler stack to compile TensorFlow frozen graphs into optimized 
     ```
     mkdir build
     cd build
-    cmake .. && make
+    cmake ..
+    make
     ```
 
 * Run `TCC` compiler.

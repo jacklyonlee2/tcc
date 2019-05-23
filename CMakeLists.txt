@@ -11,7 +11,7 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 set(TCC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # -- Build dependencies --
-find_package(Protobuf REQUIRED) # protobuf-3.7.1 (tested)
+find_package(Protobuf 3.7.1 REQUIRED) # protobuf-3.7.1
 
 set(WITH_GFLAGS OFF CACHE BOOL "Use gflags")
 set(BUILD_TESTING OFF CACHE BOOL "Enable unittesting")
