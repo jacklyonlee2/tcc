@@ -8,8 +8,6 @@ namespace tcc {
 namespace core {
 
 Operator::Operator(OperatorBuilder& builder) {
-    LOG(INFO) << "Recieved op " << builder.type_name_;
-
     // Store operator into static operator registry.
     OperatorRegistry::Register(builder.type_name_, *this);
 }
