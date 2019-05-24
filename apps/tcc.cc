@@ -19,7 +19,7 @@ DEFINE_string(file_path, "", "Path to TensorFlow frozen graph.");
 DEFINE_validator(file_path, &ValidateFilePath);
 
 int main(int argc, char **argv) {
-    //google::InitGoogleLogging(argv[0]);
+    google::InitGoogleLogging(argv[0]);
     gflags::SetUsageMessage("tcc -file_path=\"/PATH/TO/FROZEN/GRAPH\"");
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 

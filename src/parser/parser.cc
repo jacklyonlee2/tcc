@@ -20,9 +20,9 @@ void ParseFrozenGraph(std::string file_path) {
         "Failed to parse frozen graph at'" << file_path << "'.";
 
     for (tensorflow::NodeDef tf_node : tf_graph.node()) {
-        LOG(INFO) << tf_node.op() << " - " << tf_node.name();
+        LOG(ERROR) << tf_node.op() << " - " << tf_node.name();
     }
-    LOG(INFO) << "Total nodes: " << tf_graph.node_size();
+    LOG(ERROR) << "Total nodes: " << tf_graph.node_size();
 
     OperatorRegistry::Instantiate("Test");
 }
