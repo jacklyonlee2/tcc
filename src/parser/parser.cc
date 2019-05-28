@@ -2,12 +2,10 @@
 
 #include <fstream>
 
-#include "tcc/core/operator_registry.h"
+#include "tcc/core/operator/operator_registry.h"
 #include "protos/graph.pb.h"
 #include "protos/node_def.pb.h"
 #include "tcc/util/logging.h"
-
-using namespace ::tcc::core;
 
 namespace tcc {
 namespace parser {
@@ -24,7 +22,7 @@ void ParseFrozenGraph(std::string file_path) {
     }
     LOG(ERROR) << "Total nodes: " << tf_graph.node_size();
 
-    OperatorRegistry::Instantiate("Test");
+    core::op::OperatorRegistry::Instantiate("Test");
 }
 
 } // namespace parser

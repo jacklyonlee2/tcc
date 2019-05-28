@@ -4,10 +4,11 @@
 #include <unordered_map>
 #include <memory>
 
-#include "tcc/core/operator.h"
+#include "tcc/core/operator/operator.h"
 
 namespace tcc {
 namespace core {
+namespace op {
 
 class OperatorRegistry {
     public:
@@ -23,6 +24,7 @@ class OperatorRegistry {
     friend class Operator;
 };
 
+} // namespace op
 } // namespace core
 } // namespace tcc
 

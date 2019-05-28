@@ -1,9 +1,10 @@
-#include "tcc/core/operator_registry.h"
+#include "tcc/core/operator/operator_registry.h"
 
 #include "tcc/util/logging.h"
 
 namespace tcc {
 namespace core {
+namespace op {
 
 Operator OperatorRegistry::Instantiate(std::string type_name) {
     // registry_ could be unintialized if no operator registered or
@@ -27,5 +28,6 @@ void OperatorRegistry::Register(std::string type_name, Operator& op) {
 
 OperatorRegistry::RegistryPtr OperatorRegistry::registry_;
 
+} // namespace op
 } // namespace core
 } // namespace tcc

@@ -1,4 +1,4 @@
-#include "tcc/core/register_op.h"
+#include "tcc/core/operator/register_op.h"
 
 REGISTER_OP("Test")
     .Attr("attr")

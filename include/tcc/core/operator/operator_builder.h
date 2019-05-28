@@ -5,6 +5,7 @@
 
 namespace tcc {
 namespace core {
+namespace op {
 
 class Operator;
 
@@ -22,6 +23,7 @@ class OperatorBuilder {
     friend class Operator;
 };
 
+} // namespace op
 } // namespace core
 } // namespace tcc
 

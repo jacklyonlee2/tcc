@@ -1,5 +1,5 @@
 # Build tensorflow proto library
-protobuf_generate_cpp(PROTO_SRCS PROTO_HEADERS
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
     attr_value.proto
     node_def.proto
     tensor.proto
@@ -12,7 +12,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HEADERS
     types.proto)
 
 add_library(protos
-    ${PROTO_HEADERS}
+    ${PROTO_HDRS}
     ${PROTO_SRCS})
 
 target_link_libraries(protos

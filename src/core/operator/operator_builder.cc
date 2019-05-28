@@ -1,4 +1,4 @@
-#include "tcc/core/operator_builder.h"
+#include "tcc/core/operator/operator_builder.h"
 
 #include <string>
 
@@ -6,6 +6,7 @@
 
 namespace tcc {
 namespace core {
+namespace op {
 
 OperatorBuilder::OperatorBuilder(std::string type_name) :
     type_name_(type_name) {
@@ -23,5 +24,6 @@ OperatorBuilder& OperatorBuilder::Output(std::string output_name) {
     return *this;
 }
 
+} // namespace op
 } // namespace core
 } // namespace tcc
