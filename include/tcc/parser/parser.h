@@ -3,10 +3,12 @@
 
 #include <string>
 
+#include "tcc/core/hlir/hlir.h"
+
 namespace tcc {
 namespace parser {
 
-void ParseFrozenGraph(std::string path);
+void ParseFrozenGraph(core::hlir::HLIR& hlir, std::string file_path);
 
 } // namespace parser
 } // namespace tcc
