@@ -25,8 +25,8 @@ static void ParseFile(tensorflow::GraphDef& graph, std::string file_path) {
 static void CheckNodes(tensorflow::GraphDef graph) {
     // Check all node types are registered.
     bool all_registered = true;
-
     std::unordered_set<std::string> ignore({"Const", "Placeholder"});
+
     for (tensorflow::NodeDef node : graph.node()) {
         bool node_registered = core::common::OperatorRegistry::Registered(node.op());
         bool node_ignored = ignore.find(node.op()) != ignore.end();

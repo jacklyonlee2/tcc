@@ -9,6 +9,7 @@ namespace core {
 namespace common {
 
 Operator::Operator(OperatorBuilder builder) {
+    // This function is called at static initialization time, NATIVE_CHECK is used instead of CHECK.
     // Store operator into static operator registry.
     OperatorRegistry::Register(builder.type_name_, *this);
 }
