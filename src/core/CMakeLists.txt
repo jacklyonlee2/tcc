@@ -1,13 +1,16 @@
 # Build core library
 list(APPEND
-    OPERATOR_SRCS
-    ${TCC_INCLUDE_DIR}/tcc/core/operator/operator_registry.h
-    ${TCC_INCLUDE_DIR}/tcc/core/operator/operator_builder.h
-    ${TCC_INCLUDE_DIR}/tcc/core/operator/operator.h
-    ${TCC_INCLUDE_DIR}/tcc/core/operator/register_op.h
-    ./operator/operator_registry.cc
-    ./operator/operator_builder.cc
-    ./operator/operator.cc)
+    COMMON_SRCS
+    ${TCC_INCLUDE_DIR}/tcc/core/common/data.h
+    ${TCC_INCLUDE_DIR}/tcc/core/common/datatype.h
+    ${TCC_INCLUDE_DIR}/tcc/core/common/operator_registry.h
+    ${TCC_INCLUDE_DIR}/tcc/core/common/operator_builder.h
+    ${TCC_INCLUDE_DIR}/tcc/core/common/operator.h
+    ${TCC_INCLUDE_DIR}/tcc/core/common/register_op.h
+    ./common/data.cc
+    ./common/operator_registry.cc
+    ./common/operator_builder.cc
+    ./common/operator.cc)
 
 list(APPEND
     HLIR_SRCS
@@ -20,7 +23,7 @@ list(APPEND
     ./llir/llir.cc)
 
 add_library(core
-    ${OPERATOR_SRCS}
+    ${COMMON_SRCS}
     ${HLIR_SRCS}
     ${LLIR_SRCS})
 

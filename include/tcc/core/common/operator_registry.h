@@ -4,17 +4,18 @@
 #include <unordered_map>
 #include <memory>
 
-#include "tcc/core/operator/operator.h"
+#include "tcc/core/common/operator.h"
 
 namespace tcc {
 namespace core {
-namespace op {
+namespace common {
 
 class OperatorRegistry {
     public:
         typedef std::shared_ptr<std::unordered_map<std::string, Operator>> RegistryPtr;
 
-        static Operator Instantiate(std::string type_name);
+        static bool Registered(const std::string type_name);
+        static Operator Instantiate(const std::string type_name);
 
     private:
         static void Register(std::string type_name, Operator& op);
@@ -24,7 +25,7 @@ class OperatorRegistry {
     friend class Operator;
 };
 
-} // namespace op
+} // namespace common
 } // namespace core
 } // namespace tcc
 

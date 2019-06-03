@@ -5,17 +5,17 @@
 
 namespace tcc {
 namespace core {
-namespace op {
+namespace common {
 
 class Operator;
 
 class OperatorBuilder {
     public:
-        OperatorBuilder(std::string type_name);
+        OperatorBuilder(const std::string type_name);
 
-        OperatorBuilder& Attr(std::string attr_name);
-        OperatorBuilder& Input(std::string input_name);
-        OperatorBuilder& Output(std::string output_name);
+        OperatorBuilder& Attr(const std::string attr_name);
+        OperatorBuilder& Input(const std::string input_name);
+        OperatorBuilder& Output(const std::string output_name);
 
     private:
         const std::string type_name_;
@@ -23,7 +23,7 @@ class OperatorBuilder {
     friend class Operator;
 };
 
-} // namespace op
+} // namespace common
 } // namespace core
 } // namespace tcc
 

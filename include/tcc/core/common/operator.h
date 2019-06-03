@@ -1,19 +1,19 @@
 #ifndef TCC_OPERATOR_H
 #define TCC_OPERATOR_H
 
-#include "tcc/core/operator/operator_builder.h"
+#include "tcc/core/common/operator_builder.h"
 
 namespace tcc {
 namespace core {
-namespace op {
+namespace common {
 
 class Operator {
     public:
         Operator() {}
-        Operator(OperatorBuilder& builder);
+        Operator(OperatorBuilder builder);
 };
 
-} // namespace op
+} // namespace common
 } // namespace core
 } // namespace tcc
 
