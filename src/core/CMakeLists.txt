@@ -15,7 +15,11 @@ list(APPEND
 list(APPEND
     HLIR_SRCS
     ${TCC_INCLUDE_DIR}/tcc/core/hlir/hlir.h
-    ./hlir/hlir.cc)
+    ${TCC_INCLUDE_DIR}/tcc/core/hlir/variable.h
+    ${TCC_INCLUDE_DIR}/tcc/core/hlir/operation.h
+    ./hlir/hlir.cc
+    ./hlir/variable.cc
+    ./hlir/operation.cc)
 
 list(APPEND
     LLIR_SRCS
