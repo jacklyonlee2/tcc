@@ -9,7 +9,8 @@ enum class Datatype {
     kString,
     kScalarFloat32,
     kListInt64,
-    kTensorFloat32
+    kTensorFloat32,
+    kTensorInt32
 };
 
 } // namespace common

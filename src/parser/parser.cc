@@ -1,6 +1,7 @@
 #include "tcc/parser/parser.h"
 
 #include <fstream>
+#include <numeric>
 #include <unordered_set>
 
 #include "tcc/core/common/operator_registry.h"
@@ -52,8 +53,7 @@ static void ParseAttrs(core::common::Operator& op, tensorflow::NodeDef node,
                             LOG(FATAL) << "Unsupported tensorflow attr list type 'list(string)'.";
 
                         } else if (list.i_size() > 0) { // list(int) - 3
-                            op.SetAttr(attr_kv.first, core::common::Data(
-                                        std::vector<int64_t>(list.i().begin(), list.i().end())));
+                            op.SetAttr(attr_kv.first, core::common::Data(list.i().data(), list.i().size()));
 
                         } else if (list.f_size() > 0) { // list(float) - 4
                             LOG(FATAL) << "Unsupported tensorflow attr list type 'list(float)'.";
@@ -88,7 +88,7 @@ static void ParseAttrs(core::common::Operator& op, tensorflow::NodeDef node,
                     LOG(FATAL) << "Unset tensorflow attr value.";
                 }
                 default: { // Unsupported
-                    LOG(FATAL) << "Unknown tensorflow attr '" << attr_kv.first <<
+                    LOG(FATAL) << "Unsupported tensorflow attr '" << attr_kv.first <<
                         "' of type '" << attr_kv.second.value_case() << "'.";
                 }
             }
@@ -96,25 +96,85 @@ static void ParseAttrs(core::common::Operator& op, tensorflow::NodeDef node,
     }
 }
 
+static core::common::Datatype ParseDatatype(tensorflow::DataType type) {
+    // Convert tensorflow::DataType to tcc::core::common::Datatype
+    switch (type) {
+        case tensorflow::DT_FLOAT: // 1
+            return core::common::Datatype::kTensorFloat32;
+        case tensorflow::DT_INT32: // 3
+            return core::common::Datatype::kTensorInt32;
+        default:
+            LOG(FATAL) << "Unsupported datatype conversion tensorflow datatype '" << type << "'.";
+    }
+}
+
+template <typename T>
+static core::common::Data ParseDataHelper(tensorflow::TensorProto tensor, std::vector<int64_t> shape) {
+    char* bytes = strdup(tensor.tensor_content().data());
+    T* data = reinterpret_cast<T*>(bytes);
+    return core::common::Data(data, shape);
+}
+
+static core::common::Data ParseData(tensorflow::TensorProto tensor) {
+    // Convert tensorflow::TensorProto to tcc::core::common::Data
+    CHECK(tensor.has_tensor_shape()) << "Tensor is missing shape.";
+    CHECK(tensor.tensor_shape().dim_size() > 0) << "Tensor shape is empty.";
+
+    // Parse tensor shape
+    std::vector<int64_t> shape;
+    for (tensorflow::TensorShapeProto_Dim dim : tensor.tensor_shape().dim()) {
+        shape.push_back(dim.size());
+    }
+
+    switch (ParseDatatype(tensor.dtype())) {
+        case core::common::Datatype::kTensorFloat32:
+            return ParseDataHelper<float>(tensor, shape);
+        case core::common::Datatype::kTensorInt32:
+            return ParseDataHelper<int32_t>(tensor, shape);
+        default:
+            LOG(FATAL) << "Unsupported datatype for data conversion.";
+    }
+}
+
 static void ParseNodes(core::hlir::HLIR& hlir, tensorflow::GraphDef graph) {
     // Parse NodeDef into HLIR operations / variables.
     for (tensorflow::NodeDef node : graph.node()) {
 
-        if (node.op() == "Placeholder") {
+        if (node.op() == "Placeholder") { // Placeholder op
+            CHECK_KEY_IN_MAP("dtype", node.attr());
+            CHECK(node.attr().at("dtype").value_case() == tensorflow::AttrValue::kType) <<
+                "Attr 'dtype' must be of type tensorflow::AttrValue::kType.";
 
-        } else if (node.op() == "Const") {
+            std::string variable_name = node.name();
+            core::common::Datatype datatype =
+                ParseDatatype(node.attr().at("dtype").type());
 
-        } else {
+            hlir.AddVariable(variable_name, datatype);
+
+        } else if (node.op() == "Const") { // Const op
+            CHECK_KEY_IN_MAP("dtype", node.attr());
+            CHECK_KEY_IN_MAP("value", node.attr());
+            CHECK(node.attr().at("dtype").value_case() == tensorflow::AttrValue::kType) <<
+                "Attr 'dtype' must be of type tensorflow::AttrValue::kType.";
+            CHECK(node.attr().at("value").value_case() == tensorflow::AttrValue::kTensor) <<
+                "Attr 'value' must be of type tensorflow::AttrValue::kTensor.";
+
+            std::string variable_name = node.name();
+            core::common::Datatype datatype =
+                ParseDatatype(node.attr().at("dtype").type());
+            core::common::Data data =
+                ParseData(node.attr().at("value").tensor());
+
+            hlir.AddVariable(variable_name, datatype, data);
+
+        } else { // Other ops
+            std::string operation_name = node.name();
             core::common::Operator op =
                 core::common::OperatorRegistry::Instantiate(node.op());
             ParseAttrs(op, node);
-        }
-    }
-}
 
-static void ParseEdges(core::hlir::HLIR& hlir, tensorflow::GraphDef graph) {
-    // Parse NodeDef edges into HLIR variables
-    for (tensorflow::NodeDef node : graph.node()) {
+            hlir.AddOperation(operation_name, op);
+        }
     }
 }
 
@@ -123,7 +183,6 @@ void ParseFrozenGraph(core::hlir::HLIR& hlir, std::string file_path) {
     ParseFile(graph, file_path);
     CheckNodes(graph);
     ParseNodes(hlir, graph);
-    ParseEdges(hlir, graph);
 }
 
 } // namespace parser

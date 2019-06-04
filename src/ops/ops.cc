@@ -23,7 +23,9 @@ REGISTER_OP("AvgPool")
     .Attr("ksize", Datatype::kListInt64)
     .Attr("padding", Datatype::kString)
     .Attr("data_format", Datatype::kString)
-    .Attr("strides", Datatype::kListInt64);
+    .Attr("strides", Datatype::kListInt64)
+    .Input("input", Datatype::kTensorFloat32)
+    .Output("output", Datatype::kTensorFloat32);
 
 REGISTER_OP("Conv2D")
     .Attr("dilations", Datatype::kListInt64)
