@@ -6,7 +6,9 @@ namespace core {
 namespace common {
 
 enum class Datatype {
+    kString,
     kScalarFloat32,
+    kListInt64,
     kTensorFloat32
 };
 

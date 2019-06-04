@@ -46,48 +46,51 @@ static void ParseAttrs(core::common::Operator& op, tensorflow::NodeDef node,
         if (ignore.find(attr_kv.first) == ignore.end()) {
 
             switch(attr_kv.second.value_case()) {
-                case tensorflow::AttrValue::kList: // list - 1
-                    if (attr_kv.second.list().s_size() > 0) { // list(string) - 2
-                        LOG(FATAL) << "Unsupported tensorflow attr list type 'list(string)'.";
+                case tensorflow::AttrValue::kList: { // list - 1
+                        tensorflow::AttrValue_ListValue list = attr_kv.second.list();
+                        if (list.s_size() > 0) { // list(string) - 2
+                            LOG(FATAL) << "Unsupported tensorflow attr list type 'list(string)'.";
 
-                    } else if (attr_kv.second.list().i_size() > 0) { // list(int) - 3
-                        LOG(ERROR) << "\t" <<  attr_kv.first << " : list(int)";
+                        } else if (list.i_size() > 0) { // list(int) - 3
+                            op.SetAttr(attr_kv.first, core::common::Data(
+                                        std::vector<int64_t>(list.i().begin(), list.i().end())));
 
-                    } else if (attr_kv.second.list().f_size() > 0) { // list(float) - 4
-                        LOG(FATAL) << "Unsupported tensorflow attr list type 'list(float)'.";
+                        } else if (list.f_size() > 0) { // list(float) - 4
+                            LOG(FATAL) << "Unsupported tensorflow attr list type 'list(float)'.";
 
-                    } else if (attr_kv.second.list().b_size() > 0) { // list(bool) - 5
-                        LOG(FATAL) << "Unsupported tensorflow attr list type 'list(bool)'.";
+                        } else if (list.b_size() > 0) { // list(bool) - 5
+                            LOG(FATAL) << "Unsupported tensorflow attr list type 'list(bool)'.";
 
-                    } else if (attr_kv.second.list().type_size() > 0) { // list(type) - 6
-                        LOG(FATAL) << "Unsupported tensorflow attr list type 'list(type)'.";
+                        } else if (list.type_size() > 0) { // list(type) - 6
+                            LOG(FATAL) << "Unsupported tensorflow attr list type 'list(type)'.";
 
-                    } else if (attr_kv.second.list().shape_size() > 0) { // list(shape) - 7
-                        LOG(FATAL) << "Unsupported tensorflow attr list type 'list(shape)'.";
+                        } else if (list.shape_size() > 0) { // list(shape) - 7
+                            LOG(FATAL) << "Unsupported tensorflow attr list type 'list(shape)'.";
 
-                    } else if (attr_kv.second.list().tensor_size() > 0) { // list(tensor) - 8
-                        LOG(FATAL) << "Unsupported tensorflow attr list type 'list(tensor)'.";
+                        } else if (list.tensor_size() > 0) { // list(tensor) - 8
+                            LOG(FATAL) << "Unsupported tensorflow attr list type 'list(tensor)'.";
 
-                    } else if (attr_kv.second.list().func_size() > 0) { // list(attr) - 9
-                        LOG(FATAL) << "Unsupported tensorflow attr list type 'list(attr)'.";
+                        } else if (list.func_size() > 0) { // list(attr) - 9
+                            LOG(FATAL) << "Unsupported tensorflow attr list type 'list(attr)'.";
 
-                    } else LOG(FATAL) << "Unknown tensorflow attr list type.";
+                        } else LOG(FATAL) << "Unknown tensorflow attr list type.";
+                        break;
+                }
+                case tensorflow::AttrValue::kS: { // string - 2
+                    op.SetAttr(attr_kv.first, core::common::Data(attr_kv.second.s()));
                     break;
-
-                case tensorflow::AttrValue::kS: // string - 2
-                    LOG(ERROR) << "\t" <<  attr_kv.first << " : string";
+                }
+                case tensorflow::AttrValue::kF: { // float - 3
+                    op.SetAttr(attr_kv.first, core::common::Data(attr_kv.second.f()));
                     break;
-
-                case tensorflow::AttrValue::kF: // float - 3
-                    LOG(ERROR) << "\t" <<  attr_kv.first << " : float";
-                    break;
-
-                case tensorflow::AttrValue::VALUE_NOT_SET: // notset - 0
+                }
+                case tensorflow::AttrValue::VALUE_NOT_SET: { // notset - 0
                     LOG(FATAL) << "Unset tensorflow attr value.";
-
-                default: // Unsupported
+                }
+                default: { // Unsupported
                     LOG(FATAL) << "Unknown tensorflow attr '" << attr_kv.first <<
                         "' of type '" << attr_kv.second.value_case() << "'.";
+                }
             }
         }
     }
@@ -102,7 +105,6 @@ static void ParseNodes(core::hlir::HLIR& hlir, tensorflow::GraphDef graph) {
         } else if (node.op() == "Const") {
 
         } else {
-            LOG(ERROR) << node.op();
             core::common::Operator op =
                 core::common::OperatorRegistry::Instantiate(node.op());
             ParseAttrs(op, node);
