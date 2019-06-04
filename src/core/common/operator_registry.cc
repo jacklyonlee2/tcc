@@ -24,7 +24,7 @@ Operator OperatorRegistry::Instantiate(const std::string type_name) {
 }
 
 void OperatorRegistry::Register(std::string type_name, Operator& op) {
-    // This function is called at static initialization time, NATIVE is used instead of CHECK.
+    // This function is called at static initialization time, NATIVE_CHECK is used instead of CHECK.
     // Because static initalization order is random, Register could be called before registry_ is initalized.
     // The following lines ensure registry_ is initialize before any op registration.
     if (registry_ == nullptr) {

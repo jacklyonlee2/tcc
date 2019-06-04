@@ -22,26 +22,75 @@ static void ParseFile(tensorflow::GraphDef& graph, std::string file_path) {
     file.close();
 }
 
-static void CheckNodes(tensorflow::GraphDef graph) {
+static void CheckNodes(tensorflow::GraphDef graph,
+        std::unordered_set<std::string> ignore = {
+        "Const",
+        "Placeholder"}) {
     // Check all node types are registered.
-    bool all_registered = true;
-    std::unordered_set<std::string> ignore({"Const", "Placeholder"});
-
     for (tensorflow::NodeDef node : graph.node()) {
         bool node_registered = core::common::OperatorRegistry::Registered(node.op());
         bool node_ignored = ignore.find(node.op()) != ignore.end();
-
-        if (!node_registered && !node_ignored) {
-            LOG(ERROR) << "Unregistered operator '" << node.op() << "'.";
-            ignore.insert(node.op());
-            all_registered = false;
-        }
+        CHECK(node_registered || node_ignored) << "Unregistered operator '" << node.op() << "'.";
     }
-
-    CHECK(all_registered) << "Graph constains unregistered operator types.";
 }
 
-static void ParseAttrs(core::common::Operator& op, tensorflow::NodeDef node) {
+static void ParseAttrs(core::common::Operator& op, tensorflow::NodeDef node,
+        std::unordered_set<std::string> ignore = {
+        "T",
+        "Tshape",
+        "out_type",
+        "use_cudnn_on_gpu",
+        "is_training"}) {
+    // Parse AttrValue and add to op
+    for (std::pair<std::string, tensorflow::AttrValue> attr_kv : node.attr()) {
+        if (ignore.find(attr_kv.first) == ignore.end()) {
+
+            switch(attr_kv.second.value_case()) {
+                case tensorflow::AttrValue::kList: // list - 1
+                    if (attr_kv.second.list().s_size() > 0) { // list(string) - 2
+                        LOG(FATAL) << "Unsupported tensorflow attr list type 'list(string)'.";
+
+                    } else if (attr_kv.second.list().i_size() > 0) { // list(int) - 3
+                        LOG(ERROR) << "\t" <<  attr_kv.first << " : list(int)";
+
+                    } else if (attr_kv.second.list().f_size() > 0) { // list(float) - 4
+                        LOG(FATAL) << "Unsupported tensorflow attr list type 'list(float)'.";
+
+                    } else if (attr_kv.second.list().b_size() > 0) { // list(bool) - 5
+                        LOG(FATAL) << "Unsupported tensorflow attr list type 'list(bool)'.";
+
+                    } else if (attr_kv.second.list().type_size() > 0) { // list(type) - 6
+                        LOG(FATAL) << "Unsupported tensorflow attr list type 'list(type)'.";
+
+                    } else if (attr_kv.second.list().shape_size() > 0) { // list(shape) - 7
+                        LOG(FATAL) << "Unsupported tensorflow attr list type 'list(shape)'.";
+
+                    } else if (attr_kv.second.list().tensor_size() > 0) { // list(tensor) - 8
+                        LOG(FATAL) << "Unsupported tensorflow attr list type 'list(tensor)'.";
+
+                    } else if (attr_kv.second.list().func_size() > 0) { // list(attr) - 9
+                        LOG(FATAL) << "Unsupported tensorflow attr list type 'list(attr)'.";
+
+                    } else LOG(FATAL) << "Unknown tensorflow attr list type.";
+                    break;
+
+                case tensorflow::AttrValue::kS: // string - 2
+                    LOG(ERROR) << "\t" <<  attr_kv.first << " : string";
+                    break;
+
+                case tensorflow::AttrValue::kF: // float - 3
+                    LOG(ERROR) << "\t" <<  attr_kv.first << " : float";
+                    break;
+
+                case tensorflow::AttrValue::VALUE_NOT_SET: // notset - 0
+                    LOG(FATAL) << "Unset tensorflow attr value.";
+
+                default: // Unsupported
+                    LOG(FATAL) << "Unknown tensorflow attr '" << attr_kv.first <<
+                        "' of type '" << attr_kv.second.value_case() << "'.";
+            }
+        }
+    }
 }
 
 static void ParseNodes(core::hlir::HLIR& hlir, tensorflow::GraphDef graph) {
@@ -53,7 +102,9 @@ static void ParseNodes(core::hlir::HLIR& hlir, tensorflow::GraphDef graph) {
         } else if (node.op() == "Const") {
 
         } else {
-            core::common::Operator op = core::common::OperatorRegistry::Instantiate(node.op());
+            LOG(ERROR) << node.op();
+            core::common::Operator op =
+                core::common::OperatorRegistry::Instantiate(node.op());
             ParseAttrs(op, node);
         }
     }
