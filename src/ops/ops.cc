@@ -4,8 +4,8 @@
 using namespace tcc::core::common;
 
 REGISTER_OP("Relu6")
-    .Input("input", Datatype::kTensorFloat32)
-    .Output("output", Datatype::kTensorFloat32);
+    .Input("input")
+    .Output("output");
 
 REGISTER_OP("DepthwiseConv2dNative")
     .Attr("dilations", Datatype::kListInt64)
@@ -24,8 +24,8 @@ REGISTER_OP("AvgPool")
     .Attr("padding", Datatype::kString)
     .Attr("data_format", Datatype::kString)
     .Attr("strides", Datatype::kListInt64)
-    .Input("input", Datatype::kTensorFloat32)
-    .Output("output", Datatype::kTensorFloat32);
+    .Input("input")
+    .Output("output");
 
 REGISTER_OP("Conv2D")
     .Attr("dilations", Datatype::kListInt64)

@@ -9,18 +9,25 @@ namespace tcc {
 namespace core {
 namespace hlir {
 
+class Operation;
+typedef std::shared_ptr<Operation> OperationPtr;
+
 class Variable {
     public:
-        Variable(std::string instance_name, common::Datatype datatype);
-        Variable(std::string instance_name, common::DataPtr data);
+        Variable(const std::string instance_name, const common::Datatype datatype);
+        Variable(const std::string instance_name, common::Data data);
 
     private:
         const std::string instance_name_;
-        common::Datatype datatype_;
+        const common::Datatype datatype_;
         common::DataPtr data_ = nullptr;
+
+        OperationPtr prev_operation = nullptr;
+        std::vector<OperationPtr> next_operations;
 };
 
 typedef std::shared_ptr<Variable> VariablePtr;
+typedef std::weak_ptr<Variable> WeakVariablePtr;
 
 } // namespace hlir
 } // namespace core

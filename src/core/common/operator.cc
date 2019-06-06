@@ -11,15 +11,14 @@ namespace common {
 Operator::Operator(OperatorBuilder builder) :
     type_name_(builder.type_name_),
     attr_type_map_(builder.attr_type_map_),
-    input_type_map_(builder.input_type_map_),
-    output_type_map_(builder.output_type_map_) {
-
-    // Initialize attr_val_map_
+    input_list_(builder.input_list_),
+    output_list_(builder.output_list_) {
+    // Initialize attr_val_map_ with nullptr
     for (std::pair<std::string, Datatype> attr_type_kv : builder.attr_type_map_) {
         attr_val_map_.insert({attr_type_kv.first, nullptr});
     }
 
-    // Store operator into static operator registry.
+    // Store operator into static operator registry
     OperatorRegistry::Register(builder.type_name_, *this);
 }
 

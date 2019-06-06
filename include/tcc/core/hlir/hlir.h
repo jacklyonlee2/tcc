@@ -12,9 +12,8 @@ namespace hlir {
 
 class HLIR {
     public:
-        void AddVariable(std::string variable_name, common::Datatype datatype);
-        void AddVariable(std::string variable_name, common::Datatype datatype, common::Data data);
-        void AddOperation(std::string operation_name, common::Operator op);
+        void AddVariable(Variable variable);
+        void AddOperation(Operation operation);
 
     private:
         std::unordered_map<std::string, VariablePtr> variable_map_;

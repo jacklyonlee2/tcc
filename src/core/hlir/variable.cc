@@ -6,16 +6,15 @@ namespace tcc {
 namespace core {
 namespace hlir {
 
-Variable::Variable(std::string instance_name, common::Datatype datatype) :
+Variable::Variable(const std::string instance_name, const common::Datatype datatype) :
     instance_name_(instance_name),
     datatype_(datatype) {
 }
 
-Variable::Variable(std::string instance_name, common::DataPtr data) :
-    instance_name_(instance_name) {
-    CHECK_NOTNULL(data);
-    datatype_ = data->GetType();
-    data_ = data;
+Variable::Variable(const std::string instance_name, common::Data data) :
+    instance_name_(instance_name),
+    datatype_(data.GetType()),
+    data_(std::make_shared<common::Data>(data)) {
 }
 
 } // namespace hlir

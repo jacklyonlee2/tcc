@@ -7,7 +7,7 @@
 #include "tcc/core/common/operator_registry.h"
 #include "tcc/core/common/operator.h"
 #include "protos/graph.pb.h"
-#include "protos/node_def.pb.h"
+//#include "protos/node_def.pb.h"
 #include "tcc/util/logging.h"
 
 namespace tcc {
@@ -149,23 +149,18 @@ static void ParseNodes(core::hlir::HLIR& hlir, tensorflow::GraphDef graph) {
             core::common::Datatype datatype =
                 ParseDatatype(node.attr().at("dtype").type());
 
-            hlir.AddVariable(variable_name, datatype);
+            hlir.AddVariable({variable_name, datatype});
 
         } else if (node.op() == "Const") { // Const op
-            CHECK_KEY_IN_MAP("dtype", node.attr());
             CHECK_KEY_IN_MAP("value", node.attr());
-            CHECK(node.attr().at("dtype").value_case() == tensorflow::AttrValue::kType) <<
-                "Attr 'dtype' must be of type tensorflow::AttrValue::kType.";
             CHECK(node.attr().at("value").value_case() == tensorflow::AttrValue::kTensor) <<
                 "Attr 'value' must be of type tensorflow::AttrValue::kTensor.";
 
             std::string variable_name = node.name();
-            core::common::Datatype datatype =
-                ParseDatatype(node.attr().at("dtype").type());
             core::common::Data data =
                 ParseData(node.attr().at("value").tensor());
 
-            hlir.AddVariable(variable_name, datatype, data);
+            hlir.AddVariable({variable_name, data});
 
         } else { // Other ops
             std::string operation_name = node.name();
@@ -173,7 +168,7 @@ static void ParseNodes(core::hlir::HLIR& hlir, tensorflow::GraphDef graph) {
                 core::common::OperatorRegistry::Instantiate(node.op());
             ParseAttrs(op, node);
 
-            hlir.AddOperation(operation_name, op);
+            hlir.AddOperation({operation_name, op});
         }
     }
 }

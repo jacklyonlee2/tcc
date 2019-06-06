@@ -19,17 +19,17 @@ OperatorBuilder& OperatorBuilder::Attr(const std::string attr_name, const Dataty
     return *this;
 }
 
-OperatorBuilder& OperatorBuilder::Input(const std::string input_name, const Datatype datatype) {
+OperatorBuilder& OperatorBuilder::Input(const std::string input_name) {
     // This function is called at static initialization time, NATIVE_CHECK is used instead of CHECK.
-    NATIVE_CHECK_KEY_NOT_IN_MAP(input_name, input_type_map_);
-    input_type_map_.insert({input_name, datatype});
+    NATIVE_CHECK_KEY_NOT_IN_VEC(input_name, input_list_);
+    input_list_.push_back(input_name);
     return *this;
 }
 
-OperatorBuilder& OperatorBuilder::Output(const std::string output_name, const Datatype datatype) {
+OperatorBuilder& OperatorBuilder::Output(const std::string output_name) {
     // This function is called at static initialization time, NATIVE_CHECK is used instead of CHECK.
-    NATIVE_CHECK_KEY_NOT_IN_MAP(output_name, output_type_map_);
-    output_type_map_.insert({output_name, datatype});
+    NATIVE_CHECK_KEY_NOT_IN_VEC(output_name, output_list_);
+    output_list_.push_back(output_name);
     return *this;
 }
 
