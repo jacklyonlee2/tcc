@@ -1,40 +1,32 @@
 # Build core library
 list(APPEND
-    COMMON_SRCS
-    ${TCC_INCLUDE_DIR}/tcc/core/common/data.h
-    ${TCC_INCLUDE_DIR}/tcc/core/common/datatype.h
-    ${TCC_INCLUDE_DIR}/tcc/core/common/operator_registry.h
-    ${TCC_INCLUDE_DIR}/tcc/core/common/operator_builder.h
-    ${TCC_INCLUDE_DIR}/tcc/core/common/operator.h
-    ${TCC_INCLUDE_DIR}/tcc/core/common/register_op.h
-    ./common/data.cc
-    ./common/operator_registry.cc
-    ./common/operator_builder.cc
-    ./common/operator.cc)
-
-list(APPEND
-    HLIR_SRCS
-    ${TCC_INCLUDE_DIR}/tcc/core/hlir/hlir.h
-    ${TCC_INCLUDE_DIR}/tcc/core/hlir/variable.h
-    ${TCC_INCLUDE_DIR}/tcc/core/hlir/operation.h
-    ./hlir/hlir.cc
-    ./hlir/variable.cc
-    ./hlir/operation.cc)
-
-list(APPEND
-    LLIR_SRCS
-    ${TCC_INCLUDE_DIR}/tcc/core/llir/llir.h
-    ./llir/llir.cc)
+    CORE_SRC
+    ${TCC_INCLUDE_DIR}/tcc/core/compiler.h
+    ${TCC_INCLUDE_DIR}/tcc/core/context.h
+    ${TCC_INCLUDE_DIR}/tcc/core/data.h
+    ${TCC_INCLUDE_DIR}/tcc/core/datatype.h
+    ${TCC_INCLUDE_DIR}/tcc/core/hlir.h
+    ${TCC_INCLUDE_DIR}/tcc/core/logging.h
+    ${TCC_INCLUDE_DIR}/tcc/core/operator.h
+    ${TCC_INCLUDE_DIR}/tcc/core/operator_registry.h
+    compiler.cc
+    context.cc
+    hlir.cc
+    operator.cc
+    operator_registry.cc)
 
 add_library(core
-    ${COMMON_SRCS}
-    ${HLIR_SRCS}
-    ${LLIR_SRCS})
+    ${CORE_SRC})
 
 target_compile_options(core
     PRIVATE
-    "-fPIC") # allows shared ops libraries to work
+    "-fPIC") # linking with shared library op
+
+target_include_directories(core
+    PUBLIC
+    ${TCC_ROOT_DIR}/extern/glog/src
+    ${TCC_BINARY_DIR}/extern/glog)
 
 target_link_libraries(core
-    PRIVATE
-    util)
+    PUBLIC
+    glog::glog)

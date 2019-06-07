@@ -1,12 +1,9 @@
-#include "tcc/core/common/operator_builder.h"
+#include "tcc/core/operator.h"
 
-#include <string>
-
-#include "tcc/util/logging.h"
+#include "tcc/core/operator_registry.h"
 
 namespace tcc {
 namespace core {
-namespace common {
 
 OperatorBuilder::OperatorBuilder(const std::string type_name) :
     type_name_(type_name) {
@@ -33,6 +30,23 @@ OperatorBuilder& OperatorBuilder::Output(const std::string output_name) {
     return *this;
 }
 
-} // namespace common
+Operator::Operator(OperatorBuilder builder) :
+    type_name_(builder.type_name_),
+    attr_type_map_(builder.attr_type_map_),
+    input_list_(builder.input_list_),
+    output_list_(builder.output_list_) {
+    // Store operator into static operator registry
+    OperatorRegistry::Register(builder.type_name_, *this);
+}
+
+void Operator::SetAttr(std::string attr_name, Data attr_val) {
+    CHECK_KEY_IN_MAP(attr_name, attr_type_map_);
+    CHECK_KEY_NOT_IN_MAP(attr_name, attr_val_map_);
+    CHECK(attr_type_map_.at(attr_name) == attr_val.GetType()) <<
+        "Actual attr type does not agree with declared attr type.";
+
+    attr_val_map_.insert({attr_name, attr_val});
+}
+
 } // namespace core
 } // namespace tcc

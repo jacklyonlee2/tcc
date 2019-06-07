@@ -1,10 +1,10 @@
-# Build tensorflow proto library
-add_subdirectory(protos)
+# Build TensorFlow proto library
+add_subdirectory(proto)
 
 # Build parser library
 add_library(parser
-    parser.cc
-    ${TCC_INCLUDE_DIR}/tcc/parser/parser.h)
+    ${TCC_INCLUDE_DIR}/tcc/parser/parser.h
+    parser.cc)
 
 target_include_directories(parser
     PRIVATE
@@ -13,8 +13,5 @@ target_include_directories(parser
 
 target_link_libraries(parser
     PRIVATE
-    util
-    ops
-    protos
-    INTERFACE
-    core)
+    core
+    proto)

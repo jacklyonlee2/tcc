@@ -11,12 +11,10 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 set(TCC_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(TCC_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(TCC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(WITH_GFLAGS OFF CACHE BOOL "Use gflags") # Disable gflags when building glog
 
 # Global includes
-include_directories(
-    ${TCC_INCLUDE_DIR} # tcc headers
-    ${TCC_ROOT_DIR}/extern/glog/src # glog headers
-    ${TCC_BINARY_DIR}/extern/glog) #glog headers
+include_directories(${TCC_INCLUDE_DIR})
 
 # Build dependencies
 find_package(Protobuf 3.7.1 REQUIRED) # protobuf-3.7.1
@@ -26,4 +24,4 @@ add_subdirectory(extern/googletest) # googletest-1.8.1
 
 # Build tcc
 add_subdirectory(src) # libraries
-add_subdirectory(apps) # executables
+add_subdirectory(app) # executables

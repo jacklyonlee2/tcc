@@ -3,7 +3,6 @@
 
 namespace tcc {
 namespace core {
-namespace common {
 
 enum class Datatype {
     kString,
@@ -13,7 +12,6 @@ enum class Datatype {
     kTensorInt32
 };
 
-} // namespace common
 } // namespace core
 } // namespace tcc
 

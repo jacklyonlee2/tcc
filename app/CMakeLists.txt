@@ -4,7 +4,8 @@ add_executable(tcc
 
 target_link_libraries(tcc
     PRIVATE
-    glog::glog
-    gflags::gflags
-    parser)
+    core
+    op
+    parser
+    gflags::gflags)
 

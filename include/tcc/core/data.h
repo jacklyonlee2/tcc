@@ -4,8 +4,10 @@
 #include <vector>
 #include <memory>
 #include <numeric>
+#include <algorithm>
 
-#include "tcc/core/common/datatype.h"
+#include "tcc/core/datatype.h"
+#include "tcc/core/logging.h"
 
 #define DEFINE_DATATYPE(type_enum, type) \
     DEFINE_NAMED_DATATYPE(type_enum, type, scalar_##type)
@@ -38,6 +40,9 @@
                 name##_(name), \
                 datatype_(type_enum), \
                 tensorshape_(tensorshape) { \
+                    CHECK(!tensorshape.empty()) << "Tensor shape can not be empty."; \
+                    CHECK(std::find(tensorshape.begin(), tensorshape.end(), 0) == tensorshape.end()) << \
+                        "Tensor shape can not contain dimension of 0."; \
                     data_length_ = std::accumulate( \
                             tensorshape.begin(), \
                             tensorshape.end(), \
@@ -48,7 +53,6 @@
 
 namespace tcc {
 namespace core {
-namespace common {
 
 class Data {
     DEFINE_NAMED_DATATYPE(Datatype::kString, std::string, string)
@@ -58,7 +62,7 @@ class Data {
     DEFINE_TENSOR_DATATYPE(Datatype::kTensorInt32, int32_t)
 
     public:
-        Datatype GetType() const;
+        Datatype GetType() const { return datatype_; }
 
     private:
         const Datatype datatype_;
@@ -66,17 +70,7 @@ class Data {
         std::vector<int64_t> tensorshape_;
 };
 
-typedef std::shared_ptr<Data> DataPtr;
-
-} // namespace common
 } // namespace core
 } // namespace tcc
-
-#undef DEFINE_DATATYPE
-#undef DEFINE_NAMED_DATATYPE
-#undef DEFINE_LIST_DATATYPE
-#undef DEFINE_NAMED_LIST_DATATYPE
-#undef DEFINE_TENSOR_DATATYPE
-#undef DEFINE_NAMED_TENSOR_DATATYPE
 
 #endif // TCC_DATA_H

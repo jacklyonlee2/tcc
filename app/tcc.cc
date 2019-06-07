@@ -1,9 +1,9 @@
 #include <fstream>
 
-#include "glog/logging.h"
 #include "gflags/gflags.h"
+#include "tcc/core/logging.h"
+#include "tcc/core/compiler.h"
 #include "tcc/parser/parser.h"
-#include "tcc/core/hlir/hlir.h"
 
 static bool ValidateFilePath(const char* flag_name, const std::string& value) {
     if (value.empty()) {
@@ -27,19 +27,8 @@ int main(int argc, char **argv) {
     gflags::SetUsageMessage("tcc -file_path=\"/PATH/TO/FROZEN/GRAPH\"");
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    // Parse TensorFlow frozen graph into HLIR
-    tcc::core::hlir::HLIR hlir;
-    tcc::parser::ParseFrozenGraph(hlir, FLAGS_file_path);
+    BUILD_COMPILER(tcc)
+        .Parser(tcc::parser::TensorFlowParser);
 
-    // Optimize HLIR
-
-    // Lower HLIR into LLIR
-
-    // Optimize LLIR
-
-    // Lower LLIR into CGEN
-
-    // Optimize CGEN
-
-    // Produce Output
+    tcc.Compile(FLAGS_file_path);
 }

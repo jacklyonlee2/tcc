@@ -1,7 +1,6 @@
-#include "tcc/core/common/register_op.h"
-#include "tcc/core/common/datatype.h"
+#include "tcc/core/operator.h"
 
-using namespace tcc::core::common;
+using namespace tcc::core;
 
 REGISTER_OP("Relu6")
     .Input("input")

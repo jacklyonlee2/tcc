@@ -1,40 +1,39 @@
 #include "tcc/parser/parser.h"
 
 #include <fstream>
-#include <numeric>
 #include <unordered_set>
 
-#include "tcc/core/common/operator_registry.h"
-#include "tcc/core/common/operator.h"
-#include "protos/graph.pb.h"
-#include "tcc/util/logging.h"
+#include "proto/graph.pb.h"
+#include "tcc/core/context.h"
+
+using namespace ::tcc::core;
 
 namespace tcc {
 namespace parser {
 
-static void ParseFile(tensorflow::GraphDef& graph, std::string file_path) {
+static void ParseFile(ParserContext& ctx, tensorflow::GraphDef& graph) {
     // Deserialize frozen graph into GraphDef.
     std::fstream file;
-    file.open(file_path, std::ios::in | std::ios::binary);
-    CHECK(file) << "Failed to open file at '" << file_path << "'.";
+    file.open(ctx.input_path_, std::ios::in | std::ios::binary);
+    CHECK(file) << "Failed to open file at '" << ctx.input_path_ << "'.";
     CHECK(graph.ParseFromIstream(&file)) <<
-        "Failed to parse frozen graph at'" << file_path << "'.";
+        "Failed to parse frozen graph at'" << ctx.input_path_ << "'.";
     file.close();
 }
 
-static void CheckNodes(tensorflow::GraphDef graph,
+static void CheckNodes(ParserContext& ctx, tensorflow::GraphDef graph,
         std::unordered_set<std::string> ignore = {
         "Const",
         "Placeholder"}) {
     // Check all node types are registered.
     for (tensorflow::NodeDef node : graph.node()) {
-        bool node_registered = core::common::OperatorRegistry::Registered(node.op());
+        bool node_registered = ctx.OperatorExists(node.op());
         bool node_ignored = ignore.find(node.op()) != ignore.end();
         CHECK(node_registered || node_ignored) << "Unregistered operator '" << node.op() << "'.";
     }
 }
 
-static void ParseAttrs(core::common::Operator& op, tensorflow::NodeDef node,
+static void ParseAttrs(Operator& op, tensorflow::NodeDef node,
         std::unordered_set<std::string> ignore = {
         "T",
         "Tshape",
@@ -52,7 +51,7 @@ static void ParseAttrs(core::common::Operator& op, tensorflow::NodeDef node,
                             LOG(FATAL) << "Unsupported tensorflow attr list type 'list(string)'.";
 
                         } else if (list.i_size() > 0) { // list(int) - 3
-                            op.SetAttr(attr_kv.first, core::common::Data(list.i().data(), list.i().size()));
+                            op.SetAttr(attr_kv.first, Data(list.i().data(), list.i().size()));
 
                         } else if (list.f_size() > 0) { // list(float) - 4
                             LOG(FATAL) << "Unsupported tensorflow attr list type 'list(float)'.";
@@ -76,11 +75,11 @@ static void ParseAttrs(core::common::Operator& op, tensorflow::NodeDef node,
                         break;
                 }
                 case tensorflow::AttrValue::kS: { // string - 2
-                    op.SetAttr(attr_kv.first, core::common::Data(attr_kv.second.s()));
+                    op.SetAttr(attr_kv.first, Data(attr_kv.second.s()));
                     break;
                 }
                 case tensorflow::AttrValue::kF: { // float - 3
-                    op.SetAttr(attr_kv.first, core::common::Data(attr_kv.second.f()));
+                    op.SetAttr(attr_kv.first, Data(attr_kv.second.f()));
                     break;
                 }
                 case tensorflow::AttrValue::VALUE_NOT_SET: { // notset - 0
@@ -95,27 +94,27 @@ static void ParseAttrs(core::common::Operator& op, tensorflow::NodeDef node,
     }
 }
 
-static core::common::Datatype ParseDatatype(tensorflow::DataType type) {
-    // Convert tensorflow::DataType to tcc::core::common::Datatype
+static Datatype ParseDatatype(tensorflow::DataType type) {
+    // Convert tensorflow::DataType to tcc::Datatype
     switch (type) {
         case tensorflow::DT_FLOAT: // 1
-            return core::common::Datatype::kTensorFloat32;
+            return Datatype::kTensorFloat32;
         case tensorflow::DT_INT32: // 3
-            return core::common::Datatype::kTensorInt32;
+            return Datatype::kTensorInt32;
         default:
             LOG(FATAL) << "Unsupported datatype conversion tensorflow datatype '" << type << "'.";
     }
 }
 
 template <typename T>
-static core::common::Data ParseDataHelper(tensorflow::TensorProto tensor, std::vector<int64_t> shape) {
+static Data ParseDataHelper(tensorflow::TensorProto tensor, std::vector<int64_t> shape) {
     char* bytes = strdup(tensor.tensor_content().data());
     T* data = reinterpret_cast<T*>(bytes);
-    return core::common::Data(data, shape);
+    return Data(data, shape);
 }
 
-static core::common::Data ParseData(tensorflow::TensorProto tensor) {
-    // Convert tensorflow::TensorProto to tcc::core::common::Data
+static Data ParseData(tensorflow::TensorProto tensor) {
+    // Convert tensorflow::TensorProto to tcc::Data
     CHECK(tensor.has_tensor_shape()) << "Tensor is missing shape.";
     CHECK(tensor.tensor_shape().dim_size() > 0) << "Tensor shape is empty.";
 
@@ -126,16 +125,16 @@ static core::common::Data ParseData(tensorflow::TensorProto tensor) {
     }
 
     switch (ParseDatatype(tensor.dtype())) {
-        case core::common::Datatype::kTensorFloat32:
+        case Datatype::kTensorFloat32:
             return ParseDataHelper<float>(tensor, shape);
-        case core::common::Datatype::kTensorInt32:
+        case Datatype::kTensorInt32:
             return ParseDataHelper<int32_t>(tensor, shape);
         default:
             LOG(FATAL) << "Unsupported datatype for data conversion.";
     }
 }
 
-static void ParseNodes(core::hlir::HLIR& hlir, tensorflow::GraphDef graph) {
+static void ParseNodes(ParserContext& ctx, tensorflow::GraphDef graph) {
     // Parse NodeDef into HLIR operations / variables.
     for (tensorflow::NodeDef node : graph.node()) {
 
@@ -145,10 +144,10 @@ static void ParseNodes(core::hlir::HLIR& hlir, tensorflow::GraphDef graph) {
                 "Attr 'dtype' must be of type tensorflow::AttrValue::kType.";
 
             std::string variable_name = node.name();
-            core::common::Datatype datatype =
+            Datatype datatype =
                 ParseDatatype(node.attr().at("dtype").type());
 
-            hlir.AddVariable({variable_name, datatype});
+            //hlir.AddVariable({variable_name, datatype});
 
         } else if (node.op() == "Const") { // Const op
             CHECK_KEY_IN_MAP("value", node.attr());
@@ -156,27 +155,26 @@ static void ParseNodes(core::hlir::HLIR& hlir, tensorflow::GraphDef graph) {
                 "Attr 'value' must be of type tensorflow::AttrValue::kTensor.";
 
             std::string variable_name = node.name();
-            core::common::Data data =
+            Data data =
                 ParseData(node.attr().at("value").tensor());
 
-            hlir.AddVariable({variable_name, data});
+            //hlir.AddVariable({variable_name, data});
 
         } else { // Other ops
             std::string operation_name = node.name();
-            core::common::Operator op =
-                core::common::OperatorRegistry::Instantiate(node.op());
+            Operator op = ctx.OperatorInstantiate(node.op());
             ParseAttrs(op, node);
 
-            hlir.AddOperation({operation_name, op});
+            //hlir.AddOperation({operation_name, op});
         }
     }
 }
 
-void ParseFrozenGraph(core::hlir::HLIR& hlir, std::string file_path) {
+void TensorFlowParser(ParserContext& ctx) {
     tensorflow::GraphDef graph;
-    ParseFile(graph, file_path);
-    CheckNodes(graph);
-    ParseNodes(hlir, graph);
+    ParseFile(ctx, graph);
+    CheckNodes(ctx, graph);
+    ParseNodes(ctx, graph);
 }
 
 } // namespace parser
