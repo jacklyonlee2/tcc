@@ -7,7 +7,6 @@
 #include "tcc/core/common/operator_registry.h"
 #include "tcc/core/common/operator.h"
 #include "protos/graph.pb.h"
-//#include "protos/node_def.pb.h"
 #include "tcc/util/logging.h"
 
 namespace tcc {
