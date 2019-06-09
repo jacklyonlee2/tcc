@@ -27,8 +27,10 @@ int main(int argc, char **argv) {
     gflags::SetUsageMessage("tcc -input_path=\"/PATH/TO/FROZEN/GRAPH\"");
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    BUILD_COMPILER(tcc)
+    BUILD_COMPILER(tcc_compiler)
         .Parser(tcc::parser::TensorFlowParser);
 
-    tcc.ParseInput(FLAGS_input_path);
+    tcc_compiler
+        .ParseInput(FLAGS_input_path)
+        .PrintHLIR("./hlir.dot");
 }

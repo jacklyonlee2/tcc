@@ -36,6 +36,7 @@ OperatorBuilder& OperatorBuilder::Output(const std::string output_name) {
 }
 
 Operator::Operator(OperatorBuilder builder) :
+    type_name_(builder.type_name_),
     attr_type_map_(builder.attr_type_map_),
     input_list_(builder.input_list_),
     output_list_(builder.output_list_) {

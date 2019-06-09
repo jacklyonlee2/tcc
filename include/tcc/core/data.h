@@ -63,7 +63,7 @@ class Data {
     DEFINE_TENSOR_DATATYPE(Datatype::kTensorInt32, int32_t)
 
     public:
-        Data() : datatype_(Datatype::kUninitialized) {}
+        Data() {}
         bool IsEmpty() const { return datatype_ == Datatype::kUninitialized; }
         Datatype GetType() const { return datatype_; }
 

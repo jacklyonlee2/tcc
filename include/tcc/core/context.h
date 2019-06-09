@@ -12,6 +12,10 @@ class Compiler;
 
 class ParserContext {
     public:
+        typedef std::pair<
+            std::pair<std::string, unsigned int>,
+            std::pair<std::string, unsigned int>> Edge;
+
         ParserContext(const std::string input_path);
 
         bool OperatorExists(const std::string type);
@@ -24,6 +28,11 @@ class ParserContext {
                 const std::string dst_name,  const unsigned int input_index);
 
     private:
+        std::unordered_map<std::string, Datatype> placeholder_map_;
+        std::unordered_map<std::string, Data> constant_map_;
+        std::unordered_map<std::string, Operator> operation_map_;
+        std::vector<Edge> edges_;
+
         HLIR BuildHLIR();
 
     public:

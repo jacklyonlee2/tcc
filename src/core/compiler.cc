@@ -1,5 +1,7 @@
 #include "tcc/core/compiler.h"
 
+#include <fstream>
+
 #include "tcc/core/context.h"
 #include "tcc/core/logging.h"
 
@@ -14,7 +16,6 @@ CompilerBuilder& CompilerBuilder::Parser(void(*parser)(ParserContext&)) {
 
 Compiler::Compiler(CompilerBuilder& builder) {
     CHECK_NOTNULL(builder.parser_);
-
     parser_ = builder.parser_;
 }
 
@@ -23,11 +24,16 @@ Compiler& Compiler::ParseInput(std::string input_path) {
     parser_(parser_ctx);
     HLIR hlir = parser_ctx.BuildHLIR();
     hlir_ptr_ = std::make_shared<HLIR>(hlir);
+
     return *this;
 }
 
 Compiler& Compiler::PrintHLIR(std::string output_path) {
     CHECK_NOTNULL(hlir_ptr_); // ParseInput must be called first
+    std::ofstream file(output_path, std::ios::trunc);
+    CHECK(file) << "Failed to open file at '" << output_path << "'.";
+    hlir_ptr_->Print(file);
+    file.close();
 
     return *this;
 }

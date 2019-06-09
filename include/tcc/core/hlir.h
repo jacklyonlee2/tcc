@@ -2,6 +2,7 @@
 #define TCC_HLIR_H
 
 #include <unordered_map>
+#include <fstream>
 
 #include "tcc/core/data.h"
 #include "tcc/core/operator.h"
@@ -36,7 +37,6 @@ class HLIR {
 
             private:
                 std::unordered_map<std::string, Data> attrs_;
-
                 std::unordered_map<std::string, std::string> input_variable_map_;
                 std::unordered_map<std::string, std::string> output_variable_map_;
 
@@ -47,6 +47,7 @@ class HLIR {
         void AddOperation(std::string name, Operation operation);
 
         bool IsValid() const;
+        void Print(std::ofstream& stream) const;
 
     private:
         std::unordered_map<std::string, Variable> variable_map_;
