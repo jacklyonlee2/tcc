@@ -12,8 +12,11 @@ void OperatorRegistry::Register(std::string type_name, Operator& op) {
                 new std::unordered_map<std::string, Operator>());
     }
 
-    NATIVE_CHECK_KEY_NOT_IN_MAP(type_name, *registry_);
-    NATIVE_CHECK(!type_name.empty(), "Operator type name can not be empty.");
+    NATIVE_CHECK_KEY_NOT_IN_MAP(type_name, *registry_,
+            "Operator type '" + type_name + "' has already been registered.");
+    NATIVE_CHECK(!type_name.empty(),
+            "Operator type name can not be empty.");
+
     registry_->insert({type_name, op});
 }
 

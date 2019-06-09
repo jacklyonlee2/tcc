@@ -16,26 +16,24 @@
         abort(); \
     }
 
-#define NATIVE_CHECK_KEY_IN_MAP(key, map) \
-    NATIVE_CHECK((map).find(key) != (map).end(), \
-            "Key '" + key + "' is not found in " + #map + ".")
+#define NATIVE_CHECK_KEY_IN_MAP(key, map, msg) \
+    NATIVE_CHECK((map).find(key) != (map).end(), msg)
 
-#define NATIVE_CHECK_KEY_NOT_IN_MAP(key, map) \
-    NATIVE_CHECK((map).find(key) == (map).end(), \
-            "Key '" + key + "' already exists in " + #map + ".")
+#define NATIVE_CHECK_KEY_NOT_IN_MAP(key, map, msg) \
+    NATIVE_CHECK((map).find(key) == (map).end(), msg)
 
-#define NATIVE_CHECK_KEY_NOT_IN_VEC(key, vec) \
-    NATIVE_CHECK(std::find((vec).begin(), (vec).end(), key) == (vec).end(), \
-            "Key '" + key + "' already exists in " + #vec + ".")
+#define NATIVE_CHECK_KEY_NOT_IN_VEC(key, vec, msg) \
+    NATIVE_CHECK(std::find((vec).begin(), (vec).end(), key) == (vec).end(), msg)
 
 // Macros based on glog API
 
 #define CHECK_KEY_IN_MAP(key, map) \
-    CHECK((map).find(key) != (map).end()) << \
-        "Key '" << key << "' is not found in " << #map << "."
+    CHECK((map).find(key) != (map).end())
 
 #define CHECK_KEY_NOT_IN_MAP(key, map) \
-    CHECK((map).find(key) == (map).end()) << \
-        "Key '" << key << "' already exists in " << #map << "."
+    CHECK((map).find(key) == (map).end())
+
+#define CHECK_KEY_NOT_IN_VEC(key, vec) \
+    CHECK(std::find((vec).begin(), (vec).end(), key) == (vec).end())
 
 #endif // TCC_LOGGING_H

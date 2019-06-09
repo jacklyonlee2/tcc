@@ -15,16 +15,29 @@ bool ParserContext::OperatorExists(const std::string type) {
 
 Operator ParserContext::OperatorInstantiate(const std::string type) {
     CHECK_NOTNULL(OperatorRegistry::registry_);
-    CHECK_KEY_IN_MAP(type, *OperatorRegistry::registry_);
+    CHECK_KEY_IN_MAP(type, *OperatorRegistry::registry_) <<
+        "Operator type '" << type << "' is not found in registry_.";
     return OperatorRegistry::registry_->at(type);
 }
 
-void ParserContext::AddVariable(const std::string name, HLIR::Variable variable) {
+void ParserContext::AddPlaceholder(const std::string name, Datatype datatype) {
+    CHECK(datatype != Datatype::kUninitialized) <<
+        "Placeholder data type can not be 'kUninitialized'.";
 }
 
-void ParserContext::AddOperation(const std::string name, HLIR::Operation operation,
-        std::vector<std::string> input_variable_names,
-        std::vector<std::string> output_variable_names) {
+void ParserContext::AddConstant(const std::string name, Data data) {
+    CHECK(!data.IsEmpty()) << "Constant data can not be uninitialized.";
+}
+
+void ParserContext::AddOperation(const std::string name, Operator op) {
+}
+
+void ParserContext::AddEdge(const std::string src_name, const unsigned int output_index,
+        const std::string dst_name,  const unsigned int input_index) {
+}
+
+HLIR ParserContext::BuildHLIR() {
+    return HLIR();
 }
 
 } // namespace core

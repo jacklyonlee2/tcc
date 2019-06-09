@@ -143,29 +143,32 @@ static void ParseNodes(ParserContext& ctx, tensorflow::GraphDef graph) {
             CHECK(node.attr().at("dtype").value_case() == tensorflow::AttrValue::kType) <<
                 "Attr 'dtype' must be of type tensorflow::AttrValue::kType.";
 
-            std::string variable_name = node.name();
             Datatype datatype =
                 ParseDatatype(node.attr().at("dtype").type());
 
-            //hlir.AddVariable({variable_name, datatype});
+            ctx.AddPlaceholder(node.name(), datatype);
 
         } else if (node.op() == "Const") { // Const op
             CHECK_KEY_IN_MAP("value", node.attr());
             CHECK(node.attr().at("value").value_case() == tensorflow::AttrValue::kTensor) <<
                 "Attr 'value' must be of type tensorflow::AttrValue::kTensor.";
 
-            std::string variable_name = node.name();
             Data data =
                 ParseData(node.attr().at("value").tensor());
 
-            //hlir.AddVariable({variable_name, data});
+            ctx.AddConstant(node.name(), data);
 
         } else { // Other ops
-            std::string operation_name = node.name();
             Operator op = ctx.OperatorInstantiate(node.op());
             ParseAttrs(op, node);
 
-            //hlir.AddOperation({operation_name, op});
+            ctx.AddOperation(node.name(), op);
+        }
+
+        // Add edges
+        unsigned int num_inputs = static_cast<unsigned int>(node.input_size());
+        for (unsigned int index = 0; index < num_inputs; index++) {
+            ctx.AddEdge(node.input(index), 0, node.name(), index);
         }
     }
 }

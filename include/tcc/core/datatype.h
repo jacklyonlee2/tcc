@@ -5,6 +5,7 @@ namespace tcc {
 namespace core {
 
 enum class Datatype {
+    kUninitialized,
     kString,
     kScalarFloat32,
     kListInt64,

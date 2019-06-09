@@ -40,8 +40,9 @@
                 name##_(name), \
                 datatype_(type_enum), \
                 tensorshape_(tensorshape) { \
-                    CHECK(!tensorshape.empty()) << "Tensor shape can not be empty."; \
-                    CHECK(std::find(tensorshape.begin(), tensorshape.end(), 0) == tensorshape.end()) << \
+                    CHECK(!tensorshape.empty()) << \
+                        "Tensor shape can not be empty."; \
+                    CHECK_KEY_NOT_IN_VEC(0, tensorshape) << \
                         "Tensor shape can not contain dimension of 0."; \
                     data_length_ = std::accumulate( \
                             tensorshape.begin(), \
@@ -62,10 +63,12 @@ class Data {
     DEFINE_TENSOR_DATATYPE(Datatype::kTensorInt32, int32_t)
 
     public:
+        Data() : datatype_(Datatype::kUninitialized) {}
+        bool IsEmpty() const { return datatype_ == Datatype::kUninitialized; }
         Datatype GetType() const { return datatype_; }
 
     private:
-        const Datatype datatype_;
+        Datatype datatype_ = Datatype::kUninitialized;
         int64_t data_length_;
         std::vector<int64_t> tensorshape_;
 };

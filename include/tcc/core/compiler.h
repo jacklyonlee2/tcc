@@ -2,6 +2,7 @@
 #define TCC_COMPILER_H
 
 #include <vector>
+#include <memory>
 
 #include "tcc/core/context.h"
 
@@ -27,11 +28,24 @@ class Compiler {
     public:
         Compiler(CompilerBuilder& builder);
 
-        void Compile(std::string input_path);
-        void VisualizeHLIR(std::string output_path);
+        Compiler& ParseInput(std::string input_path);
+        Compiler& PrintHLIR(std::string output_path);
+        Compiler& OptimizeHLIR();
+
+        Compiler& HLIRtoLLIR();
+        Compiler& PrintLLIR(std::string output_path);
+        Compiler& OptimizeLLIR();
+
+        Compiler& LLIRtoCGEN();
+        Compiler& PrintCGEN(std::string output_path);
+        Compiler& OptimizeCGEN();
+
+        void GenerateOutput(std::string output_path);
 
     private:
         void(*parser_)(ParserContext&);
+
+        std::shared_ptr<HLIR> hlir_ptr_ = nullptr;
 };
 
 } // namespace core

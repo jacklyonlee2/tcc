@@ -8,6 +8,8 @@
 namespace tcc {
 namespace core {
 
+class Compiler;
+
 class ParserContext {
     public:
         ParserContext(const std::string input_path);
@@ -15,16 +17,19 @@ class ParserContext {
         bool OperatorExists(const std::string type);
         Operator OperatorInstantiate(const std::string type);
 
-        void AddVariable(const std::string name, HLIR::Variable variable);
-        void AddOperation(const std::string name, HLIR::Operation operation,
-                std::vector<std::string> input_variable_names,
-                std::vector<std::string> output_variable_names);
+        void AddPlaceholder(const std::string name, Datatype datatype);
+        void AddConstant(const std::string name, Data data);
+        void AddOperation(const std::string name, Operator op);
+        void AddEdge(const std::string src_name, const unsigned int output_index,
+                const std::string dst_name,  const unsigned int input_index);
 
     private:
-        HLIR hlir_;
+        HLIR BuildHLIR();
 
     public:
         const std::string input_path_;
+
+    friend class Compiler;
 };
 
 } // namespace core

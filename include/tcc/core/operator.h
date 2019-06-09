@@ -36,12 +36,13 @@ class Operator {
         void SetAttr(std::string attr_name, Data attr_val);
 
     private:
-        const std::string type_name_;
         const std::unordered_map<std::string, Datatype> attr_type_map_;
         const std::vector<std::string> input_list_;
         const std::vector<std::string> output_list_;
 
         std::unordered_map<std::string, Data> attr_val_map_;
+
+    friend class ParserContext;
 };
 
 } // namespace core
