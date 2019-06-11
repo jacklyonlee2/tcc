@@ -51,7 +51,7 @@ static void ParseAttrs(Operator& op, tensorflow::NodeDef node,
                             LOG(FATAL) << "Unsupported tensorflow attr list type 'list(string)'.";
 
                         } else if (list.i_size() > 0) { // list(int) - 3
-                            op.SetAttr(attr_kv.first, Data(list.i().data(), list.i().size()));
+                            op.SetAttr(attr_kv.first, Data::kListInt64(list.i().data(), list.i().size()));
 
                         } else if (list.f_size() > 0) { // list(float) - 4
                             LOG(FATAL) << "Unsupported tensorflow attr list type 'list(float)'.";
@@ -75,11 +75,11 @@ static void ParseAttrs(Operator& op, tensorflow::NodeDef node,
                         break;
                 }
                 case tensorflow::AttrValue::kS: { // string - 2
-                    op.SetAttr(attr_kv.first, Data(attr_kv.second.s()));
+                    op.SetAttr(attr_kv.first, Data::kString(attr_kv.second.s()));
                     break;
                 }
                 case tensorflow::AttrValue::kF: { // float - 3
-                    op.SetAttr(attr_kv.first, Data(attr_kv.second.f()));
+                    op.SetAttr(attr_kv.first, Data::kFloat32(attr_kv.second.f()));
                     break;
                 }
                 case tensorflow::AttrValue::VALUE_NOT_SET: { // notset - 0
@@ -106,13 +106,6 @@ static Datatype ParseDatatype(tensorflow::DataType type) {
     }
 }
 
-template <typename T>
-static Data ParseDataHelper(tensorflow::TensorProto tensor, std::vector<int64_t> shape) {
-    char* bytes = strdup(tensor.tensor_content().data());
-    T* data = reinterpret_cast<T*>(bytes);
-    return Data(data, shape);
-}
-
 static Data ParseData(tensorflow::TensorProto tensor) {
     // Convert tensorflow::TensorProto to tcc::Data
     CHECK(tensor.has_tensor_shape()) << "Tensor is missing shape.";
@@ -126,9 +119,9 @@ static Data ParseData(tensorflow::TensorProto tensor) {
 
     switch (ParseDatatype(tensor.dtype())) {
         case Datatype::kTensorFloat32:
-            return ParseDataHelper<float>(tensor, shape);
+            return Data::kTensorFloat32(tensor.tensor_content().data(), shape);
         case Datatype::kTensorInt32:
-            return ParseDataHelper<int32_t>(tensor, shape);
+            return Data::kTensorInt32(tensor.tensor_content().data(), shape);
         default:
             LOG(FATAL) << "Unsupported datatype for data conversion.";
     }

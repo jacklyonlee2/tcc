@@ -6,6 +6,7 @@
 
 #include "tcc/core/data.h"
 #include "tcc/core/operator.h"
+#include "tcc/core/llir.h"
 
 namespace tcc {
 namespace core {
@@ -48,6 +49,7 @@ class HLIR {
 
         bool IsValid() const;
         void Print(std::ofstream& stream) const;
+        LLIR Lower() const;
 
     private:
         std::unordered_map<std::string, Variable> variable_map_;

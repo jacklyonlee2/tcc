@@ -4,6 +4,7 @@
 #include "tcc/core/operator.h"
 #include "tcc/core/operator_registry.h"
 #include "tcc/core/hlir.h"
+#include "tcc/core/llir.h"
 
 namespace tcc {
 namespace core {

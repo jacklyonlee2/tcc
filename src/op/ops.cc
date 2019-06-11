@@ -16,7 +16,7 @@ REGISTER_OP("DepthwiseConv2dNative")
     .Output("output");
 
 REGISTER_OP("FusedBatchNorm")
-    .Attr("epsilon", Datatype::kScalarFloat32)
+    .Attr("epsilon", Datatype::kFloat32)
     .Attr("data_format", Datatype::kString)
     .Input("x")
     .Input("scale")

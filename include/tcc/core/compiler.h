@@ -46,6 +46,7 @@ class Compiler {
         void(*parser_)(ParserContext&);
 
         std::shared_ptr<HLIR> hlir_ptr_ = nullptr;
+        std::shared_ptr<LLIR> llir_ptr_ = nullptr;
 };
 
 } // namespace core
