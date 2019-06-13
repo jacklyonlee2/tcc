@@ -65,8 +65,8 @@ void ParserContext::AddEdge(const std::string src_name, const unsigned int outpu
 }
 
 HLIR ParserContext::BuildHLIR() {
-    unsigned int intermidiate_count = 1;
-    std::unordered_map<std::string, std::string> intermidiate_prev_op_map;
+    unsigned int intermediate_count = 1;
+    std::unordered_map<std::string, std::string> intermediate_prev_op_map;
     std::unordered_map<std::string, std::vector<std::string>> var_next_ops_map;
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> op_input_map;
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> op_output_map;
@@ -111,10 +111,10 @@ HLIR ParserContext::BuildHLIR() {
             }
 
         } else {
-            // Initialize intermidiate var
-            std::string intermidiate_name;
+            // Initialize intermediate var
+            std::string intermediate_name;
 
-            // Connect src operation to intermidiate var
+            // Connect src operation to intermediate var
             CHECK_KEY_IN_MAP(src_name, operation_map_) <<
                 "'" << src_name << "' is not found as an operation.";
             CHECK(output_index < operation_map_.at(src_name).output_list_.size()) <<
@@ -128,28 +128,28 @@ HLIR ParserContext::BuildHLIR() {
                     op_output_map.at(src_name).find(op_output_name) !=
                     op_output_map.at(src_name).end()) {
                 // Intermidiate var already exists
-                intermidiate_name = op_output_map.at(src_name).at(op_output_name);
-                CHECK_KEY_IN_MAP(intermidiate_name, intermidiate_prev_op_map) <<
-                    "prev_op is not set for existing intermidiate var '" << intermidiate_name << "'.";
+                intermediate_name = op_output_map.at(src_name).at(op_output_name);
+                CHECK_KEY_IN_MAP(intermediate_name, intermediate_prev_op_map) <<
+                    "prev_op is not set for existing intermediate var '" << intermediate_name << "'.";
             } else {
-                // Create intermidiate var
-                intermidiate_name = "V" + std::to_string(intermidiate_count);
-                intermidiate_count++;
+                // Create intermediate var
+                intermediate_name = "V" + std::to_string(intermediate_count);
+                intermediate_count++;
 
-                // Set src operation as prev_op to intermidiate var
-                CHECK_KEY_NOT_IN_MAP(intermidiate_name, intermidiate_prev_op_map) <<
-                    "prev_op is already set for intermidiate var '" << intermidiate_name << "'.";
-                intermidiate_prev_op_map.insert({intermidiate_name, src_name});
+                // Set src operation as prev_op to intermediate var
+                CHECK_KEY_NOT_IN_MAP(intermediate_name, intermediate_prev_op_map) <<
+                    "prev_op is already set for intermediate var '" << intermediate_name << "'.";
+                intermediate_prev_op_map.insert({intermediate_name, src_name});
 
-                // Add intermidiate var as an output to src operation
+                // Add intermediate var as an output to src operation
                 if (op_output_map.find(src_name) != op_output_map.end()) {
-                    op_output_map.at(src_name).insert({op_output_name, intermidiate_name});
+                    op_output_map.at(src_name).insert({op_output_name, intermediate_name});
                 } else {
-                    op_output_map.insert({src_name, {{op_output_name, intermidiate_name}}});
+                    op_output_map.insert({src_name, {{op_output_name, intermediate_name}}});
                 }
             }
 
-            // Connect intermidiate var to dst operation
+            // Connect intermediate var to dst operation
             CHECK_KEY_IN_MAP(dst_name, operation_map_) <<
                 "'" << dst_name << "' is not found as an operation.";
             CHECK(input_index < operation_map_.at(dst_name).input_list_.size()) <<
@@ -159,22 +159,22 @@ HLIR ParserContext::BuildHLIR() {
             const std::string op_input_name =
                 operation_map_.at(dst_name).input_list_[input_index];
 
-            // Add dst operation as a next_op to intermidiate var
-            if (var_next_ops_map.find(intermidiate_name) != var_next_ops_map.end()) {
-                CHECK_KEY_NOT_IN_VEC(dst_name, var_next_ops_map.at(intermidiate_name)) <<
-                    "'" << dst_name << "' already exists in next_ops of '" << intermidiate_name << "'.";
-                var_next_ops_map.at(intermidiate_name).push_back(dst_name);
+            // Add dst operation as a next_op to intermediate var
+            if (var_next_ops_map.find(intermediate_name) != var_next_ops_map.end()) {
+                CHECK_KEY_NOT_IN_VEC(dst_name, var_next_ops_map.at(intermediate_name)) <<
+                    "'" << dst_name << "' already exists in next_ops of '" << intermediate_name << "'.";
+                var_next_ops_map.at(intermediate_name).push_back(dst_name);
             } else {
-                var_next_ops_map.insert({intermidiate_name, {dst_name}});
+                var_next_ops_map.insert({intermediate_name, {dst_name}});
             }
 
-            // Add intermidiate var as an input to dst operation
+            // Add intermediate var as an input to dst operation
             if (op_input_map.find(dst_name) != op_input_map.end()) {
                 CHECK_KEY_NOT_IN_MAP(op_input_name, op_input_map.at(dst_name)) <<
                     "Input '" << op_input_name << "' for '" << dst_name << "' is already set.";
-                op_input_map.at(dst_name).insert({op_input_name, intermidiate_name});
+                op_input_map.at(dst_name).insert({op_input_name, intermediate_name});
             } else {
-                op_input_map.insert({dst_name, {{op_input_name, intermidiate_name}}});
+                op_input_map.insert({dst_name, {{op_input_name, intermediate_name}}});
             }
         }
     }
@@ -195,17 +195,17 @@ HLIR ParserContext::BuildHLIR() {
         for (std::string output_name : op_kv.second.output_list_) {
             if (op_output_map.at(op_kv.first).find(output_name) ==
                     op_output_map.at(op_kv.first).end()) {
-                // Create intermidiate var
-                const std::string intermidiate_name = "V" + std::to_string(intermidiate_count);
-                intermidiate_count++;
+                // Create intermediate var
+                const std::string intermediate_name = "V" + std::to_string(intermediate_count);
+                intermediate_count++;
 
-                // Set op as prev_op to intermidiate var
-                CHECK_KEY_NOT_IN_MAP(intermidiate_name, intermidiate_prev_op_map) <<
-                    "prev_op is already set for intermidiate var '" << intermidiate_name << "'.";
-                intermidiate_prev_op_map.insert({intermidiate_name, op_kv.first});
+                // Set op as prev_op to intermediate var
+                CHECK_KEY_NOT_IN_MAP(intermediate_name, intermediate_prev_op_map) <<
+                    "prev_op is already set for intermediate var '" << intermediate_name << "'.";
+                intermediate_prev_op_map.insert({intermediate_name, op_kv.first});
 
-                // Add intermidiate var as an output to op
-                op_output_map.at(op_kv.first).insert({output_name, intermidiate_name});
+                // Add intermediate var as an output to op
+                op_output_map.at(op_kv.first).insert({output_name, intermediate_name});
             }
         }
     }
@@ -229,8 +229,8 @@ HLIR ParserContext::BuildHLIR() {
         hlir.AddVariable(const_kv.first, var);
     }
 
-    // Construct and add all intermidiate vars
-    for (std::pair<std::string, std::string> interm_kv : intermidiate_prev_op_map) {
+    // Construct and add all intermediate vars
+    for (std::pair<std::string, std::string> interm_kv : intermediate_prev_op_map) {
         if (var_next_ops_map.find(interm_kv.first) != var_next_ops_map.end()) {
             HLIR::Variable var(interm_kv.second, var_next_ops_map.at(interm_kv.first));
             hlir.AddVariable(interm_kv.first, var);

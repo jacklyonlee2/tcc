@@ -16,7 +16,7 @@ class HLIR {
         class Variable {
             public:
                 Variable(const std::string prev_op_name,
-                        const std::vector<std::string> next_op_names); // Intermidiates
+                        const std::vector<std::string> next_op_names); // Intermediates
                 Variable(Data data, const std::vector<std::string> next_op_names); // Constants
                 Variable(Datatype datatype, const std::vector<std::string> next_op_names); // Placeholders
 

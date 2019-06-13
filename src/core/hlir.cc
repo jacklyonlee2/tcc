@@ -7,7 +7,7 @@ HLIR::Variable::Variable(
         const std::string prev_op_name,
         const std::vector<std::string> next_op_names) {
     CHECK(!prev_op_name.empty()) <<
-        "prev_op_name of intermidate variable can not be empty.";
+        "prev_op_name of intermediate variable can not be empty.";
     CHECK_KEY_NOT_IN_VEC("", next_op_names) <<
         "next_op_name can not be empty.";
 
