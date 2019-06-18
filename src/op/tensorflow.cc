@@ -1,10 +1,13 @@
 #include "tcc/core/operator.h"
+#include "tcc/core/context.h"
 
 using namespace tcc::core;
 
 REGISTER_OP("Relu6")
     .Input("features")
-    .Output("activations");
+    .Output("activations")
+    .Kernel([](KernelContext& ctx){
+            });
 
 REGISTER_OP("DepthwiseConv2dNative")
     .Attr("dilations", Datatype::kVectorI64)

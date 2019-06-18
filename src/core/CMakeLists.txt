@@ -2,12 +2,14 @@
 list(APPEND
     CORE_SRC
     ${TCC_INCLUDE_DIR}/tcc/core/compiler.h
+    ${TCC_INCLUDE_DIR}/tcc/core/context.h
     ${TCC_INCLUDE_DIR}/tcc/core/data.h
     ${TCC_INCLUDE_DIR}/tcc/core/hlir.h
     ${TCC_INCLUDE_DIR}/tcc/core/llir.h
     ${TCC_INCLUDE_DIR}/tcc/core/logging.h
     ${TCC_INCLUDE_DIR}/tcc/core/operator.h
     compiler.cc
+    context.cc
     hlir.cc
     llir.cc
     operator.cc)
