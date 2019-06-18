@@ -1,76 +1,38 @@
 #include "tcc/core/compiler.h"
 
-#include <fstream>
-
-#include "tcc/core/context.h"
-#include "tcc/core/logging.h"
-
 namespace tcc {
 namespace core {
 
-CompilerBuilder& CompilerBuilder::Parser(void(*parser)(ParserContext&)) {
-    CHECK(parser_ == nullptr) << "Parser already registered.";
-
-    parser_ = parser;
+CompilerBuilder& CompilerBuilder::HLIRBuilder(HLIR(*hlir_builder)(std::string input_path)) {
+    CHECK(hlir_builder_ == nullptr) <<
+        "HLIR builder already registered.";
+    hlir_builder_ = hlir_builder;
 }
 
-Compiler::Compiler(CompilerBuilder& builder) {
-    CHECK_NOTNULL(builder.parser_);
-    parser_ = builder.parser_;
+Compiler::Compiler(CompilerBuilder& builder) :
+    hlir_builder_(builder.hlir_builder_) {
 }
 
-Compiler& Compiler::ParseInput(std::string input_path) {
-    ParserContext parser_ctx(input_path);
-    parser_(parser_ctx);
-    HLIR hlir = parser_ctx.BuildHLIR();
-    hlir_ptr_ = std::make_shared<HLIR>(hlir);
+Compiler& Compiler::BuildHLIR(std::string input_path) {
+    CHECK(hlir_builder_ != nullptr) <<
+        "HLIRBuilder is not registered.";
+    hlir_ptr_ = std::make_shared<HLIR>(hlir_builder_(input_path));
 
     return *this;
 }
 
 Compiler& Compiler::PrintHLIR(std::string output_path) {
-    CHECK_NOTNULL(hlir_ptr_); // ParseInput must be called first
+    CHECK(hlir_ptr_ != nullptr) <<
+        "PrintHLIR must be called after BuildHLIR.";
+
     std::ofstream file(output_path, std::ios::trunc);
-    CHECK(file) << "Failed to open file at '" << output_path << "'.";
+    CHECK(file) <<
+        "Failed to open file at '" << output_path << "'.";
+
     hlir_ptr_->Print(file);
     file.close();
 
     return *this;
-}
-
-Compiler& Compiler::OptimizeHLIR() {
-    CHECK_NOTNULL(hlir_ptr_); // ParseInput must be called first
-
-    return *this;
-}
-
-Compiler& Compiler::HLIRtoLLIR() {
-    CHECK_NOTNULL(hlir_ptr_); // ParseInput must be called first
-
-    return *this;
-}
-
-Compiler& Compiler::PrintLLIR(std::string output_path) {
-    return *this;
-}
-
-Compiler& Compiler::OptimizeLLIR() {
-    return *this;
-}
-
-Compiler& Compiler::LLIRtoCGEN() {
-    return *this;
-}
-
-Compiler& Compiler::PrintCGEN(std::string output_path) {
-    return *this;
-}
-
-Compiler& Compiler::OptimizeCGEN() {
-    return *this;
-}
-
-void Compiler::GenerateOutput(std::string output_path) {
 }
 
 } // namespace core

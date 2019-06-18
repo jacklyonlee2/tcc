@@ -1,11 +1,11 @@
 #ifndef TCC_OPERATOR_H
 #define TCC_OPERATOR_H
 
-#include <string>
 #include <vector>
 #include <unordered_map>
 
 #include "tcc/core/data.h"
+#include "tcc/core/hlir.h"
 
 namespace tcc {
 namespace core {
@@ -33,26 +33,31 @@ class Operator {
     public:
         Operator(OperatorBuilder builder);
 
-        void SetAttr(std::string attr_name, Data attr_val);
-
     private:
         const std::string type_name_;
         const std::unordered_map<std::string, Datatype> attr_type_map_;
         const std::vector<std::string> input_list_;
         const std::vector<std::string> output_list_;
 
-        std::unordered_map<std::string, Data> attr_val_map_;
+    public:
+        static bool Exists(std::string type_name);
+        static Operator Create(std::string type_name);
 
-    friend class ParserContext;
+    private:
+        static std::shared_ptr<std::unordered_map<std::string, Operator>> registry_;
+
+    friend class HLIR::Operation;
 };
 
 } // namespace core
 } // namespace tcc
 
-#define REGISTER_OP(type_name) REGISTER_OP_UNIQ_HELPER(__COUNTER__, type_name)
-#define REGISTER_OP_UNIQ_HELPER(ctr, type_name) REGISTER_OP_UNIQ(ctr, type_name)
+#define REGISTER_OP(type_name) \
+    REGISTER_OP_UNIQ_HELPER(__COUNTER__, type_name)
+#define REGISTER_OP_UNIQ_HELPER(ctr, type_name) \
+    REGISTER_OP_UNIQ(ctr, type_name)
 #define REGISTER_OP_UNIQ(ctr, type_name) \
-    static ::tcc::core::Operator registered_op_##ctr = \
+    static ::tcc::core::Operator operator_##ctr = \
         ::tcc::core::OperatorBuilder(type_name)
 
 #endif // TCC_OPERATOR_H

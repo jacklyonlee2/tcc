@@ -6,6 +6,5 @@ target_link_libraries(tcc
     PRIVATE
     core
     op
-    parser
+    frontend
     gflags::gflags)
-

@@ -3,8 +3,9 @@
 
 #include <vector>
 #include <memory>
+#include <fstream>
 
-#include "tcc/core/context.h"
+#include "tcc/core/hlir.h"
 
 namespace tcc {
 namespace core {
@@ -13,13 +14,10 @@ class Compiler;
 
 class CompilerBuilder {
     public:
-        CompilerBuilder& Parser(void(*parser)(ParserContext&));
-        //CompilerBuilder& HLIRPasses(std::vector<void(*)(HLIRPassContext&)> hlir_passes);
-        //CompilerBuilder& LLIRPasses(std::vector<void(*)(LLIRPassContext&)> llir_passes);
-        //CompilerBuilder& CGENPasses(std::vector<void(*)(CGENPassContext&)> cgen_passes);
+        CompilerBuilder& HLIRBuilder(HLIR(*hlir_builder)(std::string));
 
     private:
-        void(*parser_)(ParserContext&) = nullptr;
+        HLIR(*hlir_builder_)(std::string) = nullptr;
 
     friend class Compiler;
 };
@@ -28,25 +26,12 @@ class Compiler {
     public:
         Compiler(CompilerBuilder& builder);
 
-        Compiler& ParseInput(std::string input_path);
+        Compiler& BuildHLIR(std::string input_path);
         Compiler& PrintHLIR(std::string output_path);
-        Compiler& OptimizeHLIR();
-
-        Compiler& HLIRtoLLIR();
-        Compiler& PrintLLIR(std::string output_path);
-        Compiler& OptimizeLLIR();
-
-        Compiler& LLIRtoCGEN();
-        Compiler& PrintCGEN(std::string output_path);
-        Compiler& OptimizeCGEN();
-
-        void GenerateOutput(std::string output_path);
 
     private:
-        void(*parser_)(ParserContext&);
-
+        HLIR(*hlir_builder_)(std::string input_path);
         std::shared_ptr<HLIR> hlir_ptr_ = nullptr;
-        std::shared_ptr<LLIR> llir_ptr_ = nullptr;
 };
 
 } // namespace core

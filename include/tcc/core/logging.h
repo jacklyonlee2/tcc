@@ -36,4 +36,10 @@
 #define CHECK_KEY_NOT_IN_VEC(key, vec) \
     CHECK(std::find((vec).begin(), (vec).end(), key) == (vec).end())
 
+#define CHECK_WITHIN_BOUND(index, vec) \
+    CHECK(index < (vec).size())
+
+#define CHECK_NOT_EXPIRED(weak_ptr) \
+    CHECK(!(weak_ptr).expired())
+
 #endif // TCC_LOGGING_H

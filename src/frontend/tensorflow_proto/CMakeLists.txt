@@ -11,11 +11,11 @@ protobuf_generate_cpp(PROTO_SRC PROTO_HDR
     resource_handle.proto
     types.proto)
 
-add_library(proto
+add_library(tensorflow_proto
     ${PROTO_HDR}
     ${PROTO_SRC})
 
-target_link_libraries(proto
+target_link_libraries(tensorflow_proto
     PRIVATE
     ${PROTOBUF_LIBRARIES})
 

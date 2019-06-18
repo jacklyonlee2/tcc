@@ -18,7 +18,7 @@
         type name##_; \
     public: \
         static Data name(const type name) { return Data(name); }
-#define LIST(name, type) \
+#define VECTOR(name, type) \
     private: \
         explicit Data(const type* name, const int64_t length) : \
             datatype_(Datatype::name), \
@@ -63,17 +63,17 @@ namespace core {
 
 enum class Datatype {
     kUninitialized,
-    kString,
-    kFloat32,
-    kListInt64,
-    kTensorFloat32,
-    kTensorInt32
+    kScalarSTR,
+    kScalarFP32,
+    kVectorI64,
+    kTensorFP32,
+    kTensorI32
 };
 
 class Data {
     public:
         Data() {}
-        bool IsEmpty() const { return datatype_ == Datatype::kUninitialized; }
+        bool Empty() const { return datatype_ == Datatype::kUninitialized; }
         Datatype GetType() const { return datatype_; }
 
     private:
@@ -81,11 +81,11 @@ class Data {
         int64_t data_length_;
         std::vector<int64_t> tensorshape_;
 
-    DEFINE_DATATYPE(SCALAR, kString, std::string) // Data::kString
-    DEFINE_DATATYPE(SCALAR, kFloat32, float) // Data::kScalarFloat
-    DEFINE_DATATYPE(LIST, kListInt64, int64_t) // Data::kListInt64
-    DEFINE_DATATYPE(TENSOR, kTensorFloat32, float) // Data::kTensorFloat32
-    DEFINE_DATATYPE(TENSOR, kTensorInt32, int32_t) // Data::kTensorInt32
+    DEFINE_DATATYPE(SCALAR, kScalarSTR, std::string) // Data::kScalarSTR
+    DEFINE_DATATYPE(SCALAR, kScalarFP32, float) // Data::kScalarFP32
+    DEFINE_DATATYPE(VECTOR, kVectorI64, int64_t) // Data::kVectorI64
+    DEFINE_DATATYPE(TENSOR, kTensorFP32, float) // Data::kTensorFP32
+    DEFINE_DATATYPE(TENSOR, kTensorI32, int32_t) // Data::kTensorI32
 };
 
 } // namespace core
@@ -93,7 +93,7 @@ class Data {
 
 #undef DEFINE_DATATYPE
 #undef SCALAR
-#undef LIST
+#undef VECTOR
 #undef TENSOR
 
 #endif // TCC_DATA_H

@@ -7,17 +7,17 @@ REGISTER_OP("Relu6")
     .Output("activations");
 
 REGISTER_OP("DepthwiseConv2dNative")
-    .Attr("dilations", Datatype::kListInt64)
-    .Attr("data_format", Datatype::kString)
-    .Attr("strides", Datatype::kListInt64)
-    .Attr("padding", Datatype::kString)
+    .Attr("dilations", Datatype::kVectorI64)
+    .Attr("data_format", Datatype::kScalarSTR)
+    .Attr("strides", Datatype::kVectorI64)
+    .Attr("padding", Datatype::kScalarSTR)
     .Input("input")
     .Input("filter")
     .Output("output");
 
 REGISTER_OP("FusedBatchNorm")
-    .Attr("epsilon", Datatype::kFloat32)
-    .Attr("data_format", Datatype::kString)
+    .Attr("epsilon", Datatype::kScalarFP32)
+    .Attr("data_format", Datatype::kScalarSTR)
     .Input("x")
     .Input("scale")
     .Input("offset")
@@ -31,30 +31,30 @@ REGISTER_OP("Add")
     .Output("z");
 
 REGISTER_OP("AvgPool")
-    .Attr("ksize", Datatype::kListInt64)
-    .Attr("padding", Datatype::kString)
-    .Attr("data_format", Datatype::kString)
-    .Attr("strides", Datatype::kListInt64)
+    .Attr("ksize", Datatype::kVectorI64)
+    .Attr("padding", Datatype::kScalarSTR)
+    .Attr("data_format", Datatype::kScalarSTR)
+    .Attr("strides", Datatype::kVectorI64)
     .Input("value")
     .Output("output");
 
 REGISTER_OP("Conv2D")
-    .Attr("dilations", Datatype::kListInt64)
-    .Attr("data_format", Datatype::kString)
-    .Attr("strides", Datatype::kListInt64)
-    .Attr("padding", Datatype::kString)
+    .Attr("dilations", Datatype::kVectorI64)
+    .Attr("data_format", Datatype::kScalarSTR)
+    .Attr("strides", Datatype::kVectorI64)
+    .Attr("padding", Datatype::kScalarSTR)
     .Input("input")
     .Input("filter")
     .Output("output");
 
 REGISTER_OP("BiasAdd")
-    .Attr("data_format", Datatype::kString)
+    .Attr("data_format", Datatype::kScalarSTR)
     .Input("value")
     .Input("bias")
     .Output("output");
 
 REGISTER_OP("Squeeze")
-    .Attr("squeeze_dims", Datatype::kListInt64)
+    .Attr("squeeze_dims", Datatype::kVectorI64)
     .Input("input")
     .Output("output");
 

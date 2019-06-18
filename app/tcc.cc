@@ -3,7 +3,7 @@
 #include "gflags/gflags.h"
 #include "tcc/core/logging.h"
 #include "tcc/core/compiler.h"
-#include "tcc/parser/parser.h"
+#include "tcc/frontend/frontend.h"
 
 static bool ValidateInputPath(const char* flag_name, const std::string& value) {
     if (value.empty()) {
@@ -28,9 +28,9 @@ int main(int argc, char **argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     BUILD_COMPILER(tcc_compiler)
-        .Parser(tcc::parser::TensorFlowParser);
+        .HLIRBuilder(tcc::frontend::FromTensorFlow);
 
     tcc_compiler
-        .ParseInput(FLAGS_input_path)
+        .BuildHLIR(FLAGS_input_path)
         .PrintHLIR("./hlir.dot");
 }
