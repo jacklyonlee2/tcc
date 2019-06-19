@@ -22,9 +22,9 @@ OperatorBuilder& OperatorBuilder::Attr(const std::string attr_name, const Dataty
 OperatorBuilder& OperatorBuilder::Input(const std::string input_name) {
     // This function is called at static initialization time,
     // NATIVE_CHECK is used instead of CHECK.
-    NATIVE_CHECK_KEY_NOT_IN_VEC(input_name, input_list_,
-        "'" + input_name + "' already exists in input_list_.");
-    input_list_.push_back(input_name);
+    NATIVE_CHECK_KEY_NOT_IN_VEC(input_name, input_names_,
+        "'" + input_name + "' already exists in input_names_.");
+    input_names_.push_back(input_name);
 
     return *this;
 }
@@ -32,9 +32,9 @@ OperatorBuilder& OperatorBuilder::Input(const std::string input_name) {
 OperatorBuilder& OperatorBuilder::Output(const std::string output_name) {
     // This function is called at static initialization time,
     // NATIVE_CHECK is used instead of CHECK.
-    NATIVE_CHECK_KEY_NOT_IN_VEC(output_name, output_list_,
-        "'" + output_name + "' already exists in output_list_.");
-    output_list_.push_back(output_name);
+    NATIVE_CHECK_KEY_NOT_IN_VEC(output_name, output_names_,
+        "'" + output_name + "' already exists in output_names_.");
+    output_names_.push_back(output_name);
 
     return *this;
 }
@@ -55,8 +55,8 @@ std::shared_ptr<std::unordered_map<std::string, Operator>> Operator::registry_;
 Operator::Operator(OperatorBuilder builder) :
     type_name_(builder.type_name_),
     attr_type_map_(builder.attr_type_map_),
-    input_list_(builder.input_list_),
-    output_list_(builder.output_list_) {
+    input_names_(builder.input_names_),
+    output_names_(builder.output_names_) {
     // This function is called at static initialization time,
     // NATIVE_CHECK is used instead of CHECK.
     // Because static initalization order is random,

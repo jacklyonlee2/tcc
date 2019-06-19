@@ -13,11 +13,18 @@ class LLIR {
         typedef std::shared_ptr<Primitive> PrimitivePtr;
 
         class Fragment {
+            private:
+                PrimitivePtr prev_pmt_ = nullptr;
+                std::unordered_set<PrimitivePtr> next_pmts_;
         };
 
         typedef std::shared_ptr<Fragment> FragmentPtr;
+        typedef std::weak_ptr<Fragment> WeakFragmentPtr;
 
         class Primitive {
+            private:
+                std::vector<WeakFragmentPtr> input_fragments_;
+                WeakFragmentPtr output_fragment_;
         };
 
     private:

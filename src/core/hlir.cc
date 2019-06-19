@@ -75,8 +75,8 @@ HLIR::Operation::Operation(
     }
 
     attr_val_map_ = attr_val_map;
-    input_variable_names_ = op.input_list_;
-    output_variable_names_ = op.output_list_;
+    input_variable_names_ = op.input_names_;
+    output_variable_names_ = op.output_names_;
 }
 
 std::string HLIR::Operation::GetInputName(VariablePtr input_variable) const {
@@ -139,7 +139,7 @@ static std::string GenerateUniqueVariableName() {
     return "V" + std::to_string(counter);
 }
 
-std::vector<HLIR::VariablePtr> HLIR::Operation::Invoke(
+std::vector<HLIR::VariablePtr> HLIR::Operation::Infer(
         OperationPtr operation,
         std::vector<VariablePtr> input_variables) {
     // Check missing input variable

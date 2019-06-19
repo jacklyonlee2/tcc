@@ -54,7 +54,7 @@ class HLIR {
                 std::vector<VariablePtr> GetInputVariables() const;
                 std::vector<VariablePtr> GetOutputVariables() const;
 
-                static std::vector<VariablePtr> Invoke(
+                static std::vector<VariablePtr> Infer(
                         OperationPtr operation,
                         std::vector<VariablePtr> input_variables);
 

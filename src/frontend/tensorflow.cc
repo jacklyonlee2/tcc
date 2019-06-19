@@ -228,7 +228,7 @@ static HLIR ParseNodes(tensorflow::GraphDef graph) {
 
         // Produce and store output HLIR::Variables
         std::vector<HLIR::VariablePtr> output_variables =
-            HLIR::Operation::Invoke(operation, input_variables);
+            HLIR::Operation::Infer(operation, input_variables);
         hlir_operations.insert({node.name(), operation});
         for (HLIR::VariablePtr output_variable : output_variables) {
             hlir_variables.insert({output_variable->instance_name_, output_variable});

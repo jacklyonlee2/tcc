@@ -25,8 +25,8 @@ class OperatorBuilder {
     private:
         const std::string type_name_;
         std::unordered_map<std::string, Datatype> attr_type_map_;
-        std::vector<std::string> input_list_;
-        std::vector<std::string> output_list_;
+        std::vector<std::string> input_names_;
+        std::vector<std::string> output_names_;
         void(*kernel_)(KernelContext&) = nullptr;
 
     friend class Operator;
@@ -39,8 +39,8 @@ class Operator {
     private:
         const std::string type_name_;
         const std::unordered_map<std::string, Datatype> attr_type_map_;
-        const std::vector<std::string> input_list_;
-        const std::vector<std::string> output_list_;
+        const std::vector<std::string> input_names_;
+        const std::vector<std::string> output_names_;
 
     public:
         static bool Exists(std::string type_name);
