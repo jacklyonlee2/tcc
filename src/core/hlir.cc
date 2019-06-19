@@ -7,19 +7,11 @@
 namespace tcc {
 namespace core {
 
-HLIR::Variable::Variable(const std::string instance_name, Datatype datatype) :
-    instance_name_(instance_name),
-    datatype_(datatype) {
-    CHECK(datatype != Datatype::kUninitialized) <<
-        "datatype_ for placeholder HLIR::Variable can not be kUninitialized.";
-}
-
 HLIR::Variable::Variable(const std::string instance_name, Data data) :
     instance_name_(instance_name),
-    datatype_(data.GetType()),
     data_(data) {
-    CHECK(!data.Empty()) <<
-        "data_ for constant HLIR::Variable can not be empty.";
+    CHECK(data.Initialized()) <<
+        "data_ for constant HLIR::Variable can not be uninitialized.";
 }
 
 HLIR::Variable::Variable(const std::string instance_name, OperationPtr prev_op) :
@@ -27,15 +19,6 @@ HLIR::Variable::Variable(const std::string instance_name, OperationPtr prev_op) 
     prev_op_(prev_op) {
     CHECK(prev_op_ != nullptr) <<
         "prev_op_ for intermediate HLIR::Variable can not be nullptr.";
-}
-
-bool HLIR::Variable::Placeholder() const {
-    return prev_op_ == nullptr && datatype_ != Datatype::kUninitialized &&
-        data_.Empty();
-}
-
-bool HLIR::Variable::Constant() const {
-    return prev_op_ == nullptr && !data_.Empty();
 }
 
 HLIR::OperationPtr HLIR::Variable::GetPrevOperation() const {
@@ -193,7 +176,7 @@ HLIR::HLIR(std::unordered_map<std::string, VariablePtr> variable_map,
     // Check terminal variable contains Datatype or Data
     for (std::pair<std::string, VariablePtr> variable_kv : variable_map) {
 
-        if (!variable_kv.second->Placeholder() && !variable_kv.second->Constant()) {
+        if (!variable_kv.second->data_.Initialized()) {
             OperationPtr prev_op = variable_kv.second->GetPrevOperation();
             CHECK_KEY_IN_MAP(prev_op->instance_name_, operation_map) <<
                 "HLIR::Operation '" << prev_op->instance_name_ << "' is not found.";

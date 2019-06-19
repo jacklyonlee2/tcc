@@ -109,13 +109,14 @@ static std::unordered_map<std::string, Data> ParseAttrs(
     return attr_map;
 }
 
-static Datatype ParseDatatype(tensorflow::DataType type) {
+static Data ParseDatatype(tensorflow::DataType type) {
     // Convert tensorflow::DataType to tcc::core::Datatype
+    // TODO: set placeholder shape
     switch (type) {
         case tensorflow::DT_FLOAT: // 1
-            return Datatype::kTensorFP32;
+            return Data::kTensorFP32({1});
         case tensorflow::DT_INT32: // 3
-            return Datatype::kTensorI32;
+            return Data::kTensorI32({1});
         default:
             LOG(FATAL) << "Unsupported datatype conversion tensorflow datatype '" << type << "'.";
     }
@@ -132,10 +133,10 @@ static Data ParseData(tensorflow::TensorProto tensor) {
         shape.push_back(dim.size());
     }
 
-    switch (ParseDatatype(tensor.dtype())) {
-        case Datatype::kTensorFP32:
+    switch (tensor.dtype()) {
+        case tensorflow::DT_FLOAT:
             return Data::kTensorFP32(tensor.tensor_content().data(), shape);
-        case Datatype::kTensorI32:
+        case tensorflow::DT_INT32:
             return Data::kTensorI32(tensor.tensor_content().data(), shape);
         default:
             LOG(FATAL) << "Unsupported datatype for data conversion.";

@@ -17,22 +17,17 @@ class HLIR {
 
         class Variable {
             public:
-                Variable(const std::string instance_name, Datatype datatype);
                 Variable(const std::string instance_name, Data data);
                 Variable(const std::string instance_name, OperationPtr prev_op);
-
-                bool Placeholder() const;
-                bool Constant() const;
 
                 OperationPtr GetPrevOperation() const;
                 std::vector<OperationPtr> GetNextOperations() const;
 
                 const std::string instance_name_;
+                const Data data_;
+                const OperationPtr prev_op_;
 
             private:
-                Datatype datatype_ = Datatype::kUninitialized;
-                Data data_;
-                OperationPtr prev_op_ = nullptr;
                 std::unordered_set<OperationPtr> next_ops_;
 
             friend class Operation;

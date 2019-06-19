@@ -8,54 +8,49 @@
 
 #include "tcc/core/logging.h"
 
-#define DEFINE_DATATYPE(metatype, name, type) \
-    metatype(name, type)
-#define SCALAR(name, type) \
-    private: \
-        explicit Data(const type name) : \
-            datatype_(Datatype::name), \
-            name##_(name) {} \
-        type name##_; \
+#define DEFINE_DATATYPE(metatype, dt_enum, type) \
+    metatype(dt_enum, type)
+#define SCALAR(dt_enum, type) \
     public: \
-        static Data name(const type name) { return Data(name); }
-#define VECTOR(name, type) \
-    private: \
-        explicit Data(const type* name, const int64_t length) : \
-            datatype_(Datatype::name), \
-            data_length_(length), \
-            name##_(name) {} \
-        const type* name##_; \
-    public: \
-        static Data name(const type* name, const int64_t length) { \
-            CHECK(length != 0) << \
-                "Data length can not be 0."; \
-            return Data(name, length); \
-        }
-#define TENSOR(name, type) \
-    private: \
-        explicit Data( \
-                const type* name, \
-                const int64_t length, \
-                const std::vector<int64_t> tensorshape) : \
-            datatype_(Datatype::name), \
-            data_length_(length), \
-            tensorshape_(tensorshape), \
-            name##_(name) {} \
-        const type* name##_; \
-    public: \
-        static Data name(const type* name, const std::vector<int64_t> tensorshape) { \
-            CHECK(!tensorshape.empty()) << \
-                "Tensor shape can not be empty."; \
-            CHECK_KEY_NOT_IN_VEC(0, tensorshape) << \
-                "Tensor shape can not contain dimension of 0."; \
-            int64_t length = std::accumulate( \
-                    tensorshape.begin(), \
-                    tensorshape.end(), \
-                    1, std::multiplies<int64_t>()); \
-            return Data(name, length, tensorshape); \
+        static Data dt_enum() { \
+            return Data(Datatype::dt_enum, {}); \
         } \
-        static Data name(const char* name, const std::vector<int64_t> tensorshape) { \
-            return Data::name(reinterpret_cast<type*>(strdup(name)), tensorshape); \
+        static Data dt_enum(const type data) { \
+            return Data(Datatype::dt_enum, {}, \
+                    static_cast<const void*>(new type(data))); \
+        }
+#define VECTOR(dt_enum, type) \
+    public: \
+        static Data dt_enum(const long size) { \
+            CHECK(size > 0) << \
+                "Vector size must be bigger than 0."; \
+            return Data(Datatype::dt_enum, {size}); \
+        } \
+        static Data dt_enum(const type* data, const long size) { \
+            CHECK(size > 0) << \
+                "Vector size must be bigger than 0."; \
+            return Data(Datatype::dt_enum, {size}, \
+                    static_cast<const void*>(data)); \
+        }
+#define TENSOR(dt_enum, type) \
+    public: \
+        static Data dt_enum(const std::vector<long> shape) { \
+            CHECK(!shape.empty()) << \
+                "Tensor shape can not be empty."; \
+            CHECK_KEY_NOT_IN_VEC(0, shape) << \
+                "Tensor shape can not contain dimension of 0."; \
+            return Data(Datatype::dt_enum, shape); \
+        } \
+        static Data dt_enum(const type* data, const std::vector<long> shape) { \
+            CHECK(!shape.empty()) << \
+                "Tensor shape can not be empty."; \
+            CHECK_KEY_NOT_IN_VEC(0, shape) << \
+                "Tensor shape can not contain dimension of 0."; \
+            return Data(Datatype::dt_enum, shape, \
+                    static_cast<const void*>(data)); \
+        } \
+        static Data dt_enum(const char* data, const std::vector<long> shape) { \
+            return Data::dt_enum(reinterpret_cast<type*>(strdup(data)), shape); \
         }
 
 namespace tcc {
@@ -72,14 +67,26 @@ enum class Datatype {
 
 class Data {
     public:
-        Data() {}
-        bool Empty() const { return datatype_ == Datatype::kUninitialized; }
+        Data() : datatype_(Datatype::kUninitialized), data_(nullptr) {}
+        Data(Datatype datatype, const std::vector<long> shape) :
+            datatype_(datatype), shape_(shape) {}
+        Data(Datatype datatype, const std::vector<long> shape, const void* data) :
+            datatype_(datatype), shape_(shape), data_(data) {}
+
+        bool Initialized() const { return datatype_ != Datatype::kUninitialized; }
+        bool Dataless() const { return data_ == nullptr; }
+
         Datatype GetType() const { return datatype_; }
+        std::vector<long> GetShape() const { return shape_; }
+        long GetSize() const { return std::accumulate(
+                shape_.begin(),
+                shape_.end(),
+                1, std::multiplies<long>()); }
 
     private:
-        Datatype datatype_ = Datatype::kUninitialized;
-        int64_t data_length_;
-        std::vector<int64_t> tensorshape_;
+        Datatype datatype_;
+        const std::vector<long> shape_;
+        const void* data_;
 
     DEFINE_DATATYPE(SCALAR, kScalarSTR, std::string) // Data::kScalarSTR
     DEFINE_DATATYPE(SCALAR, kScalarFP32, float) // Data::kScalarFP32
