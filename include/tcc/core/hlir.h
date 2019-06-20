@@ -25,6 +25,7 @@ class HLIR {
 
                 const std::string instance_name_;
                 const Data data_;
+
                 const OperationPtr prev_op_;
 
             private:
@@ -56,6 +57,7 @@ class HLIR {
                 std::unordered_map<std::string, Data> attr_val_map_;
                 std::vector<std::string> input_variable_names_;
                 std::vector<std::string> output_variable_names_;
+
                 std::unordered_map<std::string, WeakVariablePtr> input_variable_map_;
                 std::unordered_map<std::string, WeakVariablePtr> output_variable_map_;
 
@@ -67,6 +69,7 @@ class HLIR {
 
         HLIR(std::unordered_map<std::string, VariablePtr> variable_map,
                 std::unordered_map<std::string, OperationPtr> operation_map);
+
         void Print(std::ofstream& stream) const;
 
     private:
