@@ -5,8 +5,10 @@ namespace core {
 
 CompilerBuilder& CompilerBuilder::HLIRBuilder(HLIR(*hlir_builder)(std::string input_path)) {
     CHECK(hlir_builder_ == nullptr) <<
-        "HLIR builder already registered.";
+        "HLIRbuilder is already registered.";
     hlir_builder_ = hlir_builder;
+
+    return *this;
 }
 
 Compiler::Compiler(CompilerBuilder& builder) :

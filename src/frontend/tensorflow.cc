@@ -109,7 +109,7 @@ static std::unordered_map<std::string, Data> ParseAttrs(
     return attr_map;
 }
 
-static Data ParseDatatype(tensorflow::DataType type) {
+static Data ParsePlaceholder(tensorflow::DataType type) {
     // Convert tensorflow::DataType to tcc::core::Datatype
     // TODO: set placeholder shape
     switch (type) {
@@ -122,7 +122,7 @@ static Data ParseDatatype(tensorflow::DataType type) {
     }
 }
 
-static Data ParseData(tensorflow::TensorProto tensor) {
+static Data ParseConst(tensorflow::TensorProto tensor) {
     // Convert tensorflow::TensorProto to tcc::core::Data
     CHECK(tensor.has_tensor_shape()) << "Tensor is missing shape.";
     CHECK(tensor.tensor_shape().dim_size() > 0) << "Tensor shape is empty.";
@@ -197,7 +197,7 @@ static HLIR ParseNodes(tensorflow::GraphDef graph) {
                 CHECK(value.value_case() == tensorflow::AttrValue::kTensor) <<
                     "Attr 'value' must be of type tensorflow::AttrValue::kTensor.";
                 HLIR::VariablePtr input_variable = std::make_shared<HLIR::Variable>(
-                        input_name, ParseData(value.tensor()));
+                        input_name, ParseConst(value.tensor()));
 
                 input_variables.push_back(input_variable);
                 hlir_variables.insert({input_name, input_variable});
@@ -210,7 +210,7 @@ static HLIR ParseNodes(tensorflow::GraphDef graph) {
                 CHECK(dtype.value_case() == tensorflow::AttrValue::kType) <<
                     "Attr 'dtype' must be of type tensorflow::AttrValue::kType.";
                 HLIR::VariablePtr input_variable = std::make_shared<HLIR::Variable>(
-                        input_name, ParseDatatype(dtype.type()));
+                        input_name, ParsePlaceholder(dtype.type()));
 
                 input_variables.push_back(input_variable);
                 hlir_variables.insert({input_name, input_variable});
@@ -229,7 +229,7 @@ static HLIR ParseNodes(tensorflow::GraphDef graph) {
 
         // Produce and store output HLIR::Variables
         std::vector<HLIR::VariablePtr> output_variables =
-            HLIR::Operation::Infer(operation, input_variables);
+            HLIR::Connect(operation, input_variables);
         hlir_operations.insert({node.name(), operation});
         for (HLIR::VariablePtr output_variable : output_variables) {
             hlir_variables.insert({output_variable->instance_name_, output_variable});

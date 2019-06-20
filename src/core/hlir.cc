@@ -63,25 +63,35 @@ HLIR::Operation::Operation(
 }
 
 std::string HLIR::Operation::GetInputName(VariablePtr input_variable) const {
+    std::string input_name;
     for (std::pair<std::string, WeakVariablePtr> input_kv : input_variable_map_) {
         CHECK_NOT_EXPIRED(input_kv.second);
         if (input_kv.second.lock() == input_variable) {
-            return input_kv.first;
+            CHECK(input_name.empty()) <<
+                "Duplicated input variables for operation '" << instance_name_ << "'.";
+            input_name = input_kv.first;
         }
     }
-    LOG(FATAL) << "input_variable '" << input_variable->instance_name_ <<
+    CHECK(!input_name.empty()) <<
+        "input_variable '" << input_variable->instance_name_ <<
         "' is not found in input_variable_map_.";
+    return input_name;
 }
 
 std::string HLIR::Operation::GetOutputName(VariablePtr output_variable) const {
+    std::string output_name;
     for (std::pair<std::string, WeakVariablePtr> output_kv : output_variable_map_) {
         CHECK_NOT_EXPIRED(output_kv.second);
         if (output_kv.second.lock() == output_variable) {
-            return output_kv.first;
+            CHECK(output_name.empty()) <<
+                "Duplicated output variables for operation '" << instance_name_ << "'.";
+            output_name = output_kv.first;
         }
     }
-    LOG(FATAL) << "output_variable '" << output_variable->instance_name_ <<
+    CHECK(!output_name.empty()) <<
+        "output_variable '" << output_variable->instance_name_ <<
         "' is not found in output_variable_map_.";
+    return output_name;
 }
 
 HLIR::VariablePtr HLIR::Operation::GetOutputVariable(unsigned int index) const {
@@ -122,9 +132,10 @@ static std::string GenerateUniqueVariableName() {
     return "V" + std::to_string(counter);
 }
 
-std::vector<HLIR::VariablePtr> HLIR::Operation::Infer(
+std::vector<HLIR::VariablePtr> HLIR::Connect(
         OperationPtr operation,
         std::vector<VariablePtr> input_variables) {
+    // Initialize operation with given inputs and produce outputs
     // Check missing input variable
     CHECK(input_variables.size() == operation->input_variable_names_.size()) <<
         "Missing input variables for operation '" << operation->instance_name_ <<

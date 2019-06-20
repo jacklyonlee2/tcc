@@ -30,7 +30,7 @@ class HLIR {
             private:
                 std::unordered_set<OperationPtr> next_ops_;
 
-            friend class Operation;
+            friend class HLIR;
         };
 
         typedef std::shared_ptr<Variable> VariablePtr;
@@ -49,10 +49,6 @@ class HLIR {
                 std::vector<VariablePtr> GetInputVariables() const;
                 std::vector<VariablePtr> GetOutputVariables() const;
 
-                static std::vector<VariablePtr> Infer(
-                        OperationPtr operation,
-                        std::vector<VariablePtr> input_variables);
-
                 const std::string instance_name_;
                 const std::string type_name_;
 
@@ -62,11 +58,15 @@ class HLIR {
                 std::vector<std::string> output_variable_names_;
                 std::unordered_map<std::string, WeakVariablePtr> input_variable_map_;
                 std::unordered_map<std::string, WeakVariablePtr> output_variable_map_;
+
+            friend class HLIR;
         };
+
+        static std::vector<VariablePtr> Connect(
+                OperationPtr operation, std::vector<VariablePtr> input_variables);
 
         HLIR(std::unordered_map<std::string, VariablePtr> variable_map,
                 std::unordered_map<std::string, OperationPtr> operation_map);
-
         void Print(std::ofstream& stream) const;
 
     private:
