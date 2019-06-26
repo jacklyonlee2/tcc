@@ -3,28 +3,40 @@
 
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
+
+#include "tcc/core/data.h"
 
 namespace tcc {
 namespace core {
 
 class LLIR {
     public:
+        class Iterator {
+        };
+
+        class AccessPattern {
+        };
+
         class Primitive;
         typedef std::shared_ptr<Primitive> PrimitivePtr;
 
         class Fragment {
             public:
+                Fragment(const std::string instance_name, Data data);
+                Fragment(const std::string instance_name, Data data,
+                        PrimitivePtr prev_pmt);
+
+                const std::string instance_name_;
                 const Data data_;
 
-                const PrimitivePtr prev_pmt_;
-
             private:
+                PrimitivePtr prev_pmt_;
                 std::unordered_set<PrimitivePtr> next_pmts_;
         };
 
         typedef std::shared_ptr<Fragment> FragmentPtr;
         typedef std::weak_ptr<Fragment> WeakFragmentPtr;
-        typedef std::vector<std::pair<long, long>> AccessPattern;
 
         class Primitive {
             private:
@@ -34,8 +46,9 @@ class LLIR {
                 WeakFragmentPtr output_fragment_;
         };
 
-        LLIR(std::unordered_map<std::string, FragmentPtr> fragment_map,
-                std::unordered_map<std::string, PrimitivePtr> primitive_map);
+    public:
+        static FragmentPtr Lambda(std::vector<long> shape,
+                FragmentPtr(*lambda_)(std::vector<Iterator> iterators));
 
         void Print(std::ofstream& stream) const;
 

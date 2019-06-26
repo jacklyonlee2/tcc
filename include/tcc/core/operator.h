@@ -41,6 +41,7 @@ class Operator {
         const std::unordered_map<std::string, Datatype> attr_type_map_;
         const std::vector<std::string> input_names_;
         const std::vector<std::string> output_names_;
+        void(*const kernel_)(KernelContext&);
 
     public:
         static bool Exists(std::string type_name);

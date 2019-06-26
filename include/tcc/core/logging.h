@@ -42,4 +42,23 @@
 #define CHECK_NOT_EXPIRED(weak_ptr) \
     CHECK(!(weak_ptr).expired())
 
+// Message macros
+
+#define JOIN_MSG(msg) << " " << #msg << " " <<
+
+#define QUOTE_MSG(msg) << " '" << msg << "' " <<
+
+#define KEY_NOT_FOUND_MSG(key, map) \
+    "Key" QUOTE_MSG(key) "not found in " << #map
+
+#define HLIR_VARIABLE_IDENTIFIER(variable) \
+    "HLIR::Variable" QUOTE_MSG((variable).instance_name_) "."
+
+#define HLIR_OPERATION_IDENTIFIER(operation) \
+    "HLIR::Operation" QUOTE_MSG((operation).instance_name_) \
+    "of type" QUOTE_MSG((operation).type_name_) "."
+
+#define LLIR_FRAGMENT_IDENTIFIER(fragment) \
+    "LLIR::Fragment" QUOTE_MSG((fragment).instance_name_) "."
+
 #endif // TCC_LOGGING_H

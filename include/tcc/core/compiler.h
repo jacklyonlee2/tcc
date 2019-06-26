@@ -14,10 +14,15 @@ class Compiler;
 
 class CompilerBuilder {
     public:
-        CompilerBuilder& HLIRBuilder(HLIR(*hlir_builder)(std::string));
+        CompilerBuilder& HLIRBuilder(
+                HLIR(*hlir_builder)(
+                    std::string,
+                    std::unordered_map<std::string, std::vector<long>>));
 
     private:
-        HLIR(*hlir_builder_)(std::string) = nullptr;
+        HLIR(*hlir_builder_)(
+                std::string,
+                std::unordered_map<std::string, std::vector<long>>) = nullptr;
 
     friend class Compiler;
 };
@@ -26,12 +31,18 @@ class Compiler {
     public:
         Compiler(CompilerBuilder& builder);
 
-        Compiler& BuildHLIR(std::string input_path);
+        Compiler& BuildHLIR(
+                std::string input_path,
+                 std::unordered_map<std::string, std::vector<long>> input_shapes);
         Compiler& PrintHLIR(std::string output_path);
+        Compiler& BuildLLIR();
 
     private:
-        HLIR(*hlir_builder_)(std::string input_path);
+        HLIR(*hlir_builder_)(
+                std::string,
+                std::unordered_map<std::string, std::vector<long>>);
         std::shared_ptr<HLIR> hlir_ptr_ = nullptr;
+        std::shared_ptr<LLIR> llir_ptr_ = nullptr;
 };
 
 } // namespace core

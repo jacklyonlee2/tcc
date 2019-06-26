@@ -13,7 +13,7 @@ class KernelContext {
 
         Data GetAttr(std::string attr_name) const;
         LLIR::FragmentPtr GetInput(std::string input_name) const;
-        void SetOutput(std::string output_name, LLIR::FragmentPtr fragment) const;
+        void SetOutput(std::string output_name, LLIR::FragmentPtr fragment);
 
     private:
         HLIR::OperationPtr operation_;

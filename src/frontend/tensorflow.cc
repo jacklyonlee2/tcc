@@ -16,11 +16,11 @@ static tensorflow::GraphDef ParseFile(std::string input_path) {
     std::fstream file;
     file.open(input_path, std::ios::in | std::ios::binary);
     CHECK(file) <<
-        "Failed to open file at '" << input_path << "'.";
+        "Failed to open file at" QUOTE_MSG(input_path) ".";
 
     tensorflow::GraphDef graph;
     CHECK(graph.ParseFromIstream(&file)) <<
-        "Failed to parse frozen graph at'" << input_path << "'.";
+        "Failed to parse frozen graph at" QUOTE_MSG(input_path) ".";
     file.close();
 
     return graph;
@@ -36,7 +36,7 @@ static bool CheckNodes(
     for (tensorflow::NodeDef node : graph.node()) {
         if (ignore.find(node.op()) == ignore.end() /* node type is not ignored */ &&
                 !Operator::Exists(node.op()) /* node type is not registered */ ) {
-            LOG(ERROR) << "Unregistered operator '" << node.op() << "'.";
+            LOG(ERROR) << "Unregistered operator" QUOTE_MSG(node.op()) ".";
             all_registered = false;
         }
     }
@@ -64,7 +64,7 @@ static std::unordered_map<std::string, Data> ParseAttrs(
                             LOG(FATAL) << "Unsupported tensorflow attr list type 'list(string)'.";
 
                         } else if (list.i_size() > 0) { // list(int) - 3
-                            attr_map.insert({attr_kv.first, Data::kVectorI64(list.i().data(), list.i().size())});
+                            attr_map.insert({attr_kv.first, Data::kTensorI64(list.i().data(), list.i().size())});
 
                         } else if (list.f_size() > 0) { // list(float) - 4
                             LOG(FATAL) << "Unsupported tensorflow attr list type 'list(float)'.";
@@ -99,8 +99,8 @@ static std::unordered_map<std::string, Data> ParseAttrs(
                     LOG(FATAL) << "Unset tensorflow attr value.";
                 }
                 default: { // Unsupported
-                    LOG(FATAL) << "Unsupported tensorflow attr '" << attr_kv.first <<
-                        "' of type '" << attr_kv.second.value_case() << "'.";
+                    LOG(FATAL) << "Unsupported tensorflow attr" QUOTE_MSG(attr_kv.first)
+                        "of type" QUOTE_MSG(attr_kv.second.value_case()) ".";
                 }
             }
         }
@@ -109,16 +109,16 @@ static std::unordered_map<std::string, Data> ParseAttrs(
     return attr_map;
 }
 
-static Data ParsePlaceholder(tensorflow::DataType type) {
+static Data ParsePlaceholder(tensorflow::DataType type, std::vector<long> shape) {
     // Convert tensorflow::DataType to tcc::core::Datatype
-    // TODO: set placeholder shape
     switch (type) {
         case tensorflow::DT_FLOAT: // 1
-            return Data::kTensorFP32({1});
+            return Data::kTensorFP32(shape);
         case tensorflow::DT_INT32: // 3
-            return Data::kTensorI32({1});
+            return Data::kTensorI32(shape);
         default:
-            LOG(FATAL) << "Unsupported datatype conversion tensorflow datatype '" << type << "'.";
+            LOG(FATAL) << "Unsupported datatype conversion tensorflow datatype"
+                QUOTE_MSG(type) ".";
     }
 }
 
@@ -143,7 +143,8 @@ static Data ParseConst(tensorflow::TensorProto tensor) {
     }
 }
 
-static HLIR ParseNodes(tensorflow::GraphDef graph) {
+static HLIR ParseNodes(tensorflow::GraphDef graph,
+        std::unordered_map<std::string, std::vector<long>> input_shapes) {
     // Parse tensorflow::GraphDef into tcc::core::HLIR
     // Put all tensorflow::NodeDef into map
     // Find tensorflow::NodeDef that are outputs of the graph
@@ -157,7 +158,7 @@ static HLIR ParseNodes(tensorflow::GraphDef graph) {
     for (tensorflow::NodeDef node : graph.node()) {
         for (std::string input_name : node.input()) {
             CHECK_KEY_IN_MAP(input_name, node_map) <<
-                "Tensorflow node input '" << input_name << "' is not found in node_map.";
+                "Tensorflow node input" QUOTE_MSG(input_name) "is not found in node_map.";
             if (output_nodes.find(input_name) != output_nodes.end()) {
                 output_nodes.erase(input_name);
             }
@@ -167,7 +168,7 @@ static HLIR ParseNodes(tensorflow::GraphDef graph) {
     std::unordered_map<std::string, HLIR::VariablePtr> hlir_variables;
     std::unordered_map<std::string, HLIR::OperationPtr> hlir_operations;
     std::function<void(tensorflow::NodeDef&)> RecurseNodes;
-    RecurseNodes = [&RecurseNodes, &node_map, &hlir_variables, &hlir_operations](
+    RecurseNodes = [&RecurseNodes, &input_shapes, &node_map, &hlir_variables, &hlir_operations](
             tensorflow::NodeDef& node) {
         // Recursively traverse tensorflow::GraphDef backwards
         // Construct HLIR::Operation and HLIR::Variable on return
@@ -181,7 +182,7 @@ static HLIR ParseNodes(tensorflow::GraphDef graph) {
         std::vector<HLIR::VariablePtr> input_variables;
         for (std::string input_name : node.input()) {
             CHECK_KEY_IN_MAP(input_name, node_map) <<
-                "Tensorflow node input '" << input_name << "' is not found in node_map.";
+                "Tensorflow node input" QUOTE_MSG(input_name) "is not found in node_map.";
             tensorflow::NodeDef input_node = node_map.at(input_name);
 
             if (hlir_variables.find(input_name) != hlir_variables.end()) {
@@ -209,8 +210,10 @@ static HLIR ParseNodes(tensorflow::GraphDef graph) {
 
                 CHECK(dtype.value_case() == tensorflow::AttrValue::kType) <<
                     "Attr 'dtype' must be of type tensorflow::AttrValue::kType.";
+                CHECK_KEY_IN_MAP(input_name, input_shapes) <<
+                    KEY_NOT_FOUND_MSG(input_name, input_shapes);
                 HLIR::VariablePtr input_variable = std::make_shared<HLIR::Variable>(
-                        input_name, ParsePlaceholder(dtype.type()));
+                        input_name, ParsePlaceholder(dtype.type(), input_shapes.at(input_name)));
 
                 input_variables.push_back(input_variable);
                 hlir_variables.insert({input_name, input_variable});
@@ -239,19 +242,20 @@ static HLIR ParseNodes(tensorflow::GraphDef graph) {
     // Recurse on each output node and store the terminal output HLIR::Variables
     for (std::string output_node : output_nodes) {
         CHECK_KEY_IN_MAP(output_node, node_map) <<
-            "Tensorflow node '" << output_node << "' is not found in node_map.";
+            "Tensorflow node" QUOTE_MSG(output_node) "is not found in node_map.";
         RecurseNodes(node_map.at(output_node));
     }
 
     return HLIR(hlir_variables, hlir_operations);
 }
 
-HLIR FromTensorFlow(std::string input_path) {
+HLIR FromTensorFlow(std::string input_path,
+        std::unordered_map<std::string, std::vector<long>> input_shapes) {
     tensorflow::GraphDef graph = ParseFile(input_path);
     CHECK(CheckNodes(graph)) <<
-        "TensorFlow frozen graph at '" << input_path << "' is not supported.";
+        "TensorFlow frozen graph at" QUOTE_MSG(input_path) "is not supported.";
 
-    return ParseNodes(graph);
+    return ParseNodes(graph, input_shapes);
 }
 
 } // namespace frontend

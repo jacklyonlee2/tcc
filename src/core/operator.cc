@@ -56,7 +56,8 @@ Operator::Operator(OperatorBuilder builder) :
     type_name_(builder.type_name_),
     attr_type_map_(builder.attr_type_map_),
     input_names_(builder.input_names_),
-    output_names_(builder.output_names_) {
+    output_names_(builder.output_names_),
+    kernel_(builder.kernel_) {
     // This function is called at static initialization time,
     // NATIVE_CHECK is used instead of CHECK.
     // Because static initalization order is random,
@@ -67,6 +68,7 @@ Operator::Operator(OperatorBuilder builder) :
                 new std::unordered_map<std::string, Operator>());
     }
 
+    // Add operator to registry_
     NATIVE_CHECK_KEY_NOT_IN_MAP(type_name_, *registry_,
         "Operator type '" + type_name_ + "' has already been registered.");
     NATIVE_CHECK(!type_name_.empty(),
@@ -86,7 +88,7 @@ Operator Operator::Create(std::string type_name) {
     CHECK(registry_ != nullptr) <<
         "Operator registry is not initialized.";
     CHECK_KEY_IN_MAP(type_name, *registry_) <<
-        "Operator type '" << type_name << "' is not registered.";
+        "Operator type" QUOTE_MSG(type_name) "is not registered.";
 
     return registry_->at(type_name);
 }

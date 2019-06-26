@@ -8,6 +8,7 @@ list(APPEND
     ${TCC_INCLUDE_DIR}/tcc/core/llir.h
     ${TCC_INCLUDE_DIR}/tcc/core/logging.h
     ${TCC_INCLUDE_DIR}/tcc/core/operator.h
+    ${TCC_INCLUDE_DIR}/tcc/core/util.h
     compiler.cc
     context.cc
     hlir.cc

@@ -6,7 +6,8 @@
 namespace tcc {
 namespace frontend {
 
-core::HLIR FromTensorFlow(std::string input_path);
+core::HLIR FromTensorFlow(std::string input_path,
+        std::unordered_map<std::string, std::vector<long>> input_shapes);
 
 } // namespace frontend
 } // namespace tcc
