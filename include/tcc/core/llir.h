@@ -15,6 +15,8 @@ class LLIR {
         class Iterator {
         };
 
+        typedef std::vector<Iterator> Iterators;
+
         class AccessPattern {
         };
 
@@ -29,6 +31,8 @@ class LLIR {
 
                 const std::string instance_name_;
                 const Data data_;
+
+                std::vector<long> GetShape() const;
 
             private:
                 PrimitivePtr prev_pmt_;
@@ -48,7 +52,7 @@ class LLIR {
 
     public:
         static FragmentPtr Lambda(std::vector<long> shape,
-                FragmentPtr(*lambda_)(std::vector<Iterator> iterators));
+                FragmentPtr(*lambda_)(Iterators));
 
         void Print(std::ofstream& stream) const;
 

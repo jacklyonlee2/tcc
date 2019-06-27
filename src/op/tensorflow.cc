@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "tcc/core/operator.h"
 #include "tcc/core/context.h"
 #include "tcc/core/util.h"
@@ -64,16 +66,78 @@ REGISTER_OP("Conv2D")
             auto strides = ctx.GetAttr("strides").GetkTensorI64();
             auto padding = ctx.GetAttr("padding").GetkScalarSTR();
 
-            CHECK(dilations.size() == 4 && dilations == Literal(1l,1l,1l,1l)) <<
+            CHECK(dilations == Literal(1l,1l,1l,1l)) <<
                 "Conv2D does not support dilation.";
+            CHECK(strides.size() == 4 &&
+                    strides[0] == 1 && strides[3] == 1);
             CHECK(data_format == "NHWC") <<
                 "Conv2D only supports NHWC format.";
             CHECK(padding == "SAME") <<
                 "Conv2D only supports SAME padding";
 
-            auto input = ctx.GetInput("input");
-            auto filter = ctx.GetInput("filter");
-        });
+            auto I = ctx.GetInput("input");
+            auto F = ctx.GetInput("filter");
+
+            auto input_shape = I->GetShape();
+            auto filter_shape = F->GetShape();
+
+            CHECK(input_shape.size() == 4);
+            CHECK(filter_shape.size() == 4);
+
+            long i_n, i_h, i_w, i_c, f_h, f_w, f_c, f_n;
+            i_n = input_shape[0];
+            i_h = input_shape[1];
+            i_w = input_shape[2];
+            i_c = input_shape[3];
+            f_h = filter_shape[0];
+            f_w = filter_shape[1];
+            f_c = filter_shape[2];
+            f_n = filter_shape[3];
+
+            CHECK(f_h % 2 == 1 && f_w % 2 == 1);
+
+            long str_h, str_w, pad_h, pad_w;
+            pad_h = f_h / 2;
+            pad_w = f_w / 2;
+            str_h = strides[1];
+            str_w = strides[2];
+
+            CHECK(i_n == 1 && i_c == f_c && f_h <= i_h && f_w <= i_w);
+
+            long o_n, o_h, o_w, o_c;
+            o_n = i_n;
+            o_h = floor(static_cast<double>(i_h+pad_h*2-f_h)/str_h + 1);
+            o_w = floor(static_cast<double>(i_w+pad_w*2-f_w)/str_w + 1);
+            o_c = f_n;
+            /*
+            auto M = LLIR::Lambda({i_n, o_h, o_w, f_h, f_w, f_c}, [](LLIR::Iterators i) {
+                        return LLIR::Select(
+                                LLIR::All({
+                                    i[1]*str_h+i[3]-pad_h*2 >= 0,
+                                    i[1]*str_h+i[3]-pad_h*2 < i_h,
+                                    i[2]*str_w+i[4]-pad_w*2 >= 0,
+                                    i[2]*str_w+i[4]-pad_w*2 < i_w}),
+                                I(
+                                    i[0],
+                                    i[1]*str_h+i[3]-pad_h*2,
+                                    i[2]*str_w+i[4]-pad_w*2,
+                                    i[5]),
+                                Data::kScalarFP32(0.0f));
+                    });
+
+            // Reduce axes
+            LLIR::Iterator f_h_i(0, f_h);
+            LLIR::Iterator f_w_i(0, f_w);
+            LLIR::Iterator f_c_i(0, f_c);
+            auto O = LLIR::Lambda({o_n, o_h, o_w, o_c}, [](LLIR::Iterators i) {
+                        return LLIR::Multiply(
+                                M(i[0], i[1], i[2], f_h_i, f_w_i, f_c_i),
+                                F(f_h_i, f_w_i, f_c_i, i[3]),
+                                {f_h_i, f_w_i, f_c_i});
+                    });
+
+            ctx.SetOutput("output", O); */
+    });
 
 REGISTER_OP("BiasAdd")
     .Attr("data_format", Datatype::kScalarSTR)

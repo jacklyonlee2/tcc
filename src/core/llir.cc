@@ -24,5 +24,12 @@ LLIR::Fragment::Fragment(
         LLIR_FRAGMENT_IDENTIFIER(*this);
 }
 
+std::vector<long> LLIR::Fragment::GetShape() const {
+    CHECK(data_.Initialized()) <<
+        "data_ is uninitialized" JOIN_MSG(for)
+        LLIR_FRAGMENT_IDENTIFIER(*this);
+    return data_.GetShape();
+}
+
 } // namespace core
 } // namespace tcc
