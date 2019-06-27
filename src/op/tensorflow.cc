@@ -109,32 +109,36 @@ REGISTER_OP("Conv2D")
             o_h = floor(static_cast<double>(i_h+pad_h*2-f_h)/str_h + 1);
             o_w = floor(static_cast<double>(i_w+pad_w*2-f_w)/str_w + 1);
             o_c = f_n;
-            /*
-            auto M = LLIR::Lambda({i_n, o_h, o_w, f_h, f_w, f_c}, [](LLIR::Iterators i) {
-                        return LLIR::Select(
-                                LLIR::All({
-                                    i[1]*str_h+i[3]-pad_h*2 >= 0,
-                                    i[1]*str_h+i[3]-pad_h*2 < i_h,
-                                    i[2]*str_w+i[4]-pad_w*2 >= 0,
-                                    i[2]*str_w+i[4]-pad_w*2 < i_w}),
-                                I(
-                                    i[0],
-                                    i[1]*str_h+i[3]-pad_h*2,
-                                    i[2]*str_w+i[4]-pad_w*2,
-                                    i[5]),
-                                Data::kScalarFP32(0.0f));
-                    });
 
-            // Reduce axes
-            LLIR::Iterator f_h_i(0, f_h);
-            LLIR::Iterator f_w_i(0, f_w);
-            LLIR::Iterator f_c_i(0, f_c);
-            auto O = LLIR::Lambda({o_n, o_h, o_w, o_c}, [](LLIR::Iterators i) {
-                        return LLIR::Multiply(
-                                M(i[0], i[1], i[2], f_h_i, f_w_i, f_c_i),
-                                F(f_h_i, f_w_i, f_c_i, i[3]),
-                                {f_h_i, f_w_i, f_c_i});
-                    });
+            // Build LLIR expression
+            /*
+            LLIR::Ranges m1({i_n, o_h, o_w, f_h, f_w, f_c});
+            auto M1 = LLIR::Lambda(m1,
+                    LLIR::Select(
+                        LLIR::All({
+                            m1[1]*str_h+m1[3]-pad_h*2 >= 0,
+                            m1[1]*str_h+m1[3]-pad_h*2 < i_h,
+                            m1[2]*str_w+m1[4]-pad_w*2 >= 0,
+                            m1[2]*str_w+m1[4]-pad_w*2 < i_w}),
+                        I({
+                            m1[0],
+                            m1[1]*str_h+m1[3]-pad_h*2,
+                            m1[2]*str_w+m1[4]-pad_w*2,
+                            m1[5]}),
+                        Data::kScalarFP32(0.0f)));
+
+            LLIR::Ranges m2({i_n, o_h, o_w, o_c, f_h, f_w, f_c});
+            auto M2 = LLIR::Lambda(m2,
+                    LLIR::Multiply(
+                        M1({m2[0], m2[1], m2[2], m2[4], m2[5], m2[6]}),
+                        F({m2[4], m2[5], m2[6], m2[3]})));
+
+
+            LLIR::Ranges o({i_n, o_h, o_w, o_c, f_h, f_w, f_c});
+            auto O = LLIR::Lambda(o,
+                    LLIR::ReduceSum(
+                        M2(o),
+                        {o[4], o[5], o[6]});
 
             ctx.SetOutput("output", O); */
     });

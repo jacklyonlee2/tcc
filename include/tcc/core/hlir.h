@@ -15,7 +15,10 @@ class KernelContext;
 
 class HLIR {
     public:
+        class Variable;
         class Operation;
+        typedef std::shared_ptr<Variable> VariablePtr;
+        typedef std::weak_ptr<Variable> WeakVariablePtr;
         typedef std::shared_ptr<Operation> OperationPtr;
 
         class Variable {
@@ -37,9 +40,6 @@ class HLIR {
 
             friend class HLIR;
         };
-
-        typedef std::shared_ptr<Variable> VariablePtr;
-        typedef std::weak_ptr<Variable> WeakVariablePtr;
 
         class Operation {
             public:

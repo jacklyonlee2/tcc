@@ -12,16 +12,18 @@ namespace core {
 
 class LLIR {
     public:
-        class Iterator {
-        };
-
-        typedef std::vector<Iterator> Iterators;
-
-        class AccessPattern {
-        };
-
+        class Expression;
         class Primitive;
+        class Fragment;
         typedef std::shared_ptr<Primitive> PrimitivePtr;
+        typedef std::shared_ptr<Fragment> FragmentPtr;
+        typedef std::weak_ptr<Fragment> WeakFragmentPtr;
+
+        class Expression {
+             public:
+                 explicit Expression(int value);
+                 explicit Expression(unsigned long range);
+        };
 
         class Fragment {
             public:
@@ -39,20 +41,11 @@ class LLIR {
                 std::unordered_set<PrimitivePtr> next_pmts_;
         };
 
-        typedef std::shared_ptr<Fragment> FragmentPtr;
-        typedef std::weak_ptr<Fragment> WeakFragmentPtr;
-
         class Primitive {
             private:
-                std::vector<AccessPattern> input_access_patterns_;
-
                 std::vector<WeakFragmentPtr> input_fragments_;
                 WeakFragmentPtr output_fragment_;
         };
-
-    public:
-        static FragmentPtr Lambda(std::vector<long> shape,
-                FragmentPtr(*lambda_)(Iterators));
 
         void Print(std::ofstream& stream) const;
 
