@@ -1,14 +1,14 @@
 #include <fstream>
 #include <iterator>
 
+#include "glog/logging.h"
 #include "gflags/gflags.h"
-#include "tcc/core/logging.h"
-#include "tcc/core/compiler.h"
 #include "tcc/frontend/frontend.h"
+#include "tcc/core/hlir/visualize.h"
 
-// Utilities
+/* Commandline API helper functions. */
 
-static std::vector<std::string> SplitString(std::string str, std::string delimiter) {
+static std::vector<std::string> split_string(std::string str, std::string delimiter) {
     std::vector<std::string> tokens;
     size_t pos = 0;
     while ((pos = str.find(delimiter)) != std::string::npos) {
@@ -21,7 +21,7 @@ static std::vector<std::string> SplitString(std::string str, std::string delimit
     return tokens;
 }
 
-static std::unordered_map<std::string, std::vector<long>> ParseInputShapes(std::string value) {
+static std::unordered_map<std::string, std::vector<long>> parse_input_shapes(std::string value) {
     std::unordered_map<std::string, std::vector<long>> input_shapes;
 
     // Split value by empty space
@@ -32,11 +32,11 @@ static std::unordered_map<std::string, std::vector<long>> ParseInputShapes(std::
 
     for (std::string segment : segments) {
         // Split segment by '=' sign
-        std::vector<std::string> pair = SplitString(segment, "=");
+        std::vector<std::string> pair = split_string(segment, "=");
         if (pair.size() == 2 && pair[1].size() >= 2) {
             // Stripe '()' and split shape_str by ","
             std::string shape_str = pair[1].substr(1, pair[1].size()-2);
-            std::vector<std::string> dims = SplitString(shape_str, ",");
+            std::vector<std::string> dims = split_string(shape_str, ",");
             // Convert string vec to long vec
             std::vector<long> shape;
             for (std::string dim : dims) {
@@ -57,9 +57,9 @@ static std::unordered_map<std::string, std::vector<long>> ParseInputShapes(std::
     return input_shapes;
 }
 
-// Validators
+/* Commandline flag validators. */
 
-static bool ValidateInputPath(const char* flag_name, const std::string& value) {
+static bool validate_input_path(const char* flag_name, const std::string& value) {
     if (value.empty()) {
         return false;
     } else if (std::fstream file = std::fstream(value, std::ios::in | std::ios::binary)) {
@@ -70,8 +70,8 @@ static bool ValidateInputPath(const char* flag_name, const std::string& value) {
     }
 }
 
-static bool ValidateInputShapes(const char* flag_name, const std::string& value) {
-    if (!value.empty() && ParseInputShapes(value).empty()) {
+static bool validate_input_shapes(const char* flag_name, const std::string& value) {
+    if (!value.empty() && parse_input_shapes(value).empty()) {
         printf("-%s: incorrect syntax.\n", flag_name);
         return false;
     } else {
@@ -79,26 +79,34 @@ static bool ValidateInputShapes(const char* flag_name, const std::string& value)
     }
 }
 
-// Flags
+/* gflags macros */
 
 DEFINE_string(input_path, "", "Path to TensorFlow frozen graph.");
-DEFINE_validator(input_path, &ValidateInputPath);
-DEFINE_string(input_shapes, "", "Input placeholder shapes (e.g., -input_shapes=\"pld=(1,1,224) sclr=()\").");
-DEFINE_validator(input_shapes, &ValidateInputShapes);
+DEFINE_validator(input_path, &validate_input_path);
+DEFINE_string(input_shapes, "", "Input placeholder shapes (e.g., -input_shapes=\"a=(1,1,224) b=()\").");
+DEFINE_validator(input_shapes, &validate_input_shapes);
+
+using namespace tcc::frontend;
+using namespace tcc::core;
 
 int main(int argc, char **argv) {
-    // Initialize glog
+    /* Initialize glog. */
     google::InitGoogleLogging(argv[0]);
 
-    // Parse command line arguments using gflag
+    /* Parse command line arguments using gflag. */
     gflags::SetUsageMessage("tcc -input_path=\"/PATH/TO/FROZEN/GRAPH\"");
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    BUILD_COMPILER(tcc_compiler)
-        .HLIRBuilder(tcc::frontend::FromTensorFlow);
+    /* Parse TensorFlow frozen graph into HLIR. */
+    auto hlir = parse_tensorflow(
+            FLAGS_input_path,
+            parse_input_shapes(FLAGS_input_shapes));
 
-    tcc_compiler
-        .BuildHLIR(FLAGS_input_path, ParseInputShapes(FLAGS_input_shapes))
-        .PrintHLIR("./hlir.dot")
-        .BuildLLIR();
+    /* Visualize HLIR. */
+    HLIRVisualizer visualizer;
+    hlir.apply(&visualizer);
+    visualizer.write("./hlir.dot");
+
+    /* Lower HLIR to LLIR. */
 }
+

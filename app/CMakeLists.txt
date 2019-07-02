@@ -5,6 +5,5 @@ add_executable(tcc
 target_link_libraries(tcc
     PRIVATE
     core
-    op
     frontend
     gflags::gflags)

@@ -1,26 +1,23 @@
 # Build core library
 list(APPEND
     CORE_SRC
-    ${TCC_INCLUDE_DIR}/tcc/core/compiler.h
-    ${TCC_INCLUDE_DIR}/tcc/core/context.h
-    ${TCC_INCLUDE_DIR}/tcc/core/data.h
-    ${TCC_INCLUDE_DIR}/tcc/core/hlir.h
-    ${TCC_INCLUDE_DIR}/tcc/core/llir.h
-    ${TCC_INCLUDE_DIR}/tcc/core/logging.h
-    ${TCC_INCLUDE_DIR}/tcc/core/operator.h
-    ${TCC_INCLUDE_DIR}/tcc/core/util.h
-    compiler.cc
-    context.cc
-    hlir.cc
-    llir.cc
-    operator.cc)
+     ${TCC_INCLUDE_DIR}/tcc/core/common/tensor.h
+     ${TCC_INCLUDE_DIR}/tcc/core/common/logging.h
+     ${TCC_INCLUDE_DIR}/tcc/core/hlir/hlir.h
+     ${TCC_INCLUDE_DIR}/tcc/core/hlir/operation.h
+     ${TCC_INCLUDE_DIR}/tcc/core/hlir/visualize.h
+     ${TCC_INCLUDE_DIR}/tcc/core/llir/llir.h
+     ${TCC_INCLUDE_DIR}/tcc/core/llir/expression.h
+     ${TCC_INCLUDE_DIR}/tcc/core/llir/primitive.h
+     hlir/hlir.cc
+     hlir/operation.cc
+     hlir/visualize.cc
+     llir/llir.cc
+     llir/expression.cc
+     llir/primitive.cc)
 
 add_library(core
     ${CORE_SRC})
-
-target_compile_options(core
-    PRIVATE
-    "-fPIC") # linking with shared library op
 
 target_include_directories(core
     PUBLIC

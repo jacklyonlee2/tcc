@@ -18,4 +18,3 @@ add_library(tensorflow_proto
 target_link_libraries(tensorflow_proto
     PRIVATE
     ${PROTOBUF_LIBRARIES})
-
