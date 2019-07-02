@@ -5,6 +5,7 @@
 #include "gflags/gflags.h"
 #include "tcc/frontend/frontend.h"
 #include "tcc/core/hlir/visualize.h"
+#include "tcc/core/hlir/lower.h"
 
 /* Commandline API helper functions. */
 
@@ -98,7 +99,7 @@ int main(int argc, char **argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     /* Parse TensorFlow frozen graph into HLIR. */
-    auto hlir = parse_tensorflow(
+    HLIR hlir = parse_tensorflow(
             FLAGS_input_path,
             parse_input_shapes(FLAGS_input_shapes));
 
@@ -108,5 +109,8 @@ int main(int argc, char **argv) {
     visualizer.write("./hlir.dot");
 
     /* Lower HLIR to LLIR. */
+    HLIRLowerer lowerer;
+    hlir.accept(&lowerer);
+    LLIR llir = lowerer.lower();
 }
 

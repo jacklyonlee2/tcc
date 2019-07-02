@@ -38,7 +38,7 @@ struct Primitive :
     Primitive(TensorType tt) : BasePrimitive(T::_pmt_type, tt) {}
 
     void accept(LLIRVisitor *v) const override;
-}
+};
 
 namespace pmt {
 

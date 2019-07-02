@@ -6,12 +6,14 @@ list(APPEND
      ${TCC_INCLUDE_DIR}/tcc/core/hlir/hlir.h
      ${TCC_INCLUDE_DIR}/tcc/core/hlir/operation.h
      ${TCC_INCLUDE_DIR}/tcc/core/hlir/visualize.h
+     ${TCC_INCLUDE_DIR}/tcc/core/hlir/lower.h
      ${TCC_INCLUDE_DIR}/tcc/core/llir/llir.h
      ${TCC_INCLUDE_DIR}/tcc/core/llir/expression.h
      ${TCC_INCLUDE_DIR}/tcc/core/llir/primitive.h
      hlir/hlir.cc
      hlir/operation.cc
      hlir/visualize.cc
+     hlir/lower.cc
      llir/llir.cc
      llir/expression.cc
      llir/primitive.cc)

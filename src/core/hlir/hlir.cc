@@ -19,6 +19,8 @@ void HLIRVisitor::recurse(OpRef op) {
     recurse(op.lock());
 }
 
+/* Overloaded HLIR Op visitors. */
+
 void HLIRVisitor::visit(const op::PlaceholderPtr) {
 }
 

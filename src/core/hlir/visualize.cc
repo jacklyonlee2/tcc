@@ -40,6 +40,8 @@ void HLIRVisualizer::add_edge(Op src, Op dst, std::string label) {
         "\" [label=\" " << label << " \"]\n";
 }
 
+/* Overloaded HLIR Op visitors. */
+
 void HLIRVisualizer::visit(const op::PlaceholderPtr op) {
     add_node(op, "Placeholder", true);
 }
