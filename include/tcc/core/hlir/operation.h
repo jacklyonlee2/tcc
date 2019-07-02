@@ -31,8 +31,10 @@ enum class OperationType {
 };
 
 /* Base class for HLIR Operation. */
+
 struct BaseOperation {
     BaseOperation(OperationType t) : operation_type(t) {}
+
     /* Virtual accept method to support visitor pattern. */
     virtual void accept(HLIRVisitor *v) const = 0;
 
@@ -43,6 +45,7 @@ typedef std::shared_ptr<const BaseOperation> Op;
 typedef std::weak_ptr<const BaseOperation> OpRef;
 
 /* Template class for HLIR Operation. */
+
 template<typename T>
 struct Operation :
     public BaseOperation,
@@ -51,14 +54,10 @@ struct Operation :
     void accept(HLIRVisitor *v) const override;
 };
 
-#define DECLARE_OP(type) \
-    struct type; \
-    typedef std::shared_ptr<const type> type##Ptr; \
-    struct type : public Operation<type>
-
 namespace op {
 
 /* Helper function to downcast Op. */
+
 template<typename T> std::shared_ptr<const T> downcast(Op op) {
     if (op && op->operation_type == T::_operation_type) {
         return std::static_pointer_cast<const T>(op);
@@ -68,7 +67,12 @@ template<typename T> std::shared_ptr<const T> downcast(Op op) {
     }
 }
 
-/* Storage HLIR Operations */
+/* --- Declare HLIR Ops --- */
+
+#define DECLARE_OP(type) \
+    struct type; \
+    typedef std::shared_ptr<const type> type##Ptr; \
+    struct type : public Operation<type>
 
 DECLARE_OP(Placeholder) {
     TensorDesc tensor_desc;
@@ -93,8 +97,6 @@ DECLARE_OP(Intermediate) {
 
     static const OperationType _operation_type = OperationType::Intermediate;
 };
-
-/* Other HLIR Operations */
 
 DECLARE_OP(Add) {
     Op x;
@@ -253,10 +255,9 @@ DECLARE_OP(Squeeze) {
     static const OperationType _operation_type = OperationType::Squeeze;
 };
 
-} // namespace op
-
 #undef DECLARE_OP
 
+} // namespace op
 } // namespace core
 } // namespace tcc
 

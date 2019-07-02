@@ -7,9 +7,10 @@ namespace tcc {
 namespace core {
 
 /* Override HLIR Operation accept method. */
+
 #define IMPLEMENT_ACCEPT(type) \
     template<> void Operation<type>::accept(HLIRVisitor *v) const { \
-        v->visit(std::static_pointer_cast<const type>(shared_from_this())); \
+        v->visit(op::downcast<type>(shared_from_this())); \
     }
 
 IMPLEMENT_ACCEPT(op::Placeholder)
@@ -30,6 +31,8 @@ IMPLEMENT_ACCEPT(op::Squeeze)
 #undef IMPLEMENT_ACCEPT
 
 namespace op {
+
+/* --- Implement HLIR Ops --- */
 
 Op Placeholder::make(TensorDesc tensor_desc_) {
     std::shared_ptr<Placeholder> op(new Placeholder);
