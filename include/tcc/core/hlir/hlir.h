@@ -46,7 +46,7 @@ class HLIR {
     public:
         HLIR(std::unordered_set<Op> ops_) : ops(ops_) {}
 
-        void apply(HLIRVisitor *v) const;
+        void accept(HLIRVisitor *v) const;
 
     private:
         std::unordered_set<Op> ops;

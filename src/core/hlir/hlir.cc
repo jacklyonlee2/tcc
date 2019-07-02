@@ -84,7 +84,7 @@ void HLIRVisitor::visit(const op::SqueezePtr op) {
 
 /* HLIR method implementations. */
 
-void HLIR::apply(HLIRVisitor *v) const {
+void HLIR::accept(HLIRVisitor *v) const {
     for (Op op : ops) {
         v->recurse(op);
     }

@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 
     /* Visualize HLIR. */
     HLIRVisualizer visualizer;
-    hlir.apply(&visualizer);
+    hlir.accept(&visualizer);
     visualizer.write("./hlir.dot");
 
     /* Lower HLIR to LLIR. */
