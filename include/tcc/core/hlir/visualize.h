@@ -17,7 +17,7 @@ class HLIRVisualizer : public HLIRVisitor {
         void write(std::string output_path);
 
     protected:
-        void add_node(Op node, std::string base_name, bool storage = false);
+        void add_node(Op node, std::string base_name, bool alt = false);
         void add_edge(Op src, Op dst, std::string label);
 
         void visit(const op::PlaceholderPtr) override;

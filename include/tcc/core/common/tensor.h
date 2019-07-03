@@ -65,7 +65,7 @@ class TensorDesc {
     private: \
         std::vector<data_type> tensor_type##_content;
 
-class Tensor : TensorDesc {
+class Tensor : public TensorDesc {
     public:
         Tensor() : TensorDesc() {}
         Tensor(TensorType type_, std::vector<long> shape_) :

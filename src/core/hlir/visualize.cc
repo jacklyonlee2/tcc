@@ -8,32 +8,35 @@ namespace core {
 void HLIRVisualizer::write(std::string output_path) {
     std::ofstream file(output_path, std::ios::trunc);
     CHECK(file) << "Failed to open file at '" << output_path << "'.";
+    /* Write DOT graph to stream. */
     file << "digraph D {\n" << stream.str() << "}";
     file.close();
 }
 
-void HLIRVisualizer::add_node(Op node, std::string base_name, bool storage) {
+void HLIRVisualizer::add_node(Op node, std::string base_name, bool alt) {
     /* Assign name to unvisited node. Add node to stream. */
     static unsigned int count = 0;
     if (node_name_map.find(node) == node_name_map.end()) {
         node_name_map.insert({node, base_name + std::to_string(count)});
         count++;
 
+        /* Add DOT node to stream. */
         std::string node_name = node_name_map.at(node);
         stream << "\t\"" << node_name << "\" ";
-        if (storage) {
-            stream << "[shape=box, style=filled, penwidth=0, fillcolor=lightgrey]";
-        } else {
-            stream << "[shape=box, style=filled, fillcolor=black, fontcolor=white]";
-        }
+        stream << (alt ?
+            "[shape=box, style=filled, penwidth=0, fillcolor=lightgrey]" :
+            "[shape=box, style=filled, fillcolor=black, fontcolor=white]");
         stream << "\n";
     }
 }
 
 void HLIRVisualizer::add_edge(Op src, Op dst, std::string label) {
-    CHECK_KEY_IN_MAP(src, node_name_map) << "Source node is unvisited.";
-    CHECK_KEY_IN_MAP(dst, node_name_map) << "Destination node is unvisited.";
+    CHECK_KEY_IN_MAP(src, node_name_map) <<
+        "Source node is unvisited.";
+    CHECK_KEY_IN_MAP(dst, node_name_map) <<
+        "Destination node is unvisited.";
 
+    /* Add DOT edge to stream. */
     std::string src_name = node_name_map.at(src);
     std::string dst_name = node_name_map.at(dst);
     stream << "\t\"" << src_name << "\" -> \"" << dst_name <<

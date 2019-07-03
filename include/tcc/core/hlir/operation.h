@@ -76,43 +76,37 @@ template<typename T> std::shared_ptr<const T> downcast(Op op) {
 #define DECLARE_OPERATION(type) \
     struct type; \
     typedef std::shared_ptr<const type> type##Ptr; \
-    struct type : public Operation<type>
+    struct type : public Operation<type> { \
+        static const OpType _op_type = OpType::type;
+#define END_DECLARE };
 
-DECLARE_OPERATION(Placeholder) {
+DECLARE_OPERATION(Placeholder)
     TensorDesc tensor_desc;
 
     static Op make(TensorDesc tensor_desc_);
+END_DECLARE // Placeholder
 
-    static const OpType _op_type = OpType::Placeholder;
-};
-
-DECLARE_OPERATION(Constant) {
+DECLARE_OPERATION(Constant)
     Tensor tensor;
 
     static Op make(Tensor tensor_);
+END_DECLARE // Constant
 
-    static const OpType _op_type = OpType::Constant;
-};
-
-DECLARE_OPERATION(Intermediate) {
+DECLARE_OPERATION(Intermediate)
     OpRef prev_op;
 
     static Op make(Op prev_op_);
+END_DECLARE // Intermediate
 
-    static const OpType _op_type = OpType::Intermediate;
-};
-
-DECLARE_OPERATION(Add) {
+DECLARE_OPERATION(Add)
     Op x;
     Op y;
     Op z;
 
     static Op make(Op x_, Op y_);
+END_DECLARE // Add
 
-    static const OpType _op_type = OpType::Add;
-};
-
-DECLARE_OPERATION(AvgPool) {
+DECLARE_OPERATION(AvgPool)
     std::string data_format;
     std::string padding;
     std::vector<long> ksize;
@@ -127,11 +121,9 @@ DECLARE_OPERATION(AvgPool) {
             std::vector<long> ksize_,
             std::vector<long> strides_,
             Op value_);
+END_DECLARE // AvgPool
 
-    static const OpType _op_type = OpType::AvgPool;
-};
-
-DECLARE_OPERATION(BiasAdd) {
+DECLARE_OPERATION(BiasAdd)
     std::string data_format;
 
     Op input;
@@ -142,11 +134,9 @@ DECLARE_OPERATION(BiasAdd) {
             std::string data_format_,
             Op input_,
             Op bias_);
+END_DECLARE // BiasAdd
 
-    static const OpType _op_type = OpType::BiasAdd;
-};
-
-DECLARE_OPERATION(Conv2D) {
+DECLARE_OPERATION(Conv2D)
     std::string data_format;
     std::string padding;
     std::vector<long> strides;
@@ -163,11 +153,9 @@ DECLARE_OPERATION(Conv2D) {
             std::vector<long> dilations_,
             Op input_,
             Op filter_);
+END_DECLARE // Conv2D
 
-    static const OpType _op_type = OpType::Conv2D;
-};
-
-DECLARE_OPERATION(DepthwiseConv2dNative) {
+DECLARE_OPERATION(DepthwiseConv2dNative)
     std::string data_format;
     std::string padding;
     std::vector<long> strides;
@@ -184,11 +172,9 @@ DECLARE_OPERATION(DepthwiseConv2dNative) {
             std::vector<long> dilations_,
             Op input_,
             Op filter_);
+END_DECLARE // DepthwiseConv2dNative
 
-    static const OpType _op_type = OpType::DepthwiseConv2dNative;
-};
-
-DECLARE_OPERATION(FusedBatchNorm) {
+DECLARE_OPERATION(FusedBatchNorm)
     float epsilon;
     std::string data_format;
 
@@ -207,59 +193,48 @@ DECLARE_OPERATION(FusedBatchNorm) {
             Op offset_,
             Op mean_,
             Op variance_);
+END_DECLARE // FusedBatchNorm
 
-    static const OpType _op_type = OpType::FusedBatchNorm;
-};
-
-DECLARE_OPERATION(Relu6) {
+DECLARE_OPERATION(Relu6)
     Op features;
     Op activations;
 
     static Op make(Op features_);
+END_DECLARE // Relu6
 
-    static const OpType _op_type = OpType::Relu6;
-};
-
-DECLARE_OPERATION(Reshape) {
+DECLARE_OPERATION(Reshape)
     Op tensor;
     Op shape;
     Op output;
 
     static Op make(Op tensor_, Op shape_);
+END_DECLARE // Reshape
 
-    static const OpType _op_type = OpType::Reshape;
-};
-
-DECLARE_OPERATION(Shape) {
+DECLARE_OPERATION(Shape)
     Op input;
     Op output;
 
     static Op make(Op input_);
+END_DECLARE // Shape
 
-    static const OpType _op_type = OpType::Shape;
-};
-
-DECLARE_OPERATION(Softmax) {
+DECLARE_OPERATION(Softmax)
     Op logits;
     Op output;
 
     static Op make(Op logits_);
+END_DECLARE // Softmax
 
-    static const OpType _op_type = OpType::Softmax;
-};
-
-DECLARE_OPERATION(Squeeze) {
+DECLARE_OPERATION(Squeeze)
     std::vector<long> squeeze_dims;
 
     Op input;
     Op output;
 
     static Op make(std::vector<long> squeeze_dims_, Op input_);
-
-    static const OpType _op_type = OpType::Squeeze;
-};
+END_DECLARE // Squeeze
 
 #undef DECLARE_OPERATION
+#undef END_DECLARE
 
 } // namespace op
 } // namespace core

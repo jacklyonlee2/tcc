@@ -1,6 +1,8 @@
 #ifndef TCC_HLIR_LOWER_H
 #define TCC_HLIR_LOWER_H
 
+#include <unordered_map>
+
 #include "tcc/core/hlir/hlir.h"
 #include "tcc/core/llir/llir.h"
 
@@ -14,9 +16,11 @@ class HLIRLowerer : public HLIRVisitor {
         LLIR lower();
 
     protected:
+        Pmt get_pmt(Op op) const;
+        void set_pmt(Op op, Pmt pmt);
+
         void visit(const op::PlaceholderPtr) override;
         void visit(const op::ConstantPtr) override;
-        void visit(const op::IntermediatePtr) override;
         void visit(const op::AddPtr) override;
         void visit(const op::AvgPoolPtr) override;
         void visit(const op::BiasAddPtr) override;
@@ -28,6 +32,10 @@ class HLIRLowerer : public HLIRVisitor {
         void visit(const op::ShapePtr) override;
         void visit(const op::SoftmaxPtr) override;
         void visit(const op::SqueezePtr) override;
+
+        /* Stores lowered Placeholder/Constant/Intermediate Ops.
+         * Used to connect LLIR between HLIR Ops. */
+        std::unordered_map<Op, Pmt> lowered_op_map;
 };
 
 } // namespace core

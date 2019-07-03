@@ -1,12 +1,27 @@
 #ifndef TCC_LLIR_H
 #define TCC_LLIR_H
 
+#include <unordered_set>
+
 #include "tcc/core/llir/primitive.h"
 
 namespace tcc {
 namespace core {
 
 class LLIRVisitor {
+    public:
+        /* Check if Primitive/Expression is already visited;
+         * if not, dispatch to approprate visit method. */
+        virtual void recurse(PmtInput);
+
+    protected:
+        /* By default following visit methods recursively
+         * traverse the input of each LLIR Primitive and
+         * Expression coupled with each input.
+         * Implemented by calling 'recurse' on PmtInputs. */
+        virtual void visit(const pmt::PlaceholderPtr);
+        virtual void visit(const pmt::ConstantPtr);
+
     template<typename T> friend struct Expression;
     template<typename T> friend struct Primitive;
 };

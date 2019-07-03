@@ -69,9 +69,13 @@ template<typename T> std::shared_ptr<const T> downcast(Expr expr) {
 #define DECLARE_EXPRESSION(type) \
     struct type; \
     typedef std::shared_ptr<const type> type##Ptr; \
-    struct type : public Expression<type>
+    struct type : public Expression<type> { \
+        using Expression::Expression; \
+        static const ExprType _expr_type = ExprType::type;
+#define END_DECLARE };
 
 #undef DECLARE_EXPRESSION
+#undef END_DECLARE
 
 } // namespace expr
 } // namespace core

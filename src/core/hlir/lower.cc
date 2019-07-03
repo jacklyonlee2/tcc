@@ -7,16 +7,35 @@ LLIR HLIRLowerer::lower() {
     return LLIR({});
 }
 
+Pmt HLIRLowerer::get_pmt(Op op) const {
+    CHECK_NOTNULL(op);
+    CHECK_KEY_IN_MAP(op, lowered_op_map) <<
+        "Requested Op is not lowered yet.";
+
+    Pmt pmt = lowered_op_map.at(op);
+    CHECK_NOTNULL(pmt);
+    return pmt;
+}
+
+void HLIRLowerer::set_pmt(Op op, Pmt pmt) {
+    CHECK_NOTNULL(op);
+    CHECK_NOTNULL(pmt);
+    CHECK_KEY_NOT_IN_MAP(op, lowered_op_map) <<
+        "Lowered Op is already assigned.";
+
+    lowered_op_map.insert({op, pmt});
+}
+
 /* Overloaded HLIR Op visitors. */
 
-void HLIRLowerer::visit(const op::PlaceholderPtr) {
+void HLIRLowerer::visit(const op::PlaceholderPtr op) {
+    Pmt pmt = pmt::Placeholder::make(op->tensor_desc);
+    set_pmt(op, pmt);
 }
 
-void HLIRLowerer::visit(const op::ConstantPtr) {
-}
-
-void HLIRLowerer::visit(const op::IntermediatePtr op) {
-    recurse(op->prev_op);
+void HLIRLowerer::visit(const op::ConstantPtr op) {
+    Pmt pmt = pmt::Constant::make(op->tensor);
+    set_pmt(op, pmt);
 }
 
 void HLIRLowerer::visit(const op::AddPtr op) {

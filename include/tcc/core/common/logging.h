@@ -8,6 +8,9 @@
 #define CHECK_KEY_IN_MAP(key, map) \
     CHECK((map).find(key) != (map).end())
 
+#define CHECK_KEY_NOT_IN_MAP(key, map) \
+    CHECK((map).find(key) == (map).end())
+
 #define CHECK_NOT_EXPIRED(weak_ptr) \
     CHECK(!(weak_ptr).expired())
 
