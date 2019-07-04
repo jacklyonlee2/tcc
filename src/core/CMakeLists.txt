@@ -2,6 +2,7 @@
 list(APPEND
     CORE_SRC
      ${TCC_INCLUDE_DIR}/tcc/core/common/tensor.h
+     ${TCC_INCLUDE_DIR}/tcc/core/common/util.h
      ${TCC_INCLUDE_DIR}/tcc/core/common/logging.h
      ${TCC_INCLUDE_DIR}/tcc/core/hlir/hlir.h
      ${TCC_INCLUDE_DIR}/tcc/core/hlir/operation.h

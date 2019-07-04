@@ -33,8 +33,9 @@ class TensorDesc {
         TensorDesc(TensorType type_, std::vector<long> shape_) :
             type(type_), shape(shape_) { SHAPE_CHECK(shape_); }
 
-        bool defined() { return type != TensorType::UNINITIALIZED; }
-        TensorType get_type() { return type; }
+        bool defined() const { return type != TensorType::UNINITIALIZED; }
+        TensorType get_type() const { return type; }
+        std::vector<long> get_shape() const { return shape; }
 
     protected:
         TensorType type = TensorType::UNINITIALIZED;

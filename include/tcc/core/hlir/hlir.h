@@ -16,7 +16,7 @@ class HLIRVisitor {
         virtual void recurse(OpRef);
 
     protected:
-        /* By default following visit method recursively
+        /* By default following visit methods recursively
          * traverse the inputs of each HLIR Operation.
          * Implemented by calling 'recurse' on inputs of
          * each Operation. */

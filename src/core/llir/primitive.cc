@@ -20,12 +20,16 @@ IMPLEMENT_ACCEPT(pmt::Constant)
 namespace pmt {
 
 Pmt Placeholder::make(TensorDesc tensor_desc_) {
-    std::shared_ptr<Placeholder> pmt(new Placeholder(tensor_desc_));
+    std::shared_ptr<Placeholder> pmt(new Placeholder);
+    pmt->tensor_type = tensor_desc_.get_type();
+    pmt->tensor_range = expr::from_shape(tensor_desc_.get_shape());
     return pmt;
 }
 
 Pmt Constant::make(Tensor tensor_) {
-    std::shared_ptr<Constant> pmt(new Constant(tensor_));
+    std::shared_ptr<Constant> pmt(new Constant);
+    pmt->tensor_type = tensor_.get_type();
+    pmt->tensor_range = expr::from_shape(tensor_.get_shape());
     pmt->tensor = tensor_;
     return pmt;
 }

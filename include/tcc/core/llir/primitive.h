@@ -18,14 +18,19 @@ enum class PmtType {
 /* Base class for LLIR Primitive. */
 
 struct BasePrimitive {
-    BasePrimitive(PmtType pt, TensorDesc td) :
-        pmt_type(pt), tensor_desc(td) {}
+    BasePrimitive(PmtType pt) :
+        pmt_type(pt), tensor_type(TensorType::UNINITIALIZED) {}
 
     /* Virtual accept method to support visitor pattern. */
     virtual void accept(LLIRVisitor *v) const = 0;
 
+    std::vector<long> get_shape() const {
+        return expr::to_shape(tensor_range);
+    }
+
     PmtType pmt_type;
-    TensorDesc tensor_desc;
+    TensorType tensor_type;
+    mutable expr::Ranges tensor_range;
 };
 
 typedef std::shared_ptr<const BasePrimitive> Pmt;
@@ -39,7 +44,7 @@ template<typename T>
 struct Primitive :
     public BasePrimitive,
     public std::enable_shared_from_this<Primitive<T>> {
-    Primitive(TensorDesc td) : BasePrimitive(T::_pmt_type, td) {}
+    Primitive() : BasePrimitive(T::_pmt_type) {}
 
     void accept(LLIRVisitor *v) const override;
 };
@@ -63,7 +68,6 @@ template<typename T> std::shared_ptr<const T> downcast(Pmt pmt) {
     struct type; \
     typedef std::shared_ptr<const type> type##Ptr; \
     struct type : public Primitive<type> { \
-        using Primitive::Primitive; \
         static const PmtType _pmt_type = PmtType::type;
 #define END_DECLARE };
 
