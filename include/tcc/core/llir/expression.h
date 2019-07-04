@@ -90,12 +90,10 @@ template<typename T> std::shared_ptr<const T> downcast(Expr expr) {
 struct Ranges : public std::vector<RangePtr> {
     using std::vector<RangePtr>::vector;
 
-    static Ranges from_shape(std::vector<long> shape) {
-        Ranges ranges;
+    Ranges(std::vector<long> shape) {
         for (long dim : shape) {
-            ranges.push_back(downcast<Range>(Range::make(dim)));
+            this->push_back(downcast<Range>(Range::make(dim)));
         }
-        return ranges;
     }
 
     std::vector<long> to_shape() const {

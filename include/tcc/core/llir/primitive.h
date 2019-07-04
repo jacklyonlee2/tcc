@@ -23,6 +23,8 @@ struct BasePrimitive {
 
     /* Virtual accept method to support visitor pattern. */
     virtual void accept(LLIRVisitor *v) const = 0;
+    /* Convert ranges to shape. */
+    std::vector<long> get_shape() const { return tensor_range.to_shape(); }
 
     PmtType pmt_type;
     TensorType tensor_type;

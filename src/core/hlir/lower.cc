@@ -73,8 +73,8 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
     Pmt input = get_pmt(op->input);
     Pmt filter = get_pmt(op->filter);
 
-    std::vector<long> input_shape = input->tensor_range.to_shape();
-    std::vector<long> filter_shape = filter->tensor_range.to_shape();
+    std::vector<long> input_shape = input->get_shape();
+    std::vector<long> filter_shape = filter->get_shape();
 
     CHECK(input_shape.size() == 4);
     CHECK(filter_shape.size() == 4);
