@@ -24,10 +24,6 @@ struct BasePrimitive {
     /* Virtual accept method to support visitor pattern. */
     virtual void accept(LLIRVisitor *v) const = 0;
 
-    std::vector<long> get_shape() const {
-        return expr::to_shape(tensor_range);
-    }
-
     PmtType pmt_type;
     TensorType tensor_type;
     mutable expr::Ranges tensor_range;
@@ -51,19 +47,13 @@ struct Primitive :
 
 namespace pmt {
 
-/* Helper function to downcast Pmt. */
-
-template<typename T> std::shared_ptr<const T> downcast(Pmt pmt) {
-    if (pmt && pmt->pmt_type == T::_pmt_type) {
-        return std::static_pointer_cast<const T>(pmt);
-    } else {
-        LOG(FATAL) << "Illegal downcast of Pmt.";
-        return nullptr;
-    }
-}
-
 /* --- Declare LLIR Pmts --- */
 
+/* Declare struct of 'type' inheriting from Primitive<type>.
+ * Define type alias 'typePtr' referring to
+ * shared pointer to const 'type' object.
+ * Create static member '_pmt_type' to be used by
+ * base class constructor and downcast functions. */
 #define DECLARE_PRIMITIVE(type) \
     struct type; \
     typedef std::shared_ptr<const type> type##Ptr; \
@@ -83,6 +73,17 @@ END_DECLARE // Constant
 
 #undef DECLARE_PRIMITIVE
 #undef END_DECLARE
+
+/* Helper functions for Pmt. */
+
+template<typename T> std::shared_ptr<const T> downcast(Pmt pmt) {
+    if (pmt && pmt->pmt_type == T::_pmt_type) {
+        return std::static_pointer_cast<const T>(pmt);
+    } else {
+        LOG(FATAL) << "Illegal downcast of Pmt.";
+        return nullptr;
+    }
+}
 
 } // namespace pmt
 } // namespace core

@@ -22,6 +22,8 @@ class LLIRVisitor {
         virtual void visit(const pmt::PlaceholderPtr);
         virtual void visit(const pmt::ConstantPtr);
 
+        virtual void visit(const expr::RangePtr);
+
     template<typename T> friend struct Expression;
     template<typename T> friend struct Primitive;
 };

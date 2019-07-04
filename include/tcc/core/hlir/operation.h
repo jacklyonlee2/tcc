@@ -60,19 +60,13 @@ struct Operation :
 
 namespace op {
 
-/* Helper function to downcast Op. */
-
-template<typename T> std::shared_ptr<const T> downcast(Op op) {
-    if (op && op->op_type == T::_op_type) {
-        return std::static_pointer_cast<const T>(op);
-    } else {
-        LOG(FATAL) << "Illegal downcast of Op.";
-        return nullptr;
-    }
-}
-
 /* --- Declare HLIR Ops --- */
 
+/* Declare struct of 'type' inheriting from Operation<type>.
+ * Define type alias 'typePtr' referring to
+ * shared pointer to const 'type' object.
+ * Create static member '_op_type' to be used by
+ * base class constructor and downcast functions. */
 #define DECLARE_OPERATION(type) \
     struct type; \
     typedef std::shared_ptr<const type> type##Ptr; \
@@ -235,6 +229,17 @@ END_DECLARE // Squeeze
 
 #undef DECLARE_OPERATION
 #undef END_DECLARE
+
+/* Helper functions for Op. */
+
+template<typename T> std::shared_ptr<const T> downcast(Op op) {
+    if (op && op->op_type == T::_op_type) {
+        return std::static_pointer_cast<const T>(op);
+    } else {
+        LOG(FATAL) << "Illegal downcast of Op.";
+        return nullptr;
+    }
+}
 
 } // namespace op
 } // namespace core

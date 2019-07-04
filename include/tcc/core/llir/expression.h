@@ -58,24 +58,23 @@ namespace expr {
 
 /* --- Declare LLIR Exprs --- */
 
+/* Declare struct of 'type' inheriting from Expression<type>.
+ * Define type alias 'typePtr' referring to
+ * shared pointer to const 'type' object.
+ * Create static member '_expr_type' to be used by
+ * base class constructor and downcast functions. */
 #define DECLARE_EXPRESSION(type) \
     struct type; \
     typedef std::shared_ptr<const type> type##Ptr; \
-    struct type : public Expression<type>
+    struct type : public Expression<type> { \
+        static const ExprType _expr_type = ExprType::type;
+#define END_DECLARE };
 
-DECLARE_EXPRESSION(Range) {
+DECLARE_EXPRESSION(Range)
     std::pair<long, long> range;
 
-    long get_dim() const { return range.second - range.first; }
-
     static Expr make(long bound_);
-
-    static const ExprType _expr_type = ExprType::Range;
-};
-
-typedef std::vector<RangePtr> Ranges;
-
-#undef DECLARE_EXPRESSION
+END_DECLARE // Range
 
 /* Helper functions for Expr. */
 
@@ -88,23 +87,27 @@ template<typename T> std::shared_ptr<const T> downcast(Expr expr) {
     }
 }
 
-inline Ranges from_shape(std::vector<long> shape) {
-    Ranges ranges;
-    for (long dim : shape) {
-        ranges.push_back(downcast<Range>(Range::make(dim)));
-    }
-    return ranges;
-}
+struct Ranges : public std::vector<RangePtr> {
+    using std::vector<RangePtr>::vector;
 
-inline std::vector<long> to_shape(Ranges ranges) {
-    std::vector<long> shape;
-    for (RangePtr range : ranges) {
-        long dim = range->get_dim();
-        CHECK(dim > 0) << "Dimension must be positive.";
-        shape.push_back(dim);
+    static Ranges from_shape(std::vector<long> shape) {
+        Ranges ranges;
+        for (long dim : shape) {
+            ranges.push_back(downcast<Range>(Range::make(dim)));
+        }
+        return ranges;
     }
-    return shape;
-}
+
+    std::vector<long> to_shape() const {
+        std::vector<long> shape;
+        for (RangePtr range : *this) {
+            long dim = range->range.second - range->range.first;
+            CHECK(dim > 0) << "Dimension must be positive.";
+            shape.push_back(dim);
+        }
+        return shape;
+    }
+};
 
 } // namespace expr
 } // namespace core

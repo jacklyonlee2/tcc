@@ -62,7 +62,8 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
 
     CHECK(op->dilations == vec(1l, 1l, 1l, 1l)) <<
         "Conv2D does not support dilation.";
-    CHECK(op->strides.size() == 4 && op->strides[0] == 1 && op->strides[3] == 1) <<
+    CHECK(op->strides.size() == 4 &&
+            op->strides[0] == 1 && op->strides[3] == 1) <<
         "Conv2D only supports op->strides along H and W.";
     CHECK(op->data_format == "NHWC") <<
         "Conv2D only supports NHWC format.";
@@ -72,8 +73,8 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
     Pmt input = get_pmt(op->input);
     Pmt filter = get_pmt(op->filter);
 
-    std::vector<long> input_shape = input->get_shape();
-    std::vector<long> filter_shape = filter->get_shape();
+    std::vector<long> input_shape = input->tensor_range.to_shape();
+    std::vector<long> filter_shape = filter->tensor_range.to_shape();
 
     CHECK(input_shape.size() == 4);
     CHECK(filter_shape.size() == 4);
