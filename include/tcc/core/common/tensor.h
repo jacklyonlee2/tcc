@@ -63,6 +63,9 @@ class TensorDesc {
             std::vector<data_type> vec(raw, raw + static_cast<size_t>(size)); \
             return Tensor::tensor_type(vec, shape_); \
         } \
+        static Tensor tensor_type(data_type scalar_) { \
+            return Tensor::tensor_type({scalar_}, {}); \
+        } \
     private: \
         std::vector<data_type> tensor_type##_content;
 

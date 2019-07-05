@@ -230,8 +230,7 @@ END_DECLARE // Squeeze
 #undef DECLARE_OPERATION
 #undef END_DECLARE
 
-/* Helper functions for Op. */
-
+/* Downcast function for Op. */
 template<typename T> std::shared_ptr<const T> downcast(Op op) {
     if (op && op->op_type == T::_op_type) {
         return std::static_pointer_cast<const T>(op);

@@ -89,7 +89,8 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
     f_c = filter_shape[2];
     f_n = filter_shape[3];
 
-    CHECK(f_h % 2 == 1 && f_w % 2 == 1);
+    CHECK(f_h % 2 == 1 && f_w % 2 == 1) <<
+        "Filter shape: " << filter_shape;
 
     long str_h, str_w, pad_h, pad_w;
     pad_h = f_h / 2;
@@ -97,14 +98,40 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
     str_h = op->strides[1];
     str_w = op->strides[2];
 
-    CHECK(i_n == 1 && i_c == f_c && f_h <= i_h && f_w <= i_w);
+    CHECK(i_n == 1 && i_c == f_c && f_h <= i_h && f_w <= i_w) <<
+        "Input shape: " << input_shape << " Filter shape: " << filter_shape;
 
     long o_n, o_h, o_w, o_c;
     o_n = i_n;
-    o_h = floor(static_cast<double>(i_h+pad_h*2-f_h)/str_h + 1);
-    o_w = floor(static_cast<double>(i_w+pad_w*2-f_w)/str_w + 1);
+    o_h = floor(static_cast<double>(i_h+pad_h*2l-f_h)/str_h + 1l);
+    o_w = floor(static_cast<double>(i_w+pad_w*2l-f_w)/str_w + 1l);
     o_c = f_n;
 
+    Pmt input_frag = compute({o_n, o_h, o_w, f_h, f_w, f_c}, [&](Axes i) -> Pmt {
+            return pmt::Select::make(
+                    expr::all(
+                        i[1]*str_h+i[3]-pad_h*2 >= 0,
+                        i[1]*str_h+i[3]-pad_h*2 < i_h,
+                        i[2]*str_w+i[4]-pad_w*2 >= 0,
+                        i[2]*str_w+i[4]-pad_w*2 < i_w),
+                    input(
+                        i[0],
+                        i[1]*str_h+i[3]-pad_h*2,
+                        i[2]*str_w+i[4]-pad_w*2,
+                        i[5]),
+                    pmt::Constant::make(Tensor::FLOAT(0.0f)));
+            });
+
+    Pmt product = compute({o_n, o_h, o_w, o_c, f_h, f_w, f_c}, [&](Axes i) -> Pmt {
+            return pmt::Multiply::make(
+                    input_frag(i[0], i[1], i[2], i[4], i[5], i[6]),
+                    filter(i[4], i[5], i[6], i[3]));
+            });
+
+    /*
+    Pmt reduced = compute({o_n, o_h, o_w, o_c}, [&](Axes i) -> Pmt {
+            });
+            */
 }
 
 void HLIRLowerer::visit(const op::DepthwiseConv2dNativePtr op) {
