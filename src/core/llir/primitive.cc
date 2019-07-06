@@ -5,6 +5,18 @@
 namespace tcc {
 namespace core {
 
+/* Pmt method implementations.
+ * Implicit scalar conversions. */
+
+#define IMPLICIT_SCALAR_CONVERSION(type, tensor_type) \
+    Pmt::Pmt(type scalar) : \
+        Pmt(pmt::Constant::make( \
+                    Tensor::tensor_type(scalar))) {}
+
+IMPLICIT_SCALAR_CONVERSION(float, FLOAT)
+
+#undef IMPLICIT_SCALAR_CONVERSION
+
 /* Override LLIR Primitive accept method. */
 
 #define IMPLEMENT_ACCEPT(type) \

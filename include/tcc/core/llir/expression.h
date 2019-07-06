@@ -15,7 +15,6 @@ class LLIRVisitor;
 
 enum class ValueType {
     UNINITIALIZED,
-    INDICES,
     BOOL,
     LONG
 };
@@ -48,6 +47,7 @@ struct BaseExpression {
 };
 
 /* A wrapper around std::shared_ptr<const BaseExpression>.
+ * Provides implicit conversion (constructor) from scalar constants.
  * Provides overloaded arithmetic and logic operators. */
 
 #define OVERLOAD_OPERATOR(symbol) \
@@ -65,6 +65,7 @@ struct Expr : public std::shared_ptr<const BaseExpression> {
     OVERLOAD_OPERATOR(<)
 };
 
+#undef SCALAR_CONSTRUCTOR
 #undef OVERLOAD_OPERATOR
 
 /* Templated LLIR Expression class.

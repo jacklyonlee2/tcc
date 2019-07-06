@@ -53,9 +53,15 @@ struct BasePrimitive {
 /* A wrapper around std::shared_ptr<const BasePrimitive>.
  * Provides overloaded '()' operator to produce accessed Pmt
  * from the given LLIR Expressions.
- * Provides implicit conversion from Pmt. */
+ * Provides implicit conversion from scalar constants. */
+
+#define IMPLICIT_SCALAR_CONVERSION(type) \
+    Pmt(type scalar);
+
 struct Pmt : public std::shared_ptr<const BasePrimitive> {
     using shared_ptr<const BasePrimitive>::shared_ptr;
+
+    IMPLICIT_SCALAR_CONVERSION(float)
 
     template <typename ... Args>
     Pmt operator()(Args ... args) const {
@@ -74,6 +80,8 @@ struct Pmt : public std::shared_ptr<const BasePrimitive> {
     private:
         std::shared_ptr<std::vector<Expr>> access_pattern;
 };
+
+#undef IMPLICIT_SCALAR_CONVERSION
 
 /* Templated LLIR Primitive class.
  * LLIR Primitives are used to express Op kernels

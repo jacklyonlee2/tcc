@@ -119,7 +119,7 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
                         i[1]*str_h+i[3]-pad_h*2,
                         i[2]*str_w+i[4]-pad_w*2,
                         i[5]),
-                    pmt::Constant::make(Tensor::FLOAT(0.0f)));
+                    0.0f);
             });
 
     Pmt product = compute({o_n, o_h, o_w, o_c, f_h, f_w, f_c}, [&](Axes i) -> Pmt {

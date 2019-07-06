@@ -5,7 +5,8 @@
 namespace tcc {
 namespace core {
 
-/* Expr method implementations. */
+/* Expr method implementations.
+ * overloading arithmetic operators. */
 
 #define OVERLOAD_OPERATOR(symbol, expression) \
     Expr Expr::operator symbol (Expr rhs) { \
@@ -56,7 +57,7 @@ Expr Range::make(long begin_, long end_) {
     CHECK(end_ >= begin_) << "end_ must be bigger or equal to begin_.";
 
     std::shared_ptr<Range> expr(new Range);
-    expr->value_type = ValueType::INDICES;
+    expr->value_type = ValueType::LONG;
     expr->range = std::pair<long,long>({begin_, end_});
     return expr;
 }
