@@ -21,22 +21,17 @@ Pmt compute(
         std::vector<long> shape,
         std::function<Pmt(Axes)> lambda);
 
-class LLIRVisitor {
+class LLIRExprVisitor {
     public:
-        /* Check if Primitive/Expression is already visited;
+        /* Check if Expression is already visited;
          * if not, dispatch to approprate visit method. */
-        virtual void recurse(Pmt);
+        virtual void recurse(Expr);
 
     protected:
         /* By default following visit methods recursively
          * traverse the input of each LLIR Primitive and
          * Expression coupled with each input.
-         * Implemented by calling 'recurse' on PmtInputs. */
-        virtual void visit(const pmt::PlaceholderPtr);
-        virtual void visit(const pmt::ConstantPtr);
-        virtual void visit(const pmt::MultiplyPtr);
-        virtual void visit(const pmt::SelectPtr);
-
+         * Implemented by calling 'recurse' on Pmt inputs. */
         virtual void visit(const expr::ScalarPtr);
         virtual void visit(const expr::RangePtr);
         virtual void visit(const expr::AddPtr);
@@ -48,6 +43,25 @@ class LLIRVisitor {
         virtual void visit(const expr::AndPtr);
 
     template<typename T> friend struct Expression;
+};
+
+class LLIRPmtVisitor {
+    public:
+        /* Check if Primitive is already visited;
+         * if not, dispatch to approprate visit method. */
+        virtual void recurse(Pmt);
+
+    protected:
+        /* By default following visit methods recursively
+         * traverse the input of each LLIR Primitive and
+         * Expression coupled with each input.
+         * Implemented by calling 'recurse' on Pmt inputs. */
+        virtual void visit(const pmt::PlaceholderPtr);
+        virtual void visit(const pmt::ConstantPtr);
+        virtual void visit(const pmt::MultiplyPtr);
+        virtual void visit(const pmt::SelectPtr);
+        virtual void visit(const pmt::ReduceSumPtr);
+
     template<typename T> friend struct Primitive;
 };
 
@@ -56,7 +70,7 @@ class LLIR {
         LLIR(std::unordered_set<Pmt> terminal_pmts_) :
             terminal_pmts(terminal_pmts_) {}
 
-        void accept(LLIRVisitor *v) const;
+        void accept(LLIRPmtVisitor *v) const;
 
     private:
         std::unordered_set<Pmt> terminal_pmts;

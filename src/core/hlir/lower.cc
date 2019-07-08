@@ -128,10 +128,16 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
                     filter(i[4], i[5], i[6], i[3]));
             });
 
-    /*
-    Pmt reduced = compute({o_n, o_h, o_w, o_c}, [&](Axes i) -> Pmt {
+
+    Axes reduce_axes({f_h, f_w, f_c});
+    Pmt reduced = compute({o_n, o_h, o_w, o_c}, [&](Axes i) -> Pmt {\
+            return pmt::ReduceSum::make(
+                    reduce_axes,
+                    product(i[0], i[1], i[2], i[3],
+                        reduce_axes[0], reduce_axes[1], reduce_axes[2]));
             });
-            */
+
+    set_pmt(op->output, reduced);
 }
 
 void HLIRLowerer::visit(const op::DepthwiseConv2dNativePtr op) {

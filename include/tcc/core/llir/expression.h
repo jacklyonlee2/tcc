@@ -8,7 +8,7 @@
 namespace tcc {
 namespace core {
 
-class LLIRVisitor;
+class LLIRExprVisitor;
 
 /* All LLIR Expr value types.
  * Denotes the datatype the Expr evaluates to. */
@@ -40,7 +40,7 @@ struct BaseExpression {
         expr_type(et), value_type(ValueType::UNINITIALIZED) {}
 
     /* Virtual accept method to support visitor pattern. */
-    virtual void accept(LLIRVisitor *v) const = 0;
+    virtual void accept(LLIRExprVisitor *v) const = 0;
 
     ExprType expr_type;
     ValueType value_type;
@@ -80,7 +80,7 @@ struct Expression :
     public std::enable_shared_from_this<Expression<T>> {
     Expression() : BaseExpression(T::_expr_type) {}
 
-    void accept(LLIRVisitor *v) const override;
+    void accept(LLIRExprVisitor *v) const override;
 };
 
 namespace expr {

@@ -7,6 +7,8 @@
 namespace tcc {
 namespace core {
 
+class LLIRPmtVisitor;
+
 /* All LLIR Pmt Type. */
 
 enum class PmtType {
@@ -14,7 +16,8 @@ enum class PmtType {
     Placeholder,
     Constant,
     Multiply,
-    Select
+    Select,
+    ReduceSum
 };
 
 /* Base class for LLIR Primitive. */
@@ -24,7 +27,7 @@ struct BasePrimitive {
         pmt_type(pt), tensor_type(TensorType::UNINITIALIZED) {}
 
     /* Virtual accept method to support visitor pattern. */
-    virtual void accept(LLIRVisitor *v) const = 0;
+    virtual void accept(LLIRPmtVisitor *v) const = 0;
 
     std::vector<long> get_shape() const {
         CHECK_NOTNULL(axes);
@@ -93,7 +96,7 @@ struct Primitive :
     public std::enable_shared_from_this<Primitive<T>> {
     Primitive() : BasePrimitive(T::_pmt_type) {}
 
-    void accept(LLIRVisitor *v) const override;
+    void accept(LLIRPmtVisitor *v) const override;
 };
 
 namespace pmt {
@@ -140,6 +143,14 @@ DECLARE_PRIMITIVE(Select)
             Pmt t_,
             Pmt f_);
 END_DECLARE // Select
+
+DECLARE_PRIMITIVE(ReduceSum)
+    Axes reduce_axes;
+
+    Pmt input;
+
+    static Pmt make(Axes reduce_axes_, Pmt input_);
+END_DECLARE // ReduceSum
 
 #undef DECLARE_PRIMITIVE
 #undef END_DECLARE

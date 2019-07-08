@@ -20,7 +20,7 @@ IMPLICIT_SCALAR_CONVERSION(float, FLOAT)
 /* Override LLIR Primitive accept method. */
 
 #define IMPLEMENT_ACCEPT(type) \
-    template<> void Primitive<type>::accept(LLIRVisitor *v) const { \
+    template<> void Primitive<type>::accept(LLIRPmtVisitor *v) const { \
         v->visit(pmt::downcast<type>(shared_from_this())); \
     }
 
@@ -28,6 +28,7 @@ IMPLEMENT_ACCEPT(pmt::Placeholder)
 IMPLEMENT_ACCEPT(pmt::Constant)
 IMPLEMENT_ACCEPT(pmt::Multiply)
 IMPLEMENT_ACCEPT(pmt::Select)
+IMPLEMENT_ACCEPT(pmt::ReduceSum)
 
 #undef IMPLEMENT_ACCEPT
 
@@ -76,6 +77,20 @@ Pmt Select::make(
     pmt->tensor_type = t_->tensor_type;
     pmt->t = t_;
     pmt->f = f_;
+    return pmt;
+}
+
+Pmt ReduceSum::make(
+        Axes reduce_axes_,
+        Pmt input_) {
+    CHECK(!reduce_axes_.empty()) <<
+        "reduce_axes_ can not be empty.";
+    CHECK_AXES_SET(input_);
+
+    std::shared_ptr<ReduceSum> pmt(new ReduceSum);
+    pmt->tensor_type = input_->tensor_type;
+    pmt->reduce_axes = reduce_axes_;
+    pmt->input = input_;
     return pmt;
 }
 

@@ -28,7 +28,7 @@ OVERLOAD_OPERATOR(<, expr::Less)
 /* Override LLIR Primitive accept method. */
 
 #define IMPLEMENT_ACCEPT(type) \
-    template<> void Expression<type>::accept(LLIRVisitor *v) const { \
+    template<> void Expression<type>::accept(LLIRExprVisitor *v) const { \
         v->visit(expr::downcast<type>(shared_from_this())); \
     }
 
