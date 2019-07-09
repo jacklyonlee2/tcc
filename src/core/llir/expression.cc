@@ -70,15 +70,17 @@ Expr Const::make(Data data_) {
 }
 
 Expr Range::make(long begin_, long end_) {
-    CHECK(end_ >= begin_) << "end_ must be bigger or equal to begin_.";
+    CHECK(end_ >= begin_);
 
     std::shared_ptr<Range> expr(new Range);
-    expr->data_desc = DataDesc(DataType::LONG);
+    expr->data_desc = DataType::LONG;
     expr->range = std::pair<long,long>({begin_, end_});
     return expr;
 }
 
 Expr Add::make(Expr x_, Expr y_) {
+    CHECK_NOTNULL(x_);
+    CHECK_NOTNULL(y_);
     CHECK(x_->data_desc.get_type() == y_->data_desc.get_type());
 
     std::shared_ptr<Add> expr(new Add);
@@ -89,6 +91,8 @@ Expr Add::make(Expr x_, Expr y_) {
 }
 
 Expr Sub::make(Expr x_, Expr y_) {
+    CHECK_NOTNULL(x_);
+    CHECK_NOTNULL(y_);
     CHECK(x_->data_desc.get_type() == y_->data_desc.get_type());
 
     std::shared_ptr<Sub> expr(new Sub);
@@ -99,6 +103,8 @@ Expr Sub::make(Expr x_, Expr y_) {
 }
 
 Expr Mul::make(Expr x_, Expr y_) {
+    CHECK_NOTNULL(x_);
+    CHECK_NOTNULL(y_);
     CHECK(x_->data_desc.get_type() == y_->data_desc.get_type());
 
     std::shared_ptr<Mul> expr(new Mul);
@@ -109,6 +115,8 @@ Expr Mul::make(Expr x_, Expr y_) {
 }
 
 Expr Div::make(Expr x_, Expr y_) {
+    CHECK_NOTNULL(x_);
+    CHECK_NOTNULL(y_);
     CHECK(x_->data_desc.get_type() == y_->data_desc.get_type());
 
     std::shared_ptr<Div> expr(new Div);
@@ -119,6 +127,8 @@ Expr Div::make(Expr x_, Expr y_) {
 }
 
 Expr GreaterEqual::make(Expr x_, Expr y_) {
+    CHECK_NOTNULL(x_);
+    CHECK_NOTNULL(y_);
     CHECK(x_->data_desc.get_type() == y_->data_desc.get_type());
 
     std::shared_ptr<GreaterEqual> expr(new GreaterEqual);
@@ -129,6 +139,8 @@ Expr GreaterEqual::make(Expr x_, Expr y_) {
 }
 
 Expr Less::make(Expr x_, Expr y_) {
+    CHECK_NOTNULL(x_);
+    CHECK_NOTNULL(y_);
     CHECK(x_->data_desc.get_type() == y_->data_desc.get_type());
 
     std::shared_ptr<Less> expr(new Less);
@@ -139,6 +151,8 @@ Expr Less::make(Expr x_, Expr y_) {
 }
 
 Expr And::make(Expr x_, Expr y_) {
+    CHECK_NOTNULL(x_);
+    CHECK_NOTNULL(y_);
     CHECK(x_->data_desc.get_type() == DataType::BOOL);
     CHECK(y_->data_desc.get_type() == DataType::BOOL);
     CHECK(x_->data_desc.scalar());

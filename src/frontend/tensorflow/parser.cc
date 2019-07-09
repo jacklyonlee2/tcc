@@ -51,6 +51,18 @@ static DataDesc parse_data_desc(
     return DataDesc(type, shape);
 }
 
+template<typename T>
+static Data parse_binary(const char *content_str, std::vector<long> shape) {
+    const T *content_ptr = reinterpret_cast<T*>(strdup(content_str));
+    std::vector<T> content(
+            content_ptr,
+            content_ptr + static_cast<size_t>(
+                std::accumulate(
+                    shape.begin(), shape.end(),
+                    1l, std::multiplies<long>())));
+    return Data(content, shape);
+}
+
 static Data parse_data(
         Map<std::string, tensorflow::AttrValue> attrs) {
     CHECK_KEY_IN_MAP("value", attrs) <<
@@ -65,16 +77,16 @@ static Data parse_data(
     CHECK(tensor.tensor_shape().dim_size() > 0) << "Tensor shape is empty.";
 
     /* Parse tensor shape. */
-    std::vector<int64_t> shape;
+    std::vector<long> shape;
     for (tensorflow::TensorShapeProto_Dim dim : tensor.tensor_shape().dim()) {
         shape.push_back(dim.size());
     }
 
     switch (parse_data_type(tensor.dtype())) {
         case DataType::FLOAT:
-            return Data::FLOAT(tensor.tensor_content().data(), shape);
+            return parse_binary<float>(tensor.tensor_content().data(), shape);
         case DataType::INT:
-            return Data::INT(tensor.tensor_content().data(), shape);
+            return parse_binary<int>(tensor.tensor_content().data(), shape);
         default:
             LOG(FATAL) << "Unsupported DataType.";
     }
@@ -145,8 +157,7 @@ static std::pair<Op, std::vector<Op>> parse_node(
     } else if (op_type == "Const") {
         CHECK(input_ops.size() == 0);
 
-        Data data =
-            parse_data(attrs);
+        Data data = parse_data(attrs);
         auto op = op::downcast<op::Constant>(
                 op::Constant::make(data));
 

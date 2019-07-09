@@ -94,23 +94,11 @@ DECLARE_EXPRESSION(Var)
     static Expr make(DataDesc data_desc_);
 END_DECLARE // Var
 
-/* Macro expands into Const Expr constructors
- * which enables implicit conversion from cpp data types. */
-#define IMPLICIT_CONVERSION(data_type, type_enum) \
-    static Expr make(data_type content) { \
-        return Const::make(Data::type_enum(content)); \
-    }
-
 DECLARE_EXPRESSION(Const)
     Data data;
 
-    IMPLICIT_CONVERSION(long, LONG)
-    IMPLICIT_CONVERSION(float, FLOAT)
-
     static Expr make(Data data_);
 END_DECLARE // Const
-
-#undef IMPLICIT_CONVERSION
 
 DECLARE_EXPRESSION(Range)
     std::pair<long, long> range;
@@ -187,10 +175,6 @@ template<typename T, typename ... Args> Expr all(T expr, Args ... args) {
 }
 
 } // namespace expr
-
-/* Type alias used by LLIR compute. */
-typedef std::vector<expr::RangePtr> Axes;
-
 } // namespace core
 } // namespace tcc
 

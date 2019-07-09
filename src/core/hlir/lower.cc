@@ -115,7 +115,7 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
                         i[1]*str_h+i[3]-pad_h*2 < i_h,
                         i[2]*str_w+i[4]-pad_w*2 >= 0,
                         i[2]*str_w+i[4]-pad_w*2 < i_w),
-                    input(
+                    input->(
                         i[0],
                         i[1]*str_h+i[3]-pad_h*2,
                         i[2]*str_w+i[4]-pad_w*2,
@@ -125,8 +125,8 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
 
     Expr product = compute({o_n, o_h, o_w, o_c, f_h, f_w, f_c}, [&](Axes i) -> Expr {
             return expr::Multiply::make(
-                    input_frag(i[0], i[1], i[2], i[4], i[5], i[6]),
-                    filter(i[4], i[5], i[6], i[3]));
+                    input_frag->(i[0], i[1], i[2], i[4], i[5], i[6]),
+                    filter->(i[4], i[5], i[6], i[3]));
             });
 
 
@@ -134,7 +134,7 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
     Expr reduced = compute({o_n, o_h, o_w, o_c}, [&](Axes i) -> Expr {\
             return expr::ReduceSum::make(
                     reduce_axes,
-                    product(i[0], i[1], i[2], i[3],
+                    product->(i[0], i[1], i[2], i[3],
                         reduce_axes[0], reduce_axes[1], reduce_axes[2]));
             });
 

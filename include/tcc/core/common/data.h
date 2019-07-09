@@ -21,32 +21,16 @@
 
 #define DECLARE_DATATYPE(type_enum, data_type) \
     public: \
-        static Data type_enum( \
-                std::vector<data_type> content, \
-                std::vector<long> data_shape) { \
-            CHECK(!content.empty()) << \
+        Data(data_type content_) : DataDesc(DataType::type_enum, {}) { \
+            type_enum##_content = { content_ }; \
+        } \
+        Data(std::vector<data_type> content_, std::vector<long> data_shape_) : \
+            DataDesc(DataType::type_enum, data_shape_) { \
+            CHECK(!content_.empty()) << \
                 "Can not construct data with empty content."; \
-            CHECK(content.size() == SHAPE_SIZE(data_shape)) << \
+            CHECK(content_.size() == SHAPE_SIZE(data_shape_)) << \
                 "Content size must agree with shape size."; \
-            Data data = Data(DataType::type_enum, data_shape); \
-            data.type_enum##_content = content; \
-            return data; \
-        } \
-        static Data type_enum( \
-                data_type content) { \
-            return Data::type_enum({content}, {}); \
-        } \
-        static Data type_enum( \
-                const char *content_str, \
-                std::vector<long> data_shape) { \
-            const data_type *content_ptr = \
-                reinterpret_cast<data_type*>( \
-                        strdup(content_str)); \
-            std::vector<data_type> content( \
-                    content_ptr, \
-                    content_ptr + static_cast<size_t>( \
-                        SHAPE_SIZE(data_shape))); \
-            return Data::type_enum(content, data_shape); \
+            type_enum##_content = content_; \
         } \
     private: \
         std::vector<data_type> type_enum##_content;
@@ -86,12 +70,7 @@ class DataDesc {
 /* Data class stores constant scalar and tensor data and
  * related metadata. */
 class Data : public DataDesc {
-    public:
-        Data() : DataDesc() {}
-
-    private:
-        Data(DataType data_type_, std::vector<long> data_shape_) :
-            DataDesc(data_type_, data_shape_) {}
+    using DataDesc::DataDesc;
 
     DECLARE_DATATYPE(BOOL, bool)
     DECLARE_DATATYPE(INT, int)
@@ -104,6 +83,6 @@ class Data : public DataDesc {
 
 #undef SHAPE_CHECK
 #undef SHAPE_SIZE
-#undef DECLARE_TYPE
+#undef DECLARE_DATATYPE
 
 #endif // TCC_COMMON_TENSOR_H

@@ -9,6 +9,8 @@
 namespace tcc {
 namespace core {
 
+typedef std::vector<expr::RangePtr> Axes;
+
 /* compute function allows the building of complex
  * computations using LLIR Expressions with non-trivial
  * data access patterns.
