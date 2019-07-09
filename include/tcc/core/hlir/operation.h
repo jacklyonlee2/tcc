@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "tcc/core/common/tensor.h"
+#include "tcc/core/common/data.h"
 
 namespace tcc {
 namespace core {
@@ -60,13 +60,12 @@ struct Operation :
 
 namespace op {
 
-/* --- Declare HLIR Ops --- */
-
 /* Declare struct of 'type' inheriting from Operation<type>.
  * Define type alias 'typePtr' referring to
  * shared pointer to const 'type' object.
  * Create static member '_op_type' to be used by
  * base class constructor and downcast functions. */
+
 #define DECLARE_OPERATION(type) \
     struct type; \
     typedef std::shared_ptr<const type> type##Ptr; \
@@ -75,15 +74,15 @@ namespace op {
 #define END_DECLARE };
 
 DECLARE_OPERATION(Placeholder)
-    TensorDesc tensor_desc;
+    DataDesc data_desc;
 
-    static Op make(TensorDesc tensor_desc_);
+    static Op make(DataDesc data_desc_);
 END_DECLARE // Placeholder
 
 DECLARE_OPERATION(Constant)
-    Tensor tensor;
+    Data data;
 
-    static Op make(Tensor tensor_);
+    static Op make(Data data_);
 END_DECLARE // Constant
 
 DECLARE_OPERATION(Intermediate)

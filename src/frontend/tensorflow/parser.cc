@@ -3,7 +3,7 @@
 #include <fstream>
 #include <functional>
 
-#include "tcc/core/common/tensor.h"
+#include "tcc/core/common/data.h"
 #include "proto/graph.pb.h"
 
 using namespace ::tcc::core;
@@ -26,18 +26,18 @@ static tensorflow::GraphDef parse_file(std::string input_path) {
     return graph;
 }
 
-static TensorType parse_tensor_type(tensorflow::DataType type) {
+static DataType parse_data_type(tensorflow::DataType type) {
     switch (type) {
         case tensorflow::DT_FLOAT: // 1
-            return TensorType::FLOAT;
+            return DataType::FLOAT;
         case tensorflow::DT_INT32: // 3
-            return TensorType::INT;
+            return DataType::INT;
         default:
-            LOG(FATAL) << "Unsupported TensorType datatype " << type << ".";
+            LOG(FATAL) << "Unsupported DataType datatype " << type << ".";
     }
 }
 
-static TensorDesc parse_tensor_desc(
+static DataDesc parse_data_desc(
         Map<std::string, tensorflow::AttrValue> attrs,
         std::vector<long> shape) {
     CHECK_KEY_IN_MAP("dtype", attrs) <<
@@ -46,12 +46,12 @@ static TensorDesc parse_tensor_desc(
 
     CHECK(dtype.value_case() == tensorflow::AttrValue::kType) <<
         "Attribute 'dtype' must be of type tensorflow::AttrValue::kType.";
-    TensorType type = parse_tensor_type(dtype.type());
+    DataType type = parse_data_type(dtype.type());
 
-    return TensorDesc(type, shape);
+    return DataDesc(type, shape);
 }
 
-static Tensor parse_tensor(
+static Data parse_data(
         Map<std::string, tensorflow::AttrValue> attrs) {
     CHECK_KEY_IN_MAP("value", attrs) <<
         "Attribute 'value' not found.";
@@ -70,13 +70,13 @@ static Tensor parse_tensor(
         shape.push_back(dim.size());
     }
 
-    switch (parse_tensor_type(tensor.dtype())) {
-        case TensorType::FLOAT:
-            return Tensor::FLOAT(tensor.tensor_content().data(), shape);
-        case TensorType::INT:
-            return Tensor::INT(tensor.tensor_content().data(), shape);
+    switch (parse_data_type(tensor.dtype())) {
+        case DataType::FLOAT:
+            return Data::FLOAT(tensor.tensor_content().data(), shape);
+        case DataType::INT:
+            return Data::INT(tensor.tensor_content().data(), shape);
         default:
-            LOG(FATAL) << "Unsupported TensorType.";
+            LOG(FATAL) << "Unsupported DataType.";
     }
 }
 
@@ -135,20 +135,20 @@ static std::pair<Op, std::vector<Op>> parse_node(
         CHECK_KEY_IN_MAP(node.name(), input_shapes) <<
             "Missing input shape for TensorFlow node '" << node.name() << "'.";
 
-        TensorDesc tensor_desc =
-            parse_tensor_desc(attrs, input_shapes.at(node.name()));
+        DataDesc data_desc =
+            parse_data_desc(attrs, input_shapes.at(node.name()));
         auto op = op::downcast<op::Placeholder>(
-                op::Placeholder::make(tensor_desc));
+                op::Placeholder::make(data_desc));
 
         ret = {op, {}};
 
     } else if (op_type == "Const") {
         CHECK(input_ops.size() == 0);
 
-        Tensor tensor =
-            parse_tensor(attrs);
+        Data data =
+            parse_data(attrs);
         auto op = op::downcast<op::Constant>(
-                op::Constant::make(tensor));
+                op::Constant::make(data));
 
         ret = {op, {}};
 

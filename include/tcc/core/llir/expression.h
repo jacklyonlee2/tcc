@@ -3,26 +3,19 @@
 
 #include <memory>
 
+#include "tcc/core/common/data.h"
 #include "tcc/core/common/logging.h"
 
 namespace tcc {
 namespace core {
 
-class LLIRExprVisitor;
-
-/* All LLIR Expr value types.
- * Denotes the datatype the Expr evaluates to. */
-
-enum class ValueType {
-    UNINITIALIZED,
-    BOOL,
-    LONG
-};
+class LLIRVisitor;
 
 /* All LLIR Expr types. */
 
 enum class ExprType {
-    Scalar,
+    Var,
+    Const,
     Range,
     Add,
     Sub,
@@ -35,37 +28,36 @@ enum class ExprType {
 
 /* Base class for LLIR Expression. */
 
+struct BaseExpression;
+typedef std::shared_ptr<const BaseExpression> Expr;
+
 struct BaseExpression {
-    BaseExpression(ExprType et) :
-        expr_type(et), value_type(ValueType::UNINITIALIZED) {}
+    BaseExpression(ExprType et) : expr_type(et)  {}
 
     /* Virtual accept method to support visitor pattern. */
-    virtual void accept(LLIRExprVisitor *v) const = 0;
+    virtual void accept(LLIRVisitor *v) const = 0;
+
+    /* Overload () operator for tensor data access. */
+    template<typename ... Args>
+    Expr operator()(Args ... args) const;
 
     ExprType expr_type;
-    ValueType value_type;
+    DataDesc data_desc;
 };
 
-/* A wrapper around std::shared_ptr<const BaseExpression>.
- * Provides implicit conversion (constructor) from scalar constants.
- * Provides overloaded arithmetic and logic operators. */
+/* Overload arithmetic operators for Expr. */
 
 #define OVERLOAD_OPERATOR(symbol) \
-    Expr operator symbol (Expr); \
-    Expr operator symbol (long);
+    Expr operator symbol(Expr lhs, Expr rhs); \
+    Expr operator symbol(Expr lhs, long rhs);
 
-struct Expr : public std::shared_ptr<const BaseExpression> {
-    using shared_ptr<const BaseExpression>::shared_ptr;
+OVERLOAD_OPERATOR(+)
+OVERLOAD_OPERATOR(-)
+OVERLOAD_OPERATOR(*)
+OVERLOAD_OPERATOR(/)
+OVERLOAD_OPERATOR(>=)
+OVERLOAD_OPERATOR(<)
 
-    OVERLOAD_OPERATOR(+)
-    OVERLOAD_OPERATOR(-)
-    OVERLOAD_OPERATOR(*)
-    OVERLOAD_OPERATOR(/)
-    OVERLOAD_OPERATOR(>=)
-    OVERLOAD_OPERATOR(<)
-};
-
-#undef SCALAR_CONSTRUCTOR
 #undef OVERLOAD_OPERATOR
 
 /* Templated LLIR Expression class.
@@ -80,18 +72,17 @@ struct Expression :
     public std::enable_shared_from_this<Expression<T>> {
     Expression() : BaseExpression(T::_expr_type) {}
 
-    void accept(LLIRExprVisitor *v) const override;
+    void accept(LLIRVisitor *v) const override;
 };
 
 namespace expr {
-
-/* --- Declare LLIR Exprs --- */
 
 /* Declare struct of 'type' inheriting from Expression<type>.
  * Define type alias 'typePtr' referring to
  * shared pointer to const 'type' object.
  * Create static member '_expr_type' to be used by
  * base class constructor and downcast functions. */
+
 #define DECLARE_EXPRESSION(type) \
     struct type; \
     typedef std::shared_ptr<const type> type##Ptr; \
@@ -99,11 +90,27 @@ namespace expr {
         static const ExprType _expr_type = ExprType::type;
 #define END_DECLARE };
 
-DECLARE_EXPRESSION(Scalar)
-    long long_value;
+DECLARE_EXPRESSION(Var)
+    static Expr make(DataDesc data_desc_);
+END_DECLARE // Var
 
-    static Expr make(long value_);
-END_DECLARE // Scalar
+/* Macro expands into Const Expr constructors
+ * which enables implicit conversion from cpp data types. */
+#define IMPLICIT_CONVERSION(data_type, type_enum) \
+    static Expr make(data_type content) { \
+        return Const::make(Data::type_enum(content)); \
+    }
+
+DECLARE_EXPRESSION(Const)
+    Data data;
+
+    IMPLICIT_CONVERSION(long, LONG)
+    IMPLICIT_CONVERSION(float, FLOAT)
+
+    static Expr make(Data data_);
+END_DECLARE // Const
+
+#undef IMPLICIT_CONVERSION
 
 DECLARE_EXPRESSION(Range)
     std::pair<long, long> range;
@@ -160,6 +167,9 @@ DECLARE_EXPRESSION(And)
     static Expr make(Expr x_, Expr y_);
 END_DECLARE // And
 
+#undef DECLARE_EXPRESSION
+#undef END_DECLARE
+
 /* Downcast function for Expr. */
 template<typename T> std::shared_ptr<const T> downcast(Expr expr) {
     if (expr && expr->expr_type == T::_expr_type) {
@@ -170,61 +180,18 @@ template<typename T> std::shared_ptr<const T> downcast(Expr expr) {
     }
 }
 
-/* Helper function for grouping logic LLIR Expressions. */
+/* all function applies expr::And to all input boolean LLIR Expressions. */
 template<typename T> T all(T expr) { return expr; }
 template<typename T, typename ... Args> Expr all(T expr, Args ... args) {
     return And::make(expr, all(args...));
 }
 
-/* Function to accumulate parameter pack of Expr. */
-template<typename T> std::vector<T> accumulate_parameters(T expr) { return {expr}; }
-template<typename T, typename ... Args>
-std::vector<T> accumulate_parameters(T expr, Args ... args) {
-    std::vector<T> exprs({expr});
-    std::vector<T> rest = accumulate_parameters(args...);
-    exprs.insert(exprs.end(), rest.begin(), rest.end());
-    return exprs;
-}
-
 } // namespace expr
 
-/* Axes class are store in each LLIR Primitives to
- * denote output shape information; also it serves
- * as input to LLIR compute lambdas (see llir.h). */
-
-struct Axes : public std::vector<Expr> {
-    using vector<Expr>::vector;
-
-    Axes(std::vector<long> shape) {
-        for (long dim : shape) {
-            this->push_back(expr::Range::make(0l, dim));
-        }
-    }
-
-    std::vector<long> to_shape() const {
-        std::vector<long> shape;
-        for (Expr expr : *this) {
-            expr::RangePtr range = expr::downcast<expr::Range>(expr);
-            long dim = range->range.second - range->range.first;
-            CHECK(dim > 0) << "Dimension must be positive.";
-            shape.push_back(dim);
-        }
-        return shape;
-    }
-};
+/* Type alias used by LLIR compute. */
+typedef std::vector<expr::RangePtr> Axes;
 
 } // namespace core
 } // namespace tcc
-
-namespace std {
-
-/* Specializing std::hash for tcc::core::Expr. */
-template<> struct hash<tcc::core::Expr> {
-    size_t operator()(const tcc::core::Expr& expr) const {
-        return hash<shared_ptr<const tcc::core::BaseExpression>>()(expr);
-    }
-};
-
-} // namespace std
 
 #endif // TCC_LLIR_EXPRESSION_H

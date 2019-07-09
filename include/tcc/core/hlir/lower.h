@@ -16,8 +16,8 @@ class HLIRLowerer : public HLIRVisitor {
         LLIR lower();
 
     protected:
-        Pmt get_pmt(Op op) const;
-        void set_pmt(Op op, Pmt pmt);
+        Expr get_expr(Op op) const;
+        void set_expr(Op op, Expr expr);
 
         void visit(const op::PlaceholderPtr) override;
         void visit(const op::ConstantPtr) override;
@@ -35,7 +35,7 @@ class HLIRLowerer : public HLIRVisitor {
 
         /* Stores lowered Placeholder/Constant/Intermediate Ops.
          * Used to connect LLIR between HLIR Ops. */
-        std::unordered_map<Op, Pmt> lowered_op_map;
+        std::unordered_map<Op, Expr> lowered_op_map;
 };
 
 } // namespace core

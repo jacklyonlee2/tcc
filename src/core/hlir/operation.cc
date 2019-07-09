@@ -34,15 +34,15 @@ namespace op {
 
 /* --- Implement HLIR Ops --- */
 
-Op Placeholder::make(TensorDesc tensor_desc_) {
+Op Placeholder::make(DataDesc data_desc_) {
     std::shared_ptr<Placeholder> op(new Placeholder);
-    op->tensor_desc = tensor_desc_;
+    op->data_desc = data_desc_;
     return op;
 }
 
-Op Constant::make(Tensor tensor_) {
+Op Constant::make(Data data_) {
     std::shared_ptr<Constant> op(new Constant);
-    op->tensor = tensor_;
+    op->data = data_;
     return op;
 }
 

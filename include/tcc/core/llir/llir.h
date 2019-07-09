@@ -4,24 +4,23 @@
 #include <unordered_set>
 #include <functional>
 
-#include "tcc/core/llir/primitive.h"
+#include "tcc/core/llir/expression.h"
 
 namespace tcc {
 namespace core {
 
 /* compute function allows the building of complex
- * computations using LLIR Primitives with
- * non-trivial data access patterns using LLIR Expressions.
+ * computations using LLIR Expressions with non-trivial
+ * data access patterns.
  * The user will provide the ret shape of the computation
  * and a corresponding lambda expressing the computation.
  * The function will automatically create Range Expressions
- * based on the ret shape as the input to the lambda.
- * The Range Expressions will also be saved in the ret Pmt. */
-Pmt compute(
+ * based on the ret shape as the input to the lambda. */
+Expr compute(
         std::vector<long> shape,
-        std::function<Pmt(Axes)> lambda);
+        std::function<Expr(Axes)> lambda);
 
-class LLIRExprVisitor {
+class LLIRVisitor {
     public:
         /* Check if Expression is already visited;
          * if not, dispatch to approprate visit method. */
@@ -29,10 +28,10 @@ class LLIRExprVisitor {
 
     protected:
         /* By default following visit methods recursively
-         * traverse the input of each LLIR Primitive and
-         * Expression coupled with each input.
-         * Implemented by calling 'recurse' on Pmt inputs. */
-        virtual void visit(const expr::ScalarPtr);
+         * traverse the input of each LLIR Expression.
+         * Implemented by calling 'recurse' on Expr inputs. */
+        virtual void visit(const expr::VarPtr);
+        virtual void visit(const expr::ConstPtr);
         virtual void visit(const expr::RangePtr);
         virtual void visit(const expr::AddPtr);
         virtual void visit(const expr::SubPtr);
@@ -45,35 +44,15 @@ class LLIRExprVisitor {
     template<typename T> friend struct Expression;
 };
 
-class LLIRPmtVisitor {
-    public:
-        /* Check if Primitive is already visited;
-         * if not, dispatch to approprate visit method. */
-        virtual void recurse(Pmt);
-
-    protected:
-        /* By default following visit methods recursively
-         * traverse the input of each LLIR Primitive and
-         * Expression coupled with each input.
-         * Implemented by calling 'recurse' on Pmt inputs. */
-        virtual void visit(const pmt::PlaceholderPtr);
-        virtual void visit(const pmt::ConstantPtr);
-        virtual void visit(const pmt::MultiplyPtr);
-        virtual void visit(const pmt::SelectPtr);
-        virtual void visit(const pmt::ReduceSumPtr);
-
-    template<typename T> friend struct Primitive;
-};
-
 class LLIR {
     public:
-        LLIR(std::unordered_set<Pmt> terminal_pmts_) :
-            terminal_pmts(terminal_pmts_) {}
+        LLIR(std::unordered_set<Expr> terminal_exprs_) :
+            terminal_exprs(terminal_exprs_) {}
 
-        void accept(LLIRPmtVisitor *v) const;
+        void accept(LLIRVisitor *v) const;
 
     private:
-        std::unordered_set<Pmt> terminal_pmts;
+        std::unordered_set<Expr> terminal_exprs;
 };
 
 } // namespace core

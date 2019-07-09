@@ -11,35 +11,35 @@ LLIR HLIRLowerer::lower() {
     return LLIR({});
 }
 
-Pmt HLIRLowerer::get_pmt(Op op) const {
+Expr HLIRLowerer::get_expr(Op op) const {
     CHECK_NOTNULL(op);
     CHECK_KEY_IN_MAP(op, lowered_op_map) <<
         "Requested Op is not lowered yet.";
 
-    Pmt pmt = lowered_op_map.at(op);
-    CHECK_NOTNULL(pmt);
-    return pmt;
+    Expr expr = lowered_op_map.at(op);
+    CHECK_NOTNULL(expr);
+    return expr;
 }
 
-void HLIRLowerer::set_pmt(Op op, Pmt pmt) {
+void HLIRLowerer::set_expr(Op op, Expr expr) {
     CHECK_NOTNULL(op);
-    CHECK_NOTNULL(pmt);
+    CHECK_NOTNULL(expr);
     CHECK_KEY_NOT_IN_MAP(op, lowered_op_map) <<
         "Lowered Op is already assigned.";
 
-    lowered_op_map.insert({op, pmt});
+    lowered_op_map.insert({op, expr});
 }
 
 /* Overloaded HLIR Op visitors. */
 
 void HLIRLowerer::visit(const op::PlaceholderPtr op) {
-    Pmt pmt = pmt::Placeholder::make(op->tensor_desc);
-    set_pmt(op, pmt);
+    Expr expr = expr::Var::make(op->data_desc);
+    set_expr(op, expr);
 }
 
 void HLIRLowerer::visit(const op::ConstantPtr op) {
-    Pmt pmt = pmt::Constant::make(op->tensor);
-    set_pmt(op, pmt);
+    Expr expr = expr::Const::make(op->data);
+    set_expr(op, expr);
 }
 
 void HLIRLowerer::visit(const op::AddPtr op) {
@@ -60,7 +60,7 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
     recurse(op->input);
     recurse(op->filter);
 
-    CHECK(op->dilations == vec(1l, 1l, 1l, 1l)) <<
+    CHECK(op->dilations == std::vector<long>({1, 1, 1, 1})) <<
         "Conv2D does not support dilation.";
     CHECK(op->strides.size() == 4 &&
             op->strides[0] == 1 && op->strides[3] == 1) <<
@@ -70,11 +70,11 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
     CHECK(op->padding == "SAME") <<
         "Conv2D only supports SAME padding";
 
-    Pmt input = get_pmt(op->input);
-    Pmt filter = get_pmt(op->filter);
+    Expr input = get_expr(op->input);
+    Expr filter = get_expr(op->filter);
 
-    std::vector<long> input_shape = input->get_shape();
-    std::vector<long> filter_shape = filter->get_shape();
+    std::vector<long> input_shape = input->data_desc.get_shape();
+    std::vector<long> filter_shape = filter->data_desc.get_shape();
 
     CHECK(input_shape.size() == 4);
     CHECK(filter_shape.size() == 4);
@@ -107,8 +107,9 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
     o_w = floor(static_cast<double>(i_w+pad_w*2l-f_w)/str_w + 1l);
     o_c = f_n;
 
-    Pmt input_frag = compute({o_n, o_h, o_w, f_h, f_w, f_c}, [&](Axes i) -> Pmt {
-            return pmt::Select::make(
+    /*
+    Expr input_frag = compute({o_n, o_h, o_w, f_h, f_w, f_c}, [&](Axes i) -> Expr {
+            return expr::Select::make(
                     expr::all(
                         i[1]*str_h+i[3]-pad_h*2 >= 0,
                         i[1]*str_h+i[3]-pad_h*2 < i_h,
@@ -122,22 +123,22 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
                     0.0f);
             });
 
-    Pmt product = compute({o_n, o_h, o_w, o_c, f_h, f_w, f_c}, [&](Axes i) -> Pmt {
-            return pmt::Multiply::make(
+    Expr product = compute({o_n, o_h, o_w, o_c, f_h, f_w, f_c}, [&](Axes i) -> Expr {
+            return expr::Multiply::make(
                     input_frag(i[0], i[1], i[2], i[4], i[5], i[6]),
                     filter(i[4], i[5], i[6], i[3]));
             });
 
 
     Axes reduce_axes({f_h, f_w, f_c});
-    Pmt reduced = compute({o_n, o_h, o_w, o_c}, [&](Axes i) -> Pmt {\
-            return pmt::ReduceSum::make(
+    Expr reduced = compute({o_n, o_h, o_w, o_c}, [&](Axes i) -> Expr {\
+            return expr::ReduceSum::make(
                     reduce_axes,
                     product(i[0], i[1], i[2], i[3],
                         reduce_axes[0], reduce_axes[1], reduce_axes[2]));
             });
 
-    set_pmt(op->output, reduced);
+    set_expr(op->output, reduced);*/
 }
 
 void HLIRLowerer::visit(const op::DepthwiseConv2dNativePtr op) {

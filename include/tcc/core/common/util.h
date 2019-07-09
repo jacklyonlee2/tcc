@@ -17,10 +17,14 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& v) {
     return os;
 }
 
-/* Forwarding function to contruct vector literals for comparsion. */
-template <typename... Args>
-std::vector<typename std::common_type<Args...>::type> vec(Args&&... args) {
-    return {args...};
+/* Helper function to accumulate parameter pack. */
+template<typename T> std::vector<T> accumulate_parameters(T arg) { return {arg}; }
+template<typename T, typename ... Args>
+std::vector<T> accumulate_parameters(T arg, Args ... args) {
+    std::vector<T> arg_vec({arg});
+    std::vector<T> rest = accumulate_parameters(args...);
+    arg_vec.insert(arg_vec.end(), rest.begin(), rest.end());
+    return arg_vec;
 }
 
 } // core

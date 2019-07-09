@@ -1,7 +1,7 @@
 # Build core library
 list(APPEND
     CORE_SRC
-     ${TCC_INCLUDE_DIR}/tcc/core/common/tensor.h
+     ${TCC_INCLUDE_DIR}/tcc/core/common/data.h
      ${TCC_INCLUDE_DIR}/tcc/core/common/util.h
      ${TCC_INCLUDE_DIR}/tcc/core/common/logging.h
      ${TCC_INCLUDE_DIR}/tcc/core/hlir/hlir.h
@@ -10,14 +10,12 @@ list(APPEND
      ${TCC_INCLUDE_DIR}/tcc/core/hlir/lower.h
      ${TCC_INCLUDE_DIR}/tcc/core/llir/llir.h
      ${TCC_INCLUDE_DIR}/tcc/core/llir/expression.h
-     ${TCC_INCLUDE_DIR}/tcc/core/llir/primitive.h
      hlir/hlir.cc
      hlir/operation.cc
      hlir/visualize.cc
      hlir/lower.cc
      llir/llir.cc
-     llir/expression.cc
-     llir/primitive.cc)
+     llir/expression.cc)
 
 add_library(core
     ${CORE_SRC})
