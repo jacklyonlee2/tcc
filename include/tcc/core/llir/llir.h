@@ -9,7 +9,7 @@
 namespace tcc {
 namespace core {
 
-typedef std::vector<expr::RangePtr> Axes;
+typedef std::vector<Expr> Axes;
 
 /* compute function allows the building of complex
  * computations using LLIR Expressions with non-trivial
@@ -35,6 +35,7 @@ class LLIRVisitor {
         virtual void visit(const expr::VarPtr);
         virtual void visit(const expr::ConstPtr);
         virtual void visit(const expr::RangePtr);
+        virtual void visit(const expr::IndexPtr);
         virtual void visit(const expr::AddPtr);
         virtual void visit(const expr::SubPtr);
         virtual void visit(const expr::MulPtr);
@@ -42,6 +43,8 @@ class LLIRVisitor {
         virtual void visit(const expr::GreaterEqualPtr);
         virtual void visit(const expr::LessPtr);
         virtual void visit(const expr::AndPtr);
+        virtual void visit(const expr::SelectPtr);
+        virtual void visit(const expr::ReducePtr);
 
     template<typename T> friend struct Expression;
 };

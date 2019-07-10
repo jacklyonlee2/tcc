@@ -107,7 +107,6 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
     o_w = floor(static_cast<double>(i_w+pad_w*2l-f_w)/str_w + 1l);
     o_c = f_n;
 
-    /*
     Expr input_frag = compute({o_n, o_h, o_w, f_h, f_w, f_c}, [&](Axes i) -> Expr {
             return expr::Select::make(
                     expr::all(
@@ -115,30 +114,32 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
                         i[1]*str_h+i[3]-pad_h*2 < i_h,
                         i[2]*str_w+i[4]-pad_w*2 >= 0,
                         i[2]*str_w+i[4]-pad_w*2 < i_w),
-                    input->(
+                    expr::index(
+                        input,
                         i[0],
                         i[1]*str_h+i[3]-pad_h*2,
                         i[2]*str_w+i[4]-pad_w*2,
                         i[5]),
-                    0.0f);
+                    expr::Const::make(0.0f));
             });
 
     Expr product = compute({o_n, o_h, o_w, o_c, f_h, f_w, f_c}, [&](Axes i) -> Expr {
-            return expr::Multiply::make(
-                    input_frag->(i[0], i[1], i[2], i[4], i[5], i[6]),
-                    filter->(i[4], i[5], i[6], i[3]));
+            return expr::Mul::make(
+                    expr::index(input_frag, i[0], i[1], i[2], i[4], i[5], i[6]),
+                    expr::index(filter, i[4], i[5], i[6], i[3]));
             });
 
 
-    Axes reduce_axes({f_h, f_w, f_c});
+    Expr r_f_h = expr::Range::make(0, f_h);
+    Expr r_f_w = expr::Range::make(0, f_w);
+    Expr r_f_c = expr::Range::make(0, f_c);
     Expr reduced = compute({o_n, o_h, o_w, o_c}, [&](Axes i) -> Expr {\
-            return expr::ReduceSum::make(
-                    reduce_axes,
-                    product->(i[0], i[1], i[2], i[3],
-                        reduce_axes[0], reduce_axes[1], reduce_axes[2]));
+            return expr::Reduce::make(
+                    ReduceType::SUM, {r_f_h, r_f_w, r_f_c},
+                    expr::index(product, i[0], i[1], i[2], i[3], r_f_h, r_f_w, r_f_c));
             });
 
-    set_expr(op->output, reduced);*/
+    set_expr(op->output, reduced);
 }
 
 void HLIRLowerer::visit(const op::DepthwiseConv2dNativePtr op) {

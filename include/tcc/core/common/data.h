@@ -57,9 +57,14 @@ class DataDesc {
 
         DataType get_type() const { return data_type; }
         std::vector<long> get_shape() const { return data_shape; }
+        unsigned int get_rank() const { return data_shape.size(); }
 
         bool defined() const { return data_type != DataType::UNINITIALIZED; }
-        bool scalar() const { return data_shape.empty(); }
+
+        void set_shape(std::vector<long> shape) {
+            SHAPE_CHECK(shape);
+            data_shape = shape;
+        }
 
     private:
         DataType data_type;

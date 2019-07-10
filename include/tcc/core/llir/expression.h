@@ -17,19 +17,25 @@ enum class ExprType {
     Var,
     Const,
     Range,
+    Index,
     Add,
     Sub,
     Mul,
     Div,
     GreaterEqual,
     Less,
-    And
+    And,
+    Select,
+    Reduce
+};
+
+/* Reduction operator types. */
+
+enum class ReduceType {
+    SUM
 };
 
 /* Base class for LLIR Expression. */
-
-struct BaseExpression;
-typedef std::shared_ptr<const BaseExpression> Expr;
 
 struct BaseExpression {
     BaseExpression(ExprType et) : expr_type(et)  {}
@@ -37,13 +43,11 @@ struct BaseExpression {
     /* Virtual accept method to support visitor pattern. */
     virtual void accept(LLIRVisitor *v) const = 0;
 
-    /* Overload () operator for tensor data access. */
-    template<typename ... Args>
-    Expr operator()(Args ... args) const;
-
     ExprType expr_type;
-    DataDesc data_desc;
+    mutable DataDesc data_desc;
 };
+
+typedef std::shared_ptr<const BaseExpression> Expr;
 
 /* Overload arithmetic operators for Expr. */
 
@@ -106,6 +110,16 @@ DECLARE_EXPRESSION(Range)
     static Expr make(long begin_, long end_);
 END_DECLARE // Range
 
+DECLARE_EXPRESSION(Index)
+    std::vector<Expr> indices;
+
+    Expr tensor;
+
+    static Expr make(
+            std::vector<Expr> indices_,
+            Expr tensor_);
+END_DECLARE // Index
+
 DECLARE_EXPRESSION(Add)
     Expr x;
     Expr y;
@@ -155,6 +169,30 @@ DECLARE_EXPRESSION(And)
     static Expr make(Expr x_, Expr y_);
 END_DECLARE // And
 
+DECLARE_EXPRESSION(Select)
+    Expr condition;
+
+    Expr t;
+    Expr f;
+
+    static Expr make(
+            Expr condition_,
+            Expr t_,
+            Expr f_);
+END_DECLARE // Select
+
+DECLARE_EXPRESSION(Reduce)
+    ReduceType reduce_type;
+    std::vector<Expr> reduce_axes;
+
+    Expr input;
+
+    static Expr make(
+            ReduceType reduce_type_,
+            std::vector<Expr> reduce_axes_,
+            Expr input_);
+END_DECLARE // Reduce
+
 #undef DECLARE_EXPRESSION
 #undef END_DECLARE
 
@@ -166,6 +204,12 @@ template<typename T> std::shared_ptr<const T> downcast(Expr expr) {
         LOG(FATAL) << "Illegal downcast of Expr.";
         return nullptr;
     }
+}
+
+/* index function provides a shortcut for expr::Index. */
+template<typename ... Args> Expr index(Expr tensor, Args ... args) {
+    std::vector<Expr> indices = accumulate_parameters(args...);
+    return expr::Index::make(indices, tensor);
 }
 
 /* all function applies expr::And to all input boolean LLIR Expressions. */
