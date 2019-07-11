@@ -18,10 +18,13 @@ enum class ExprType {
     Const,
     Range,
     Index,
+    Sqrt,
     Add,
     Sub,
     Mul,
     Div,
+    Mod,
+    Greater,
     GreaterEqual,
     Less,
     And,
@@ -32,7 +35,8 @@ enum class ExprType {
 /* Reduction operator types. */
 
 enum class ReduceType {
-    SUM
+    SUM,
+    AVG
 };
 
 /* Base class for LLIR Expression. */
@@ -59,6 +63,8 @@ OVERLOAD_OPERATOR(+)
 OVERLOAD_OPERATOR(-)
 OVERLOAD_OPERATOR(*)
 OVERLOAD_OPERATOR(/)
+OVERLOAD_OPERATOR(%)
+OVERLOAD_OPERATOR(>)
 OVERLOAD_OPERATOR(>=)
 OVERLOAD_OPERATOR(<)
 
@@ -94,6 +100,12 @@ namespace expr {
         static const ExprType _expr_type = ExprType::type;
 #define END_DECLARE };
 
+#define DECLARE_UNARY_EXPRESSION(type) \
+    DECLARE_EXPRESSION(type) \
+        Expr x; \
+        static Expr make(Expr x_); \
+    END_DECLARE
+
 #define DECLARE_BINARY_EXPRESSION(type) \
     DECLARE_EXPRESSION(type) \
         Expr x; \
@@ -127,10 +139,14 @@ DECLARE_EXPRESSION(Index)
             Expr tensor_);
 END_DECLARE // Index
 
+DECLARE_UNARY_EXPRESSION(Sqrt)
+
 DECLARE_BINARY_EXPRESSION(Add)
 DECLARE_BINARY_EXPRESSION(Sub)
 DECLARE_BINARY_EXPRESSION(Mul)
 DECLARE_BINARY_EXPRESSION(Div)
+DECLARE_BINARY_EXPRESSION(Mod)
+DECLARE_BINARY_EXPRESSION(Greater)
 DECLARE_BINARY_EXPRESSION(GreaterEqual)
 DECLARE_BINARY_EXPRESSION(Less)
 DECLARE_BINARY_EXPRESSION(And)
@@ -161,6 +177,7 @@ END_DECLARE // Reduce
 
 #undef DECLARE_EXPRESSION
 #undef END_DECLARE
+#undef DECLARE_UNARY_EXPRESSION
 #undef DECLARE_BINARY_EXPRESSION
 
 /* Downcast function for Expr. */
@@ -183,6 +200,17 @@ template<typename ... Args> Expr index(Expr tensor, Args ... args) {
 template<typename T> T all(T expr) { return expr; }
 template<typename T, typename ... Args> Expr all(T expr, Args ... args) {
     return And::make(expr, all(args...));
+}
+
+/* reshape function updates the data_desc shape of Expr. */
+inline Expr reshape(Expr expr, std::vector<long> shape) {
+    CHECK(accumulate_vector<long>(expr->data_desc.get_shape()) ==
+            accumulate_vector<long>(shape)) <<
+        "Reshape size must equal to original size. " <<
+        "Original shape: " << expr->data_desc.get_shape() <<
+        " reshaping to " << shape;
+    expr->data_desc.set_shape(shape);
+    return expr;
 }
 
 } // namespace expr

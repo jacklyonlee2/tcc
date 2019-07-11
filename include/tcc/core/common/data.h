@@ -2,38 +2,43 @@
 #define TCC_COMMON_TENSOR_H
 
 #include <vector>
-#include <numeric>
 
+#include "tcc/core/common/util.h"
 #include "tcc/core/common/logging.h"
 
-#define SHAPE_CHECK(shape) \
+#define CHECK_SHAPE(shape) \
     for (long dim : shape) { \
         CHECK(dim > 0) << \
             "Tensor shape can not contain negative/zero dimensions."; \
     }
 
-#define SHAPE_SIZE(shape) \
-    static_cast<unsigned long>( \
-            std::accumulate( \
-                shape.begin(), \
-                shape.end(), \
-                1l, std::multiplies<long>()))
-
-#define DECLARE_DATATYPE(type_enum, data_type) \
+#define DECLARE_DATATYPE(type_enum, type) \
     public: \
-        Data(data_type content_) : DataDesc(DataType::type_enum, {}) { \
-            type_enum##_content = { content_ }; \
+        Data(type content_) : DataDesc(DataType::type_enum, {}) { \
+            type##_content = { content_ }; \
         } \
-        Data(std::vector<data_type> content_, std::vector<long> data_shape_) : \
+        Data(std::vector<type> content_) : \
+            DataDesc(DataType::type_enum, { static_cast<long>(content_.size()) }) { \
+            CHECK(!content_.empty()) << \
+                "Can not construct data with empty content."; \
+            type##_content = content_; \
+        } \
+        Data(std::vector<type> content_, std::vector<long> data_shape_) : \
             DataDesc(DataType::type_enum, data_shape_) { \
             CHECK(!content_.empty()) << \
                 "Can not construct data with empty content."; \
-            CHECK(content_.size() == SHAPE_SIZE(data_shape_)) << \
+            CHECK(static_cast<long>(content_.size()) == \
+                    accumulate_vector<long>(data_shape_)) << \
                 "Content size must agree with shape size."; \
-            type_enum##_content = content_; \
+            type##_content = content_; \
+        } \
+        std::vector<type> get_##type() const { \
+            CHECK(data_type == DataType::type_enum) << \
+                "Requesting data with mismatching data type."; \
+            return type##_content; \
         } \
     private: \
-        std::vector<data_type> type_enum##_content;
+        std::vector<type> type##_content;
 
 namespace tcc {
 namespace core {
@@ -53,20 +58,21 @@ class DataDesc {
         DataDesc() : data_type(DataType::UNINITIALIZED) {}
         DataDesc(DataType data_type_) : data_type(data_type_) {}
         DataDesc(DataType data_type_, std::vector<long> data_shape_) :
-            data_type(data_type_), data_shape(data_shape_) { SHAPE_CHECK(data_shape_); }
+            data_type(data_type_), data_shape(data_shape_) { CHECK_SHAPE(data_shape_); }
 
         DataType get_type() const { return data_type; }
         std::vector<long> get_shape() const { return data_shape; }
         unsigned int get_rank() const { return data_shape.size(); }
 
         bool defined() const { return data_type != DataType::UNINITIALIZED; }
+        bool scalar() const { return data_shape.empty(); }
 
         void set_shape(std::vector<long> shape) {
-            SHAPE_CHECK(shape);
+            CHECK_SHAPE(shape);
             data_shape = shape;
         }
 
-    private:
+    protected:
         DataType data_type;
         std::vector<long> data_shape;
 };
@@ -86,8 +92,7 @@ class Data : public DataDesc {
 } // namespace core
 } // namespace tcc
 
-#undef SHAPE_CHECK
-#undef SHAPE_SIZE
+#undef CHECK_SHAPE
 #undef DECLARE_DATATYPE
 
 #endif // TCC_COMMON_TENSOR_H

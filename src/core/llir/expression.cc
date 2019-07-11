@@ -18,6 +18,8 @@ OVERLOAD_OPERATOR(+, expr::Add)
 OVERLOAD_OPERATOR(-, expr::Sub)
 OVERLOAD_OPERATOR(*, expr::Mul)
 OVERLOAD_OPERATOR(/, expr::Div)
+OVERLOAD_OPERATOR(%, expr::Mod)
+OVERLOAD_OPERATOR(>, expr::Greater)
 OVERLOAD_OPERATOR(>=, expr::GreaterEqual)
 OVERLOAD_OPERATOR(<, expr::Less)
 
@@ -34,10 +36,13 @@ IMPLEMENT_ACCEPT(expr::Var)
 IMPLEMENT_ACCEPT(expr::Const)
 IMPLEMENT_ACCEPT(expr::Range)
 IMPLEMENT_ACCEPT(expr::Index)
+IMPLEMENT_ACCEPT(expr::Sqrt)
 IMPLEMENT_ACCEPT(expr::Add)
 IMPLEMENT_ACCEPT(expr::Sub)
 IMPLEMENT_ACCEPT(expr::Mul)
 IMPLEMENT_ACCEPT(expr::Div)
+IMPLEMENT_ACCEPT(expr::Mod)
+IMPLEMENT_ACCEPT(expr::Greater)
 IMPLEMENT_ACCEPT(expr::GreaterEqual)
 IMPLEMENT_ACCEPT(expr::Less)
 IMPLEMENT_ACCEPT(expr::And)
@@ -47,6 +52,16 @@ IMPLEMENT_ACCEPT(expr::Reduce)
 #undef IMPLEMENT_ACCEPT
 
 namespace expr {
+
+#define IMPLEMENT_UNARY_EXPRESSION(type) \
+    Expr type::make(Expr x_) { \
+        CHECK_NOTNULL(x_); \
+        CHECK(x_->data_desc.defined()); \
+        std::shared_ptr<type> expr(new type); \
+        expr->data_desc = x_->data_desc; \
+        expr->x = x_; \
+        return expr; \
+    }
 
 #define IMPLEMENT_BINARY_EXPRESSION(type, output_data_desc) \
     Expr type::make(Expr x_, Expr y_) { \
@@ -109,10 +124,14 @@ Expr Index::make(
     return expr;
 }
 
+IMPLEMENT_UNARY_EXPRESSION(Sqrt)
+
 IMPLEMENT_BINARY_EXPRESSION(Add, x_->data_desc)
 IMPLEMENT_BINARY_EXPRESSION(Sub, x_->data_desc)
 IMPLEMENT_BINARY_EXPRESSION(Mul, x_->data_desc)
 IMPLEMENT_BINARY_EXPRESSION(Div, x_->data_desc)
+IMPLEMENT_BINARY_EXPRESSION(Mod, x_->data_desc)
+IMPLEMENT_BINARY_EXPRESSION(Greater, DataType::BOOL)
 IMPLEMENT_BINARY_EXPRESSION(GreaterEqual, DataType::BOOL)
 IMPLEMENT_BINARY_EXPRESSION(Less, DataType::BOOL)
 IMPLEMENT_BINARY_EXPRESSION(And, DataType::BOOL)
@@ -160,6 +179,7 @@ Expr Reduce::make(
     return expr;
 }
 
+#undef IMPLEMENT_UNARY_EXPRESSION
 #undef IMPLEMENT_BINARY_EXPRESSION
 
 } // namespace expr

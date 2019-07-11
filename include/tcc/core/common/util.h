@@ -1,6 +1,9 @@
 #ifndef TCC_COMMON_UTIL_H
 #define TCC_COMMON_UTIL_H
 
+#include <iostream>
+#include <numeric>
+
 namespace tcc {
 namespace core {
 
@@ -13,12 +16,21 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& v) {
         if (i != v.size() - 1)
             os << ", ";
     }
-    os << "]\n";
+    os << "]";
     return os;
 }
 
+/* Helper function to accumulate vector values. */
+template<typename T> T accumulate_vector(std::vector<T> vec) {
+    return std::accumulate(
+            vec.begin(),
+            vec.end(),
+            static_cast<T>(1),
+            std::multiplies<T>());
+}
+
 /* Helper function to accumulate parameter pack. */
-template<typename T> std::vector<T> accumulate_parameters(T arg) { return {arg}; }
+template<typename T> std::vector<T> accumulate_parameters(T arg) { return { arg }; }
 template<typename T, typename ... Args>
 std::vector<T> accumulate_parameters(T arg, Args ... args) {
     std::vector<T> arg_vec({arg});
