@@ -48,6 +48,19 @@ IMPLEMENT_ACCEPT(expr::Reduce)
 
 namespace expr {
 
+#define IMPLEMENT_BINARY_EXPRESSION(type, output_data_desc) \
+    Expr type::make(Expr x_, Expr y_) { \
+        CHECK_NOTNULL(x_); \
+        CHECK_NOTNULL(y_); \
+        CHECK(x_->data_desc.defined() && y_->data_desc.defined()); \
+        CHECK(x_->data_desc.get_type() == y_->data_desc.get_type()); \
+        std::shared_ptr<type> expr(new type); \
+        expr->data_desc = output_data_desc; \
+        expr->x = x_; \
+        expr->y = y_; \
+        return expr; \
+    }
+
 Expr Var::make(DataDesc data_desc_) {
     CHECK(data_desc_.defined());
 
@@ -96,96 +109,13 @@ Expr Index::make(
     return expr;
 }
 
-Expr Add::make(Expr x_, Expr y_) {
-    CHECK_NOTNULL(x_);
-    CHECK_NOTNULL(y_);
-    CHECK(x_->data_desc.defined() && y_->data_desc.defined());
-    CHECK(x_->data_desc.get_type() == y_->data_desc.get_type());
-
-    std::shared_ptr<Add> expr(new Add);
-    expr->data_desc = x_->data_desc.get_type();
-    expr->x = x_;
-    expr->y = y_;
-    return expr;
-}
-
-Expr Sub::make(Expr x_, Expr y_) {
-    CHECK_NOTNULL(x_);
-    CHECK_NOTNULL(y_);
-    CHECK(x_->data_desc.defined() && y_->data_desc.defined());
-    CHECK(x_->data_desc.get_type() == y_->data_desc.get_type());
-
-    std::shared_ptr<Sub> expr(new Sub);
-    expr->data_desc = x_->data_desc.get_type();
-    expr->x = x_;
-    expr->y = y_;
-    return expr;
-}
-
-Expr Mul::make(Expr x_, Expr y_) {
-    CHECK_NOTNULL(x_);
-    CHECK_NOTNULL(y_);
-    CHECK(x_->data_desc.defined() && y_->data_desc.defined());
-
-    std::shared_ptr<Mul> expr(new Mul);
-    expr->data_desc = x_->data_desc.get_type();
-    expr->x = x_;
-    expr->y = y_;
-    return expr;
-}
-
-Expr Div::make(Expr x_, Expr y_) {
-    CHECK_NOTNULL(x_);
-    CHECK_NOTNULL(y_);
-    CHECK(x_->data_desc.defined() && y_->data_desc.defined());
-    CHECK(x_->data_desc.get_type() == y_->data_desc.get_type());
-
-    std::shared_ptr<Div> expr(new Div);
-    expr->data_desc = x_->data_desc.get_type();
-    expr->x = x_;
-    expr->y = y_;
-    return expr;
-}
-
-Expr GreaterEqual::make(Expr x_, Expr y_) {
-    CHECK_NOTNULL(x_);
-    CHECK_NOTNULL(y_);
-    CHECK(x_->data_desc.defined() && y_->data_desc.defined());
-    CHECK(x_->data_desc.get_type() == y_->data_desc.get_type());
-
-    std::shared_ptr<GreaterEqual> expr(new GreaterEqual);
-    expr->data_desc = DataType::BOOL;
-    expr->x = x_;
-    expr->y = y_;
-    return expr;
-}
-
-Expr Less::make(Expr x_, Expr y_) {
-    CHECK_NOTNULL(x_);
-    CHECK_NOTNULL(y_);
-    CHECK(x_->data_desc.defined() && y_->data_desc.defined());
-    CHECK(x_->data_desc.get_type() == y_->data_desc.get_type());
-
-    std::shared_ptr<Less> expr(new Less);
-    expr->data_desc = DataType::BOOL;
-    expr->x = x_;
-    expr->y = y_;
-    return expr;
-}
-
-Expr And::make(Expr x_, Expr y_) {
-    CHECK_NOTNULL(x_);
-    CHECK_NOTNULL(y_);
-    CHECK(x_->data_desc.defined() && y_->data_desc.defined());
-    CHECK(x_->data_desc.get_type() == DataType::BOOL) <<
-        "x_ and y_ must be of type DataType::BOOL.";
-
-    std::shared_ptr<And> expr(new And);
-    expr->data_desc = DataType::BOOL;
-    expr->x = x_;
-    expr->y = y_;
-    return expr;
-}
+IMPLEMENT_BINARY_EXPRESSION(Add, x_->data_desc)
+IMPLEMENT_BINARY_EXPRESSION(Sub, x_->data_desc)
+IMPLEMENT_BINARY_EXPRESSION(Mul, x_->data_desc)
+IMPLEMENT_BINARY_EXPRESSION(Div, x_->data_desc)
+IMPLEMENT_BINARY_EXPRESSION(GreaterEqual, DataType::BOOL)
+IMPLEMENT_BINARY_EXPRESSION(Less, DataType::BOOL)
+IMPLEMENT_BINARY_EXPRESSION(And, DataType::BOOL)
 
 Expr Select::make(
         Expr condition_,
@@ -229,6 +159,8 @@ Expr Reduce::make(
     expr->input = input_;
     return expr;
 }
+
+#undef IMPLEMENT_BINARY_EXPRESSION
 
 } // namespace expr
 } // namespace core

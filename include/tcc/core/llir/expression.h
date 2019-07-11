@@ -94,6 +94,13 @@ namespace expr {
         static const ExprType _expr_type = ExprType::type;
 #define END_DECLARE };
 
+#define DECLARE_BINARY_EXPRESSION(type) \
+    DECLARE_EXPRESSION(type) \
+        Expr x; \
+        Expr y; \
+        static Expr make(Expr x_, Expr y_); \
+    END_DECLARE
+
 DECLARE_EXPRESSION(Var)
     static Expr make(DataDesc data_desc_);
 END_DECLARE // Var
@@ -120,54 +127,13 @@ DECLARE_EXPRESSION(Index)
             Expr tensor_);
 END_DECLARE // Index
 
-DECLARE_EXPRESSION(Add)
-    Expr x;
-    Expr y;
-
-    static Expr make(Expr x_, Expr y_);
-END_DECLARE // Add
-
-DECLARE_EXPRESSION(Sub)
-    Expr x;
-    Expr y;
-
-    static Expr make(Expr x_, Expr y_);
-END_DECLARE // Sub
-
-DECLARE_EXPRESSION(Mul)
-    Expr x;
-    Expr y;
-
-    static Expr make(Expr x_, Expr y_);
-END_DECLARE // Mul
-
-DECLARE_EXPRESSION(Div)
-    Expr x;
-    Expr y;
-
-    static Expr make(Expr x_, Expr y_);
-END_DECLARE // Div
-
-DECLARE_EXPRESSION(GreaterEqual)
-    Expr x;
-    Expr y;
-
-    static Expr make(Expr x_, Expr y_);
-END_DECLARE // GreaterEqual
-
-DECLARE_EXPRESSION(Less)
-    Expr x;
-    Expr y;
-
-    static Expr make(Expr x_, Expr y_);
-END_DECLARE // Less
-
-DECLARE_EXPRESSION(And)
-    Expr x;
-    Expr y;
-
-    static Expr make(Expr x_, Expr y_);
-END_DECLARE // And
+DECLARE_BINARY_EXPRESSION(Add)
+DECLARE_BINARY_EXPRESSION(Sub)
+DECLARE_BINARY_EXPRESSION(Mul)
+DECLARE_BINARY_EXPRESSION(Div)
+DECLARE_BINARY_EXPRESSION(GreaterEqual)
+DECLARE_BINARY_EXPRESSION(Less)
+DECLARE_BINARY_EXPRESSION(And)
 
 DECLARE_EXPRESSION(Select)
     Expr condition;
@@ -195,6 +161,7 @@ END_DECLARE // Reduce
 
 #undef DECLARE_EXPRESSION
 #undef END_DECLARE
+#undef DECLARE_BINARY_EXPRESSION
 
 /* Downcast function for Expr. */
 template<typename T> std::shared_ptr<const T> downcast(Expr expr) {

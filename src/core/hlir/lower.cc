@@ -45,6 +45,19 @@ void HLIRLowerer::visit(const op::ConstantPtr op) {
 void HLIRLowerer::visit(const op::AddPtr op) {
     recurse(op->x);
     recurse(op->y);
+
+    Expr x = get_expr(op->x);
+    Expr y = get_expr(op->y);
+
+    std::vector<long> x_shape = x->data_desc.get_shape();
+    std::vector<long> y_shape = y->data_desc.get_shape();
+
+    CHECK(x_shape == y_shape) <<
+        "x shape: " << x_shape << " y shape: " << y_shape;
+
+    Expr z = expr::Add::make(x, y);
+
+    set_expr(op->z, z);
 }
 
 void HLIRLowerer::visit(const op::AvgPoolPtr op) {
