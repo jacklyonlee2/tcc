@@ -13,17 +13,17 @@ void HLIRVisualizer::write(std::string output_path) {
     file.close();
 }
 
-void HLIRVisualizer::add_node(Op node, std::string base_name, bool alt) {
+void HLIRVisualizer::add_node(Op op, std::string name, bool storage_node) {
     /* Assign name to unvisited node. Add node to stream. */
     static unsigned int count = 0;
-    if (node_name_map.find(node) == node_name_map.end()) {
-        node_name_map.insert({node, base_name + std::to_string(count)});
+    if (node_name_map.find(op) == node_name_map.end()) {
+        node_name_map.insert({op, name + "-" + std::to_string(count)});
         count++;
 
         /* Add DOT node to stream. */
-        std::string node_name = node_name_map.at(node);
+        std::string node_name = node_name_map.at(op);
         stream << "\t\"" << node_name << "\" ";
-        stream << (alt ?
+        stream << (storage_node ?
             "[shape=box, style=filled, penwidth=0, fillcolor=lightgrey]" :
             "[shape=box, style=filled, fillcolor=black, fontcolor=white]");
         stream << "\n";
@@ -39,8 +39,8 @@ void HLIRVisualizer::add_edge(Op src, Op dst, std::string label) {
     /* Add DOT edge to stream. */
     std::string src_name = node_name_map.at(src);
     std::string dst_name = node_name_map.at(dst);
-    stream << "\t\"" << src_name << "\" -> \"" << dst_name <<
-        "\" [label=\" " << label << " \"]\n";
+    stream << "\t\"" << src_name << "\" -> \"" << dst_name;
+    stream << "\" [label=\" " << label << " \"]\n";
 }
 
 /* Overloaded HLIR Op visitors. */

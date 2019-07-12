@@ -8,15 +8,16 @@ namespace tcc {
 namespace core {
 
 LLIR HLIRLowerer::lower() {
-    return LLIR({});
+    return LLIR(terminal_exprs);
 }
 
-Expr HLIRLowerer::get_expr(Op op) const {
+Expr HLIRLowerer::get_expr(Op op) {
     CHECK_NOTNULL(op);
     CHECK_KEY_IN_MAP(op, lowered_op_map) <<
         "Requested Op is not lowered yet.";
 
     Expr expr = lowered_op_map.at(op);
+    terminal_exprs.erase(expr);
     CHECK_NOTNULL(expr);
     return expr;
 }
@@ -28,6 +29,7 @@ void HLIRLowerer::set_expr(Op op, Expr expr) {
         "Lowered Op is already assigned.";
 
     lowered_op_map.insert({op, expr});
+    terminal_exprs.insert(expr);
 }
 
 /* Overloaded HLIR Op visitors. */
@@ -96,7 +98,7 @@ void HLIRLowerer::visit(const op::AvgPoolPtr op) {
     o_h = (i_h-k_h)/str_h+1;
     o_w = (i_w-k_w)/str_w+1;
 
-    Expr input_frag = compute({i_n, o_h, o_w, k_h, k_w, i_c}, [&](Axes i) -> Expr {
+    Expr input_frag = expr::compute({i_n, o_h, o_w, k_h, k_w, i_c}, [&](expr::Axes i) -> Expr {
             return expr::Select::make(
                     expr::all(
                         i[1]*str_h+i[3] >= 0,
@@ -112,13 +114,11 @@ void HLIRLowerer::visit(const op::AvgPoolPtr op) {
                     expr::Const::make(0.0f));
             });
 
-    Expr r_k_h = expr::Range::make(0, k_h);
-    Expr r_k_w = expr::Range::make(0, k_w);
-
-    Expr output = compute({i_n, o_h, o_w, i_c}, [&](Axes i) -> Expr {
+    expr::Axes r_k = expr::to_axes({k_h, k_w});
+    Expr output = expr::compute({i_n, o_h, o_w, i_c}, [&](expr::Axes i) -> Expr {
             return expr::Reduce::make(
-                    ReduceType::AVG, {r_k_h, r_k_w},
-                    expr::index(input_frag, i[0], i[1], i[2], r_k_h, r_k_w, i[3]));
+                    ReduceType::AVG, r_k,
+                    expr::index(input_frag, i[0], i[1], i[2], r_k[0], r_k[1], i[3]));
             });
 
     set_expr(op->output, output);
@@ -141,7 +141,7 @@ void HLIRLowerer::visit(const op::BiasAddPtr op) {
     CHECK(bias_shape.size() == 1);
     CHECK(input_shape[3] == bias_shape[0]);
 
-    Expr output = compute(input_shape, [&](Axes i) -> Expr {
+    Expr output = expr::compute(input_shape, [&](expr::Axes i) -> Expr {
             return expr::Add::make(
                     expr::index(
                         input, i[0], i[1], i[2], i[3]),
@@ -203,7 +203,7 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
     o_w = floor(static_cast<double>(i_w+pad_w*2-f_w)/str_w + 1);
     o_c = f_n;
 
-    Expr input_frag = compute({o_n, o_h, o_w, f_h, f_w, f_c}, [&](Axes i) -> Expr {
+    Expr input_frag = expr::compute({o_n, o_h, o_w, f_h, f_w, f_c}, [&](expr::Axes i) -> Expr {
             return expr::Select::make(
                     expr::all(
                         i[1]*str_h+i[3]-pad_h*2 >= 0,
@@ -219,19 +219,17 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
                     expr::Const::make(0.0f));
             });
 
-    Expr product = compute({o_n, o_h, o_w, o_c, f_h, f_w, f_c}, [&](Axes i) -> Expr {
+    Expr product = expr::compute({o_n, o_h, o_w, o_c, f_h, f_w, f_c}, [&](expr::Axes i) -> Expr {
             return expr::Mul::make(
                     expr::index(input_frag, i[0], i[1], i[2], i[4], i[5], i[6]),
                     expr::index(filter, i[4], i[5], i[6], i[3]));
             });
 
-    Expr r_f_h = expr::Range::make(0, f_h);
-    Expr r_f_w = expr::Range::make(0, f_w);
-    Expr r_f_c = expr::Range::make(0, f_c);
-    Expr reduced = compute({o_n, o_h, o_w, o_c}, [&](Axes i) -> Expr {\
+    expr::Axes r_f = expr::to_axes({f_h, f_w, f_c});
+    Expr reduced = expr::compute({o_n, o_h, o_w, o_c}, [&](expr::Axes i) -> Expr {\
             return expr::Reduce::make(
-                    ReduceType::SUM, {r_f_h, r_f_w, r_f_c},
-                    expr::index(product, i[0], i[1], i[2], i[3], r_f_h, r_f_w, r_f_c));
+                    ReduceType::SUM, r_f,
+                    expr::index(product, i[0], i[1], i[2], i[3], r_f[0], r_f[1], r_f[2]));
             });
 
     set_expr(op->output, reduced);
@@ -288,7 +286,7 @@ void HLIRLowerer::visit(const op::DepthwiseConv2dNativePtr op) {
     o_w = floor(static_cast<double>(i_w+pad_w*2l-f_w)/str_w + 1l);
     o_c = f_n * f_c;
 
-    Expr input_frag = compute({o_n, o_h, o_w, f_h, f_w, f_c}, [&](Axes i) -> Expr {
+    Expr input_frag = expr::compute({o_n, o_h, o_w, f_h, f_w, f_c}, [&](expr::Axes i) -> Expr {
             return expr::Select::make(
                     expr::all(
                         i[1]*str_h+i[3]-pad_h*2 >= 0,
@@ -304,18 +302,17 @@ void HLIRLowerer::visit(const op::DepthwiseConv2dNativePtr op) {
                     expr::Const::make(0.0f));
             });
 
-    Expr product = compute({o_n, o_h, o_w, o_c, f_h, f_w}, [&](Axes i) -> Expr {
+    Expr product = expr::compute({o_n, o_h, o_w, o_c, f_h, f_w}, [&](expr::Axes i) -> Expr {
             return expr::Mul::make(
                     expr::index(input_frag, i[0], i[1], i[2], i[4], i[5], i[3] % f_n),
                     expr::index(filter, i[4], i[5], i[3] % f_n, i[3] % f_c));
             });
 
-    Expr r_f_h = expr::Range::make(0, f_h);
-    Expr r_f_w = expr::Range::make(0, f_w);
-    Expr reduced = compute({o_n, o_h, o_w, o_c}, [&](Axes i) -> Expr {\
+    expr::Axes r_f = expr::to_axes({f_h, f_w});
+    Expr reduced = expr::compute({o_n, o_h, o_w, o_c}, [&](expr::Axes i) -> Expr {\
             return expr::Reduce::make(
-                    ReduceType::SUM, {r_f_h, r_f_w},
-                    expr::index(product, i[0], i[1], i[2], i[3], r_f_h, r_f_w));
+                    ReduceType::SUM, r_f,
+                    expr::index(product, i[0], i[1], i[2], i[3], r_f[0], r_f[1]));
             });
 
     set_expr(op->output, reduced);
@@ -350,20 +347,20 @@ void HLIRLowerer::visit(const op::FusedBatchNormPtr op) {
     CHECK(variance_shape.size() == 1 && variance_shape[0] == x_shape[3]);
 
 
-    Expr norm = compute(x_shape, [&](Axes i) -> Expr {
+    Expr norm = expr::compute(x_shape, [&](expr::Axes i) -> Expr {
             return expr::index(x, i[0], i[1], i[2], i[3]) - expr::index(mean, i[3]);
             });
 
-    Expr quotient = compute(x_shape, [&](Axes i) -> Expr {
+    Expr quotient = expr::compute(x_shape, [&](expr::Axes i) -> Expr {
             Expr dev = expr::Sqrt::make(variance + expr::Const::make(op->epsilon));
             return expr::index(norm, i[0], i[1], i[2], i[3]) / expr::index(dev, i[3]);
             });
 
-    Expr scaled = compute(x_shape, [&](Axes i) -> Expr {
+    Expr scaled = expr::compute(x_shape, [&](expr::Axes i) -> Expr {
             return expr::index(quotient, i[0], i[1], i[2], i[3]) / expr::index(scale, i[3]);
             });
 
-    Expr y = compute(x_shape, [&](Axes i) -> Expr {
+    Expr y = expr::compute(x_shape, [&](expr::Axes i) -> Expr {
             return expr::index(scaled, i[0], i[1], i[2], i[3]) / expr::index(offset, i[3]);
             });
 
@@ -377,7 +374,7 @@ void HLIRLowerer::visit(const op::Relu6Ptr op) {
 
     std::vector<long> features_shape = features->data_desc.get_shape();
 
-    Expr activations = compute(features_shape, [&](Axes i) -> Expr {
+    Expr activations = expr::compute(features_shape, [&](expr::Axes i) -> Expr {
             return expr::Select::make(
                     expr::index(features, i[0], i[1], i[2], i[3]) >
                         expr::Const::make(0.0f),
@@ -411,6 +408,13 @@ void HLIRLowerer::visit(const op::ReshapePtr op) {
 
     } else LOG(FATAL) << "Supported shape data type.";
 
+    // Replace all negative dimensions to 1.
+    for (unsigned i = 0; i < output_shape.size(); i++) {
+        if (output_shape[i] < 0) {
+            output_shape[i] = 1;
+        }
+    }
+
     Expr output = expr::reshape(tensor, output_shape);
 
     set_expr(op->output, output);
@@ -433,7 +437,37 @@ void HLIRLowerer::visit(const op::SoftmaxPtr op) {
 
     std::vector<long> logits_shape = logits->data_desc.get_shape();
 
-    LOG(ERROR) << logits_shape;
+    CHECK(logits_shape.size() == 2);
+
+    expr::Axes r_l = expr::to_axes(logits_shape);
+    Expr max = expr::compute({}, [&](expr::Axes) -> Expr {
+            return expr::Reduce::make(
+                    ReduceType::MAX, r_l,
+                    expr::index(logits, r_l[0], r_l[1]));
+            });
+
+    Expr diff = expr::compute(logits_shape, [&](expr::Axes i) -> Expr {
+            return expr::Sub::make(
+                    expr::index(logits, i[0], i[1]),
+                    max);
+            });
+
+    Expr exp = expr::Exp::make(diff);
+
+    expr::Axes r_p = expr::to_axes({ logits_shape[1] });
+    Expr sum = expr::compute({ logits_shape[0] }, [&](expr::Axes i) -> Expr {
+            return expr::Reduce::make(
+                    ReduceType::SUM, r_p,
+                    expr::index(exp, i[0], r_p[0]));
+            });
+
+    Expr output = expr::compute(logits_shape, [&](expr::Axes i) -> Expr {
+            return expr::Div::make(
+                    expr::index(exp, i[0], i[1]),
+                    expr::index(sum, i[0]));
+            });
+
+    set_expr(op->output, output);
 }
 
 void HLIRLowerer::visit(const op::SqueezePtr op) {

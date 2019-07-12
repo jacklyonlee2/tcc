@@ -2,6 +2,7 @@
 #define TCC_LLIR_EXPRESSION_H
 
 #include <memory>
+#include <functional>
 
 #include "tcc/core/common/data.h"
 #include "tcc/core/common/logging.h"
@@ -18,6 +19,7 @@ enum class ExprType {
     Const,
     Range,
     Index,
+    Exp,
     Sqrt,
     Add,
     Sub,
@@ -36,6 +38,7 @@ enum class ExprType {
 
 enum class ReduceType {
     SUM,
+    MAX,
     AVG
 };
 
@@ -139,6 +142,7 @@ DECLARE_EXPRESSION(Index)
             Expr tensor_);
 END_DECLARE // Index
 
+DECLARE_UNARY_EXPRESSION(Exp)
 DECLARE_UNARY_EXPRESSION(Sqrt)
 
 DECLARE_BINARY_EXPRESSION(Add)
@@ -190,6 +194,23 @@ template<typename T> std::shared_ptr<const T> downcast(Expr expr) {
     }
 }
 
+/* Shortcut for vector of Ranges. */
+typedef std::vector<Expr> Axes;
+
+/* compute function allows the building of complex
+ * computations using LLIR Expressions with non-trivial
+ * data access patterns.
+ * The user will provide the ret shape of the computation
+ * and a corresponding lambda expressing the computation.
+ * The function will automatically create Range Expressions
+ * based on the ret shape as the input to the lambda. */
+Expr compute(
+        std::vector<long> shape,
+        std::function<Expr(Axes)> lambda);
+
+/* to_axes converts shape to vector of expr::Ranges. */
+std::vector<Expr> to_axes(std::vector<long> shape);
+
 /* index function provides a shortcut for expr::Index. */
 template<typename ... Args> Expr index(Expr tensor, Args ... args) {
     std::vector<Expr> indices = accumulate_parameters(args...);
@@ -203,15 +224,7 @@ template<typename T, typename ... Args> Expr all(T expr, Args ... args) {
 }
 
 /* reshape function updates the data_desc shape of Expr. */
-inline Expr reshape(Expr expr, std::vector<long> shape) {
-    CHECK(accumulate_vector<long>(expr->data_desc.get_shape()) ==
-            accumulate_vector<long>(shape)) <<
-        "Reshape size must equal to original size. " <<
-        "Original shape: " << expr->data_desc.get_shape() <<
-        " reshaping to " << shape;
-    expr->data_desc.set_shape(shape);
-    return expr;
-}
+Expr reshape(Expr expr, std::vector<long> shape);
 
 } // namespace expr
 } // namespace core

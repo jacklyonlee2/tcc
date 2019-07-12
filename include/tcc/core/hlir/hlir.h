@@ -35,7 +35,6 @@ class HLIRVisitor {
         virtual void visit(const op::SoftmaxPtr);
         virtual void visit(const op::SqueezePtr);
 
-    private:
         /* Visited HLIR Operations. */
         std::unordered_set<Op> visited;
 

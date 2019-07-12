@@ -2,25 +2,11 @@
 #define TCC_LLIR_H
 
 #include <unordered_set>
-#include <functional>
 
 #include "tcc/core/llir/expression.h"
 
 namespace tcc {
 namespace core {
-
-typedef std::vector<Expr> Axes;
-
-/* compute function allows the building of complex
- * computations using LLIR Expressions with non-trivial
- * data access patterns.
- * The user will provide the ret shape of the computation
- * and a corresponding lambda expressing the computation.
- * The function will automatically create Range Expressions
- * based on the ret shape as the input to the lambda. */
-Expr compute(
-        std::vector<long> shape,
-        std::function<Expr(Axes)> lambda);
 
 class LLIRVisitor {
     public:
@@ -36,6 +22,7 @@ class LLIRVisitor {
         virtual void visit(const expr::ConstPtr);
         virtual void visit(const expr::RangePtr);
         virtual void visit(const expr::IndexPtr);
+        virtual void visit(const expr::ExpPtr);
         virtual void visit(const expr::SqrtPtr);
         virtual void visit(const expr::AddPtr);
         virtual void visit(const expr::SubPtr);
@@ -48,6 +35,9 @@ class LLIRVisitor {
         virtual void visit(const expr::AndPtr);
         virtual void visit(const expr::SelectPtr);
         virtual void visit(const expr::ReducePtr);
+
+        /* Visited LLIR Expressions. */
+        std::unordered_set<Expr> visited;
 
     template<typename T> friend struct Expression;
 };

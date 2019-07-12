@@ -36,6 +36,7 @@ IMPLEMENT_ACCEPT(expr::Var)
 IMPLEMENT_ACCEPT(expr::Const)
 IMPLEMENT_ACCEPT(expr::Range)
 IMPLEMENT_ACCEPT(expr::Index)
+IMPLEMENT_ACCEPT(expr::Exp)
 IMPLEMENT_ACCEPT(expr::Sqrt)
 IMPLEMENT_ACCEPT(expr::Add)
 IMPLEMENT_ACCEPT(expr::Sub)
@@ -124,6 +125,7 @@ Expr Index::make(
     return expr;
 }
 
+IMPLEMENT_UNARY_EXPRESSION(Exp)
 IMPLEMENT_UNARY_EXPRESSION(Sqrt)
 
 IMPLEMENT_BINARY_EXPRESSION(Add, x_->data_desc)
@@ -170,6 +172,7 @@ Expr Reduce::make(
 
     CHECK_NOTNULL(input_);
     CHECK(input_->data_desc.defined());
+    CHECK(!reduce_axes_.empty());
 
     std::shared_ptr<Reduce> expr(new Reduce);
     expr->data_desc = input_->data_desc.get_type();
@@ -181,6 +184,34 @@ Expr Reduce::make(
 
 #undef IMPLEMENT_UNARY_EXPRESSION
 #undef IMPLEMENT_BINARY_EXPRESSION
+
+/* Implementions of Expr helper functions. */
+
+Expr compute(
+        std::vector<long> shape,
+        std::function<Expr(Axes)> lambda) {
+    Axes axes = to_axes(shape);
+    Expr output = lambda(axes);
+    output->data_desc.set_shape(shape);
+    return output;
+}
+
+std::vector<Expr> to_axes(std::vector<long> shape) {
+    std::vector<Expr> axes;
+    for (long dim : shape) {
+        axes.push_back(Range::make(0, dim));
+    }
+    return axes;
+}
+
+Expr reshape(Expr expr, std::vector<long> shape) {
+    CHECK(accumulate_vector<long>(expr->data_desc.get_shape()) ==
+            accumulate_vector<long>(shape)) <<
+        "Reshape size must equal to original size. From " <<
+        expr->data_desc.get_shape() << " reshaping to " << shape;
+    expr->data_desc.set_shape(shape);
+    return expr;
+}
 
 } // namespace expr
 } // namespace core

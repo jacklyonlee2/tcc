@@ -1,16 +1,10 @@
-#ifndef TCC_COMMON_TENSOR_H
-#define TCC_COMMON_TENSOR_H
+#ifndef TCC_COMMON_DATA_H
+#define TCC_COMMON_DATA_H
 
 #include <vector>
 
 #include "tcc/core/common/util.h"
 #include "tcc/core/common/logging.h"
-
-#define CHECK_SHAPE(shape) \
-    for (long dim : shape) { \
-        CHECK(dim > 0) << \
-            "Tensor shape can not contain negative/zero dimensions."; \
-    }
 
 #define DECLARE_DATATYPE(type_enum, type) \
     public: \
@@ -58,7 +52,7 @@ class DataDesc {
         DataDesc() : data_type(DataType::UNINITIALIZED) {}
         DataDesc(DataType data_type_) : data_type(data_type_) {}
         DataDesc(DataType data_type_, std::vector<long> data_shape_) :
-            data_type(data_type_), data_shape(data_shape_) { CHECK_SHAPE(data_shape_); }
+            data_type(data_type_) { set_shape(data_shape_); }
 
         DataType get_type() const { return data_type; }
         std::vector<long> get_shape() const { return data_shape; }
@@ -68,7 +62,10 @@ class DataDesc {
         bool scalar() const { return data_shape.empty(); }
 
         void set_shape(std::vector<long> shape) {
-            CHECK_SHAPE(shape);
+            for (long dim : shape) {
+                CHECK(dim > 0) <<
+                    "Tensor shape can not contain negative/zero dimensions.";
+            }
             data_shape = shape;
         }
 
@@ -92,7 +89,6 @@ class Data : public DataDesc {
 } // namespace core
 } // namespace tcc
 
-#undef CHECK_SHAPE
 #undef DECLARE_DATATYPE
 
-#endif // TCC_COMMON_TENSOR_H
+#endif // TCC_COMMON_DATA_H

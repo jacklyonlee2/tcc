@@ -10,12 +10,14 @@ list(APPEND
      ${TCC_INCLUDE_DIR}/tcc/core/hlir/lower.h
      ${TCC_INCLUDE_DIR}/tcc/core/llir/llir.h
      ${TCC_INCLUDE_DIR}/tcc/core/llir/expression.h
+     ${TCC_INCLUDE_DIR}/tcc/core/llir/visualize.h
      hlir/hlir.cc
      hlir/operation.cc
      hlir/visualize.cc
      hlir/lower.cc
      llir/llir.cc
-     llir/expression.cc)
+     llir/expression.cc
+     llir/visualize.cc)
 
 add_library(core
     ${CORE_SRC})
