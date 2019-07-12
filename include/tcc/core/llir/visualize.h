@@ -2,7 +2,7 @@
 #define TCC_LLIR_VISUALIZE_H
 
 #include <sstream>
-#include <unordered_map>
+#include <unordered_set>
 
 #include "tcc/core/llir/llir.h"
 
@@ -17,8 +17,8 @@ class LLIRVisualizer : public LLIRVisitor {
         void write(std::string output_path);
 
     protected:
-        void add_node(Expr, std::string);
-        void add_edge(Expr, Expr);
+        void add_node(Expr expr, std::string label);
+        void add_edge(Expr src, Expr dst);
 
         void visit(const expr::VarPtr) override;
         void visit(const expr::ConstPtr) override;
@@ -38,7 +38,7 @@ class LLIRVisualizer : public LLIRVisitor {
         void visit(const expr::SelectPtr) override;
         void visit(const expr::ReducePtr) override;
 
-        std::unordered_map<Expr, std::string> node_name_map;
+        std::unordered_set<Expr> added;
         std::stringstream stream;
 };
 

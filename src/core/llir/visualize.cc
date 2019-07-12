@@ -13,33 +13,31 @@ void LLIRVisualizer::write(std::string output_path) {
     file.close();
 }
 
-void LLIRVisualizer::add_node(Expr expr, std::string name) {
+void LLIRVisualizer::add_node(Expr expr, std::string label) {
     /* Assign name to unvisited node. Add node to stream. */
-    static unsigned int count = 0;
-    if (node_name_map.find(expr) == node_name_map.end()) {
-        node_name_map.insert({expr, name + "-" + std::to_string(count)});
-        count++;
+    if (added.find(expr) == added.end()) {
+        added.insert(expr);
 
         /* Add DOT node to stream. */
-        std::string node_name = node_name_map.at(expr);
-        stream << "\t\"" << node_name << "\" ";
-        stream << "[shape=box, style=filled, penwidth=0, fillcolor=lightgrey]";
+        stream << "\t\"" << expr.get() << "\" ";
+        stream << "[label=\"" << label << "\", ";
+        stream << "shape=box, style=filled, penwidth=0, fillcolor=lightgrey]";
         stream << "\n";
     }
 }
 
 void LLIRVisualizer::add_edge(Expr src, Expr dst) {
-    CHECK_KEY_IN_MAP(src, node_name_map) <<
+    CHECK_KEY_IN_MAP(src, added) <<
         "Source node is unvisited.";
-    CHECK_KEY_IN_MAP(dst, node_name_map) <<
+    CHECK_KEY_IN_MAP(dst, added) <<
         "Destination node is unvisited.";
 
     /* Add DOT edge to stream. */
-    std::string src_name = node_name_map.at(src);
-    std::string dst_name = node_name_map.at(dst);
-    std::vector<long> src_shape = src->data_desc.get_shape();
-    stream << "\t\"" << src_name << "\" -> \"" << dst_name;
-    stream << "\" [label=\" " << src_shape << " \"]\n";
+    stream << "\t\"" << src.get() << "\" -> \"" << dst.get() << "\"";
+    if (!src->data_desc.get_shape().empty()) {
+        stream << " [label=\"" << src->data_desc.get_shape() << "\"]";
+    }
+    stream << "\n";
 }
 
 /* Overloaded LLIR Expr visitors. */

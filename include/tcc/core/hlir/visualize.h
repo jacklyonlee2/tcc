@@ -2,7 +2,7 @@
 #define TCC_HLIR_VISUALIZE_H
 
 #include <sstream>
-#include <unordered_map>
+#include <unordered_set>
 
 #include "tcc/core/hlir/hlir.h"
 
@@ -17,8 +17,8 @@ class HLIRVisualizer : public HLIRVisitor {
         void write(std::string output_path);
 
     protected:
-        void add_node(Op, std::string, bool = false);
-        void add_edge(Op, Op, std::string);
+        void add_node(Op op, std::string label);
+        void add_edge(Op src, Op dst, std::string label);
 
         void visit(const op::PlaceholderPtr) override;
         void visit(const op::ConstantPtr) override;
@@ -35,7 +35,7 @@ class HLIRVisualizer : public HLIRVisitor {
         void visit(const op::SoftmaxPtr) override;
         void visit(const op::SqueezePtr) override;
 
-        std::unordered_map<Op, std::string> node_name_map;
+        std::unordered_set<Op> added;
         std::stringstream stream;
 };
 

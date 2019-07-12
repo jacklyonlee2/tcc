@@ -13,48 +13,42 @@ void HLIRVisualizer::write(std::string output_path) {
     file.close();
 }
 
-void HLIRVisualizer::add_node(Op op, std::string name, bool storage_node) {
+void HLIRVisualizer::add_node(Op op, std::string label) {
     /* Assign name to unvisited node. Add node to stream. */
-    static unsigned int count = 0;
-    if (node_name_map.find(op) == node_name_map.end()) {
-        node_name_map.insert({op, name + "-" + std::to_string(count)});
-        count++;
+    if (added.find(op) == added.end()) {
+        added.insert(op);
 
         /* Add DOT node to stream. */
-        std::string node_name = node_name_map.at(op);
-        stream << "\t\"" << node_name << "\" ";
-        stream << (storage_node ?
-            "[shape=box, style=filled, penwidth=0, fillcolor=lightgrey]" :
-            "[shape=box, style=filled, fillcolor=black, fontcolor=white]");
+        stream << "\t\"" << op.get() << "\" ";
+        stream << "[label=\"" << label << "\", ";
+        stream << "shape=box, style=filled, penwidth=0, fillcolor=lightgrey]";
         stream << "\n";
     }
 }
 
 void HLIRVisualizer::add_edge(Op src, Op dst, std::string label) {
-    CHECK_KEY_IN_MAP(src, node_name_map) <<
+    CHECK_KEY_IN_MAP(src, added) <<
         "Source node is unvisited.";
-    CHECK_KEY_IN_MAP(dst, node_name_map) <<
+    CHECK_KEY_IN_MAP(dst, added) <<
         "Destination node is unvisited.";
 
     /* Add DOT edge to stream. */
-    std::string src_name = node_name_map.at(src);
-    std::string dst_name = node_name_map.at(dst);
-    stream << "\t\"" << src_name << "\" -> \"" << dst_name;
-    stream << "\" [label=\" " << label << " \"]\n";
+    stream << "\t\"" << src.get() << "\" -> \"" << dst.get() << "\"";
+    stream << "[label=\" " << label << " \"]\n";
 }
 
 /* Overloaded HLIR Op visitors. */
 
 void HLIRVisualizer::visit(const op::PlaceholderPtr op) {
-    add_node(op, "Placeholder", true);
+    add_node(op, "Placeholder");
 }
 
 void HLIRVisualizer::visit(const op::ConstantPtr op) {
-    add_node(op, "Constant", true);
+    add_node(op, "Constant");
 }
 
 void HLIRVisualizer::visit(const op::IntermediatePtr op) {
-    add_node(op, "Intermediate", true);
+    add_node(op, "Intermediate");
 
     recurse(op->prev_op);
 
