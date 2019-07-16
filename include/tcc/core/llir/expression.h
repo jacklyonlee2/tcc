@@ -44,14 +44,19 @@ enum class ReduceType {
 
 /* Base class for LLIR Expression. */
 
+struct BaseExpression;
+typedef std::shared_ptr<const BaseExpression> Expr;
+typedef std::vector<Expr> Axes;
+
 struct BaseExpression {
-    BaseExpression(ExprType et) : expr_type(et)  {}
+    BaseExpression(ExprType et) : expr_type(et) {}
 
     /* Virtual accept method to support visitor pattern. */
     virtual void accept(LLIRVisitor *v) const = 0;
 
     ExprType expr_type;
     mutable DataDesc data_desc;
+    mutable Axes axes;
 };
 
 typedef std::shared_ptr<const BaseExpression> Expr;
@@ -73,11 +78,7 @@ OVERLOAD_OPERATOR(<)
 
 #undef OVERLOAD_OPERATOR
 
-/* Templated LLIR Expression class.
- * LLIR Expressions are used to express the access pattern
- * and conditions of LLIR Primitive's inputs.
- * LLIR Expressions are store inside LLIR Primitive
- * along side of the Primitive inputs. */
+/* Templated LLIR Expression class. */
 
 template<typename T>
 struct Expression :
@@ -193,9 +194,6 @@ template<typename T> std::shared_ptr<const T> downcast(Expr expr) {
         return nullptr;
     }
 }
-
-/* Shortcut for vector of Ranges. */
-typedef std::vector<Expr> Axes;
 
 /* compute function allows the building of complex
  * computations using LLIR Expressions with non-trivial

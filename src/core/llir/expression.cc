@@ -193,6 +193,7 @@ Expr compute(
     Axes axes = to_axes(shape);
     Expr output = lambda(axes);
     output->data_desc.set_shape(shape);
+    output->axes = axes;
     return output;
 }
 
