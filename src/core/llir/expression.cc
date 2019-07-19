@@ -1,5 +1,7 @@
 #include "tcc/core/llir/expression.h"
 
+#include <algorithm>
+
 #include "tcc/core/llir/llir.h"
 #include "tcc/core/common/util.h"
 
@@ -51,6 +53,15 @@ IMPLEMENT_ACCEPT(expr::Select)
 IMPLEMENT_ACCEPT(expr::Reduce)
 
 #undef IMPLEMENT_ACCEPT
+
+/* Implementions of BaseExpression methods. */
+
+void BaseExpression::initialize(Axes axes_) const {
+    axes = axes_;
+    data_desc.set_shape(expr::to_shape(axes_));
+}
+
+/* Expr implementions. */
 
 namespace expr {
 
@@ -182,6 +193,25 @@ Expr Reduce::make(
     return expr;
 }
 
+void Reduce::initialize(Axes axes_) const {
+    Axes unreduced_axes;
+    for (Expr axis : axes_) {
+        if (std::find(
+                    reduce_axes.begin(),
+                    reduce_axes.end(),
+                    axis) == reduce_axes.end()) {
+            unreduced_axes.push_back(axis);
+        }
+    }
+
+    CHECK(unreduced_axes.size() + reduce_axes.size() == axes_.size()) <<
+        "reduce_axes is not contained in axes_.";
+    CHECK(axes.empty()) << "axes has already been initialized.";
+
+    axes = axes_;
+    data_desc.set_shape(expr::to_shape(unreduced_axes));
+}
+
 #undef IMPLEMENT_UNARY_EXPRESSION
 #undef IMPLEMENT_BINARY_EXPRESSION
 
@@ -192,8 +222,7 @@ Expr compute(
         std::function<Expr(Axes)> lambda) {
     Axes axes = to_axes(shape);
     Expr output = lambda(axes);
-    output->data_desc.set_shape(shape);
-    output->axes = axes;
+    output->initialize(axes);
     return output;
 }
 
@@ -203,6 +232,18 @@ std::vector<Expr> to_axes(std::vector<long> shape) {
         axes.push_back(Range::make(0, dim));
     }
     return axes;
+}
+
+std::vector<long> to_shape(Axes axes) {
+    std::vector<long> shape;
+    for (Expr axis : axes) {
+        CHECK(axis->expr_type == ExprType::Range);
+        RangePtr range = downcast<Range>(axis);
+        CHECK(range->range.first == 0) <<
+            "Axis must start from 0 to convert to shape.";
+        shape.push_back(range->range.second);
+    }
+    return shape;
 }
 
 Expr reshape(Expr expr, std::vector<long> shape) {

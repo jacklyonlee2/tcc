@@ -5,7 +5,7 @@
 namespace tcc {
 namespace core {
 
-void LLIRVisualizer::write(std::string output_path) {
+void LLIRVisualize::write(std::string output_path) {
     std::ofstream file(output_path, std::ios::trunc);
     CHECK(file) << "Failed to open file at '" << output_path << "'.";
     /* Write DOT graph to stream. */
@@ -13,7 +13,7 @@ void LLIRVisualizer::write(std::string output_path) {
     file.close();
 }
 
-void LLIRVisualizer::add_node(Expr expr, std::string label) {
+void LLIRVisualize::add_node(Expr expr, std::string label) {
     /* Assign name to unvisited node. Add node to stream. */
     if (added.find(expr) == added.end()) {
         added.insert(expr);
@@ -26,7 +26,7 @@ void LLIRVisualizer::add_node(Expr expr, std::string label) {
     }
 }
 
-void LLIRVisualizer::add_edge(Expr src, Expr dst) {
+void LLIRVisualize::add_edge(Expr src, Expr dst) {
     CHECK_KEY_IN_MAP(src, added) <<
         "Source node is unvisited.";
     CHECK_KEY_IN_MAP(dst, added) <<
@@ -42,19 +42,19 @@ void LLIRVisualizer::add_edge(Expr src, Expr dst) {
 
 /* Overloaded LLIR Expr visitors. */
 
-void LLIRVisualizer::visit(const expr::VarPtr expr) {
+void LLIRVisualize::visit(const expr::VarPtr expr) {
     add_node(expr, "Var");
 }
 
-void LLIRVisualizer::visit(const expr::ConstPtr expr) {
+void LLIRVisualize::visit(const expr::ConstPtr expr) {
     add_node(expr, "Const");
 }
 
-void LLIRVisualizer::visit(const expr::RangePtr expr) {
+void LLIRVisualize::visit(const expr::RangePtr expr) {
     add_node(expr, "Range");
 }
 
-void LLIRVisualizer::visit(const expr::IndexPtr expr) {
+void LLIRVisualize::visit(const expr::IndexPtr expr) {
     add_node(expr, "Index");
 
     for (Expr index : expr->indices) {
@@ -68,7 +68,7 @@ void LLIRVisualizer::visit(const expr::IndexPtr expr) {
     add_edge(expr->tensor, expr);
 }
 
-void LLIRVisualizer::visit(const expr::ExpPtr expr) {
+void LLIRVisualize::visit(const expr::ExpPtr expr) {
     add_node(expr, "Exp");
 
     recurse(expr->x);
@@ -76,7 +76,7 @@ void LLIRVisualizer::visit(const expr::ExpPtr expr) {
     add_edge(expr->x, expr);
 }
 
-void LLIRVisualizer::visit(const expr::SqrtPtr expr) {
+void LLIRVisualize::visit(const expr::SqrtPtr expr) {
     add_node(expr, "Sqrt");
 
     recurse(expr->x);
@@ -84,7 +84,7 @@ void LLIRVisualizer::visit(const expr::SqrtPtr expr) {
     add_edge(expr->x, expr);
 }
 
-void LLIRVisualizer::visit(const expr::AddPtr expr) {
+void LLIRVisualize::visit(const expr::AddPtr expr) {
     add_node(expr, "Add");
 
     recurse(expr->x);
@@ -94,7 +94,7 @@ void LLIRVisualizer::visit(const expr::AddPtr expr) {
     add_edge(expr->y, expr);
 }
 
-void LLIRVisualizer::visit(const expr::SubPtr expr) {
+void LLIRVisualize::visit(const expr::SubPtr expr) {
     add_node(expr, "Sub");
 
     recurse(expr->x);
@@ -104,7 +104,7 @@ void LLIRVisualizer::visit(const expr::SubPtr expr) {
     add_edge(expr->y, expr);
 }
 
-void LLIRVisualizer::visit(const expr::MulPtr expr) {
+void LLIRVisualize::visit(const expr::MulPtr expr) {
     add_node(expr, "Mul");
 
     recurse(expr->x);
@@ -114,7 +114,7 @@ void LLIRVisualizer::visit(const expr::MulPtr expr) {
     add_edge(expr->y, expr);
 }
 
-void LLIRVisualizer::visit(const expr::DivPtr expr) {
+void LLIRVisualize::visit(const expr::DivPtr expr) {
     add_node(expr, "Div");
 
     recurse(expr->x);
@@ -124,7 +124,7 @@ void LLIRVisualizer::visit(const expr::DivPtr expr) {
     add_edge(expr->y, expr);
 }
 
-void LLIRVisualizer::visit(const expr::ModPtr expr) {
+void LLIRVisualize::visit(const expr::ModPtr expr) {
     add_node(expr, "Mod");
 
     recurse(expr->x);
@@ -134,7 +134,7 @@ void LLIRVisualizer::visit(const expr::ModPtr expr) {
     add_edge(expr->y, expr);
 }
 
-void LLIRVisualizer::visit(const expr::GreaterPtr expr) {
+void LLIRVisualize::visit(const expr::GreaterPtr expr) {
     add_node(expr, "Greater");
 
     recurse(expr->x);
@@ -144,7 +144,7 @@ void LLIRVisualizer::visit(const expr::GreaterPtr expr) {
     add_edge(expr->y, expr);
 }
 
-void LLIRVisualizer::visit(const expr::GreaterEqualPtr expr) {
+void LLIRVisualize::visit(const expr::GreaterEqualPtr expr) {
     add_node(expr, "GreaterEqual");
 
     recurse(expr->x);
@@ -154,7 +154,7 @@ void LLIRVisualizer::visit(const expr::GreaterEqualPtr expr) {
     add_edge(expr->y, expr);
 }
 
-void LLIRVisualizer::visit(const expr::LessPtr expr) {
+void LLIRVisualize::visit(const expr::LessPtr expr) {
     add_node(expr, "Less");
 
     recurse(expr->x);
@@ -164,7 +164,7 @@ void LLIRVisualizer::visit(const expr::LessPtr expr) {
     add_edge(expr->y, expr);
 }
 
-void LLIRVisualizer::visit(const expr::AndPtr expr) {
+void LLIRVisualize::visit(const expr::AndPtr expr) {
     add_node(expr, "And");
 
     recurse(expr->x);
@@ -174,7 +174,7 @@ void LLIRVisualizer::visit(const expr::AndPtr expr) {
     add_edge(expr->y, expr);
 }
 
-void LLIRVisualizer::visit(const expr::SelectPtr expr) {
+void LLIRVisualize::visit(const expr::SelectPtr expr) {
     add_node(expr, "Select");
 
     recurse(expr->condition);
@@ -186,7 +186,7 @@ void LLIRVisualizer::visit(const expr::SelectPtr expr) {
     add_edge(expr->f, expr);
 }
 
-void LLIRVisualizer::visit(const expr::ReducePtr expr) {
+void LLIRVisualize::visit(const expr::ReducePtr expr) {
     switch (expr->reduce_type) {
         case ReduceType::SUM:
             add_node(expr, "Reduce:Sum");

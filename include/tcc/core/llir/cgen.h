@@ -1,24 +1,24 @@
-#ifndef TCC_LLIR_VISUALIZE_H
-#define TCC_LLIR_VISUALIZE_H
+#ifndef TCC_LLIR_LOWER_H
+#define TCC_LLIR_LOWER_H
 
 #include <sstream>
-#include <unordered_set>
+#include <unordered_map>
 
 #include "tcc/core/llir/llir.h"
 
 namespace tcc {
 namespace core {
 
-/* LLIRVisualize convert the IR to a DOT graph
+/* LLIRCgen generate C code from LLIR
  * and write to the output stream. */
-class LLIRVisualize : public LLIRVisitor {
+class LLIRCgen : public LLIRVisitor {
     public:
-        /* Write DOT syntax to specified output path. */
-        void write(std::string output_path);
+        /* Write generated C code to specified output path. */
+        void generate(std::string output_path);
 
     protected:
-        void add_node(Expr expr, std::string label);
-        void add_edge(Expr src, Expr dst);
+        void add_symbol(Expr);
+        std::string get_symbol(Expr);
 
         void visit(const expr::VarPtr) override;
         void visit(const expr::ConstPtr) override;
@@ -38,11 +38,13 @@ class LLIRVisualize : public LLIRVisitor {
         void visit(const expr::SelectPtr) override;
         void visit(const expr::ReducePtr) override;
 
-        std::unordered_set<Expr> added;
-        std::stringstream stream;
+        std::unordered_set<Expr> inputs;
+        std::unordered_set<Expr> outputs;
+        std::unordered_map<Expr, std::string> symbol_map;
+        std::stringstream prefix, body, suffix;
 };
 
-} // namespace core
-} // namespace tcc
+} // core
+} // tcc
 
-#endif // TCC_LLIR_VISUALIZE_H
+#endif // TCC_LLIR_LOWER_H

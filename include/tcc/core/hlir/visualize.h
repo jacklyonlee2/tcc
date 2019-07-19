@@ -9,9 +9,9 @@
 namespace tcc {
 namespace core {
 
-/* HLIRVisualizer convert the IR to a DOT graph
+/* HLIRVisualize convert the IR to a DOT graph
  * and write to the output stream. */
-class HLIRVisualizer : public HLIRVisitor {
+class HLIRVisualize : public HLIRVisitor {
     public:
         /* Write DOT syntax to specified output path. */
         void write(std::string output_path);

@@ -7,6 +7,7 @@
 #include "tcc/core/hlir/visualize.h"
 #include "tcc/core/hlir/lower.h"
 #include "tcc/core/llir/visualize.h"
+#include "tcc/core/llir/cgen.h"
 
 /* Commandline API helper functions. */
 
@@ -105,18 +106,23 @@ int main(int argc, char **argv) {
             parse_input_shapes(FLAGS_input_shapes));
 
     /* Visualize HLIR. */
-    HLIRVisualizer hlir_visualizer;
-    hlir.accept(&hlir_visualizer);
-    hlir_visualizer.write("./hlir.dot");
+    HLIRVisualize hlir_visualize;
+    hlir.accept(&hlir_visualize);
+    hlir_visualize.write("./hlir.dot");
 
     /* Lower HLIR to LLIR. */
-    HLIRLowerer hlir_lowerer;
-    hlir.accept(&hlir_lowerer);
-    LLIR llir = hlir_lowerer.lower();
+    HLIRLower hlir_lower;
+    hlir.accept(&hlir_lower);
+    LLIR llir = hlir_lower.lower();
 
     /* Visualize LLIR. */
-    LLIRVisualizer llir_visualizer;
-    llir.accept(&llir_visualizer);
-    llir_visualizer.write("./llir.dot");
+    LLIRVisualize llir_visualize;
+    llir.accept(&llir_visualize);
+    llir_visualize.write("./llir.dot");
+
+    /* Codegen from LLIR */
+    LLIRCgen llir_cgen;
+    llir.accept(&llir_cgen);
+    llir_cgen.generate("./output");
 }
 

@@ -9,8 +9,8 @@
 namespace tcc {
 namespace core {
 
-/* HLIRLowerer lower HLIR into LLIR. */
-class HLIRLowerer : public HLIRVisitor {
+/* HLIRLower lower HLIR into LLIR. */
+class HLIRLower : public HLIRVisitor {
     public:
         /* Return LLIR lowered from HLIR. */
         LLIR lower();

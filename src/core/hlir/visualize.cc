@@ -5,7 +5,7 @@
 namespace tcc {
 namespace core {
 
-void HLIRVisualizer::write(std::string output_path) {
+void HLIRVisualize::write(std::string output_path) {
     std::ofstream file(output_path, std::ios::trunc);
     CHECK(file) << "Failed to open file at '" << output_path << "'.";
     /* Write DOT graph to stream. */
@@ -13,7 +13,7 @@ void HLIRVisualizer::write(std::string output_path) {
     file.close();
 }
 
-void HLIRVisualizer::add_node(Op op, std::string label) {
+void HLIRVisualize::add_node(Op op, std::string label) {
     /* Assign name to unvisited node. Add node to stream. */
     if (added.find(op) == added.end()) {
         added.insert(op);
@@ -26,7 +26,7 @@ void HLIRVisualizer::add_node(Op op, std::string label) {
     }
 }
 
-void HLIRVisualizer::add_edge(Op src, Op dst, std::string label) {
+void HLIRVisualize::add_edge(Op src, Op dst, std::string label) {
     CHECK_KEY_IN_MAP(src, added) <<
         "Source node is unvisited.";
     CHECK_KEY_IN_MAP(dst, added) <<
@@ -39,15 +39,15 @@ void HLIRVisualizer::add_edge(Op src, Op dst, std::string label) {
 
 /* Overloaded HLIR Op visitors. */
 
-void HLIRVisualizer::visit(const op::PlaceholderPtr op) {
+void HLIRVisualize::visit(const op::PlaceholderPtr op) {
     add_node(op, "Placeholder");
 }
 
-void HLIRVisualizer::visit(const op::ConstantPtr op) {
+void HLIRVisualize::visit(const op::ConstantPtr op) {
     add_node(op, "Constant");
 }
 
-void HLIRVisualizer::visit(const op::IntermediatePtr op) {
+void HLIRVisualize::visit(const op::IntermediatePtr op) {
     add_node(op, "Intermediate");
 
     recurse(op->prev_op);
@@ -56,7 +56,7 @@ void HLIRVisualizer::visit(const op::IntermediatePtr op) {
     add_edge(op->prev_op.lock(), op, "output");
 }
 
-void HLIRVisualizer::visit(const op::AddPtr op) {
+void HLIRVisualize::visit(const op::AddPtr op) {
     add_node(op, "Add");
 
     recurse(op->x);
@@ -66,7 +66,7 @@ void HLIRVisualizer::visit(const op::AddPtr op) {
     add_edge(op->y, op, "y");
 }
 
-void HLIRVisualizer::visit(const op::AvgPoolPtr op) {
+void HLIRVisualize::visit(const op::AvgPoolPtr op) {
     add_node(op, "AvgPool");
 
     recurse(op->value);
@@ -74,7 +74,7 @@ void HLIRVisualizer::visit(const op::AvgPoolPtr op) {
     add_edge(op->value, op, "value");
 }
 
-void HLIRVisualizer::visit(const op::BiasAddPtr op) {
+void HLIRVisualize::visit(const op::BiasAddPtr op) {
     add_node(op, "BiasAdd");
 
     recurse(op->input);
@@ -84,7 +84,7 @@ void HLIRVisualizer::visit(const op::BiasAddPtr op) {
     add_edge(op->bias, op, "bias");
 }
 
-void HLIRVisualizer::visit(const op::Conv2DPtr op) {
+void HLIRVisualize::visit(const op::Conv2DPtr op) {
     add_node(op, "Conv2D");
 
     recurse(op->input);
@@ -94,7 +94,7 @@ void HLIRVisualizer::visit(const op::Conv2DPtr op) {
     add_edge(op->filter, op, "filter");
 }
 
-void HLIRVisualizer::visit(const op::DepthwiseConv2dNativePtr op) {
+void HLIRVisualize::visit(const op::DepthwiseConv2dNativePtr op) {
     add_node(op, "DepthwiseConv2dNative");
 
     recurse(op->input);
@@ -104,7 +104,7 @@ void HLIRVisualizer::visit(const op::DepthwiseConv2dNativePtr op) {
     add_edge(op->filter, op, "filter");
 }
 
-void HLIRVisualizer::visit(const op::FusedBatchNormPtr op) {
+void HLIRVisualize::visit(const op::FusedBatchNormPtr op) {
     add_node(op, "FusedBatchNorm");
 
     recurse(op->x);
@@ -120,7 +120,7 @@ void HLIRVisualizer::visit(const op::FusedBatchNormPtr op) {
     add_edge(op->variance, op, "variance");
 }
 
-void HLIRVisualizer::visit(const op::Relu6Ptr op) {
+void HLIRVisualize::visit(const op::Relu6Ptr op) {
     add_node(op, "Relu6");
 
     recurse(op->features);
@@ -128,7 +128,7 @@ void HLIRVisualizer::visit(const op::Relu6Ptr op) {
     add_edge(op->features, op, "features");
 }
 
-void HLIRVisualizer::visit(const op::ReshapePtr op) {
+void HLIRVisualize::visit(const op::ReshapePtr op) {
     add_node(op, "Reshape");
 
     recurse(op->tensor);
@@ -138,7 +138,7 @@ void HLIRVisualizer::visit(const op::ReshapePtr op) {
     add_edge(op->shape, op, "shape");
 }
 
-void HLIRVisualizer::visit(const op::ShapePtr op) {
+void HLIRVisualize::visit(const op::ShapePtr op) {
     add_node(op, "Shape");
 
     recurse(op->input);
@@ -146,7 +146,7 @@ void HLIRVisualizer::visit(const op::ShapePtr op) {
     add_edge(op->input, op, "input");
 }
 
-void HLIRVisualizer::visit(const op::SoftmaxPtr op) {
+void HLIRVisualize::visit(const op::SoftmaxPtr op) {
     add_node(op, "Softmax");
 
     recurse(op->logits);
@@ -154,7 +154,7 @@ void HLIRVisualizer::visit(const op::SoftmaxPtr op) {
     add_edge(op->logits, op, "logits");
 }
 
-void HLIRVisualizer::visit(const op::SqueezePtr op) {
+void HLIRVisualize::visit(const op::SqueezePtr op) {
     add_node(op, "Squeeze");
 
     recurse(op->input);

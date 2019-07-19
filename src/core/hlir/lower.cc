@@ -7,11 +7,11 @@
 namespace tcc {
 namespace core {
 
-LLIR HLIRLowerer::lower() {
+LLIR HLIRLower::lower() {
     return LLIR(terminal_exprs);
 }
 
-Expr HLIRLowerer::get_expr(Op op) {
+Expr HLIRLower::get_expr(Op op) {
     CHECK_NOTNULL(op);
     CHECK_KEY_IN_MAP(op, lowered_op_map) <<
         "Requested Op is not lowered yet.";
@@ -22,7 +22,7 @@ Expr HLIRLowerer::get_expr(Op op) {
     return expr;
 }
 
-void HLIRLowerer::set_expr(Op op, Expr expr) {
+void HLIRLower::set_expr(Op op, Expr expr) {
     CHECK_NOTNULL(op);
     CHECK_NOTNULL(expr);
     CHECK_KEY_NOT_IN_MAP(op, lowered_op_map) <<
@@ -34,17 +34,17 @@ void HLIRLowerer::set_expr(Op op, Expr expr) {
 
 /* Overloaded HLIR Op visitors. */
 
-void HLIRLowerer::visit(const op::PlaceholderPtr op) {
+void HLIRLower::visit(const op::PlaceholderPtr op) {
     Expr expr = expr::Var::make(op->data_desc);
     set_expr(op, expr);
 }
 
-void HLIRLowerer::visit(const op::ConstantPtr op) {
+void HLIRLower::visit(const op::ConstantPtr op) {
     Expr expr = expr::Const::make(op->data);
     set_expr(op, expr);
 }
 
-void HLIRLowerer::visit(const op::AddPtr op) {
+void HLIRLower::visit(const op::AddPtr op) {
     recurse(op->x);
     recurse(op->y);
 
@@ -62,7 +62,7 @@ void HLIRLowerer::visit(const op::AddPtr op) {
     set_expr(op->z, z);
 }
 
-void HLIRLowerer::visit(const op::AvgPoolPtr op) {
+void HLIRLower::visit(const op::AvgPoolPtr op) {
     recurse(op->value);
 
     CHECK(op->ksize.size() == 4 &&
@@ -114,17 +114,16 @@ void HLIRLowerer::visit(const op::AvgPoolPtr op) {
                     expr::Const::make(0.0f));
             });
 
-    Axes r_k = expr::to_axes({k_h, k_w});
-    Expr output = expr::compute({i_n, o_h, o_w, i_c}, [&](Axes i) -> Expr {
+    Expr output = expr::compute({i_n, o_h, o_w, k_h, k_w, i_c}, [&](Axes i) -> Expr {
             return expr::Reduce::make(
-                    ReduceType::AVG, r_k,
-                    expr::index(input_frag, i[0], i[1], i[2], r_k[0], r_k[1], i[3]));
+                    ReduceType::AVG, {i[3], i[4]},
+                    expr::index(input_frag, i[0], i[1], i[2], i[3], i[4], i[5]));
             });
 
     set_expr(op->output, output);
 }
 
-void HLIRLowerer::visit(const op::BiasAddPtr op) {
+void HLIRLower::visit(const op::BiasAddPtr op) {
     recurse(op->input);
     recurse(op->bias);
 
@@ -152,7 +151,7 @@ void HLIRLowerer::visit(const op::BiasAddPtr op) {
     set_expr(op->output, output);
 }
 
-void HLIRLowerer::visit(const op::Conv2DPtr op) {
+void HLIRLower::visit(const op::Conv2DPtr op) {
     recurse(op->input);
     recurse(op->filter);
 
@@ -225,17 +224,16 @@ void HLIRLowerer::visit(const op::Conv2DPtr op) {
                     expr::index(filter, i[4], i[5], i[6], i[3]));
             });
 
-    Axes r_f = expr::to_axes({f_h, f_w, f_c});
-    Expr reduced = expr::compute({o_n, o_h, o_w, o_c}, [&](Axes i) -> Expr {\
+    Expr reduced = expr::compute({o_n, o_h, o_w, o_c, f_h, f_w, f_c}, [&](Axes i) -> Expr {
             return expr::Reduce::make(
-                    ReduceType::SUM, r_f,
-                    expr::index(product, i[0], i[1], i[2], i[3], r_f[0], r_f[1], r_f[2]));
+                    ReduceType::SUM, {i[4], i[5], i[6]},
+                    expr::index(product, i[0], i[1], i[2], i[3], i[4], i[5], i[6]));
             });
 
     set_expr(op->output, reduced);
 }
 
-void HLIRLowerer::visit(const op::DepthwiseConv2dNativePtr op) {
+void HLIRLower::visit(const op::DepthwiseConv2dNativePtr op) {
     recurse(op->input);
     recurse(op->filter);
 
@@ -308,17 +306,16 @@ void HLIRLowerer::visit(const op::DepthwiseConv2dNativePtr op) {
                     expr::index(filter, i[4], i[5], i[3] % f_n, i[3] % f_c));
             });
 
-    Axes r_f = expr::to_axes({f_h, f_w});
-    Expr reduced = expr::compute({o_n, o_h, o_w, o_c}, [&](Axes i) -> Expr {\
+    Expr reduced = expr::compute({o_n, o_h, o_w, o_c, f_h, f_w}, [&](Axes i) -> Expr {
             return expr::Reduce::make(
-                    ReduceType::SUM, r_f,
-                    expr::index(product, i[0], i[1], i[2], i[3], r_f[0], r_f[1]));
+                    ReduceType::SUM, {i[4], i[5]},
+                    expr::index(product, i[0], i[1], i[2], i[3], i[4], i[5]));
             });
 
     set_expr(op->output, reduced);
 }
 
-void HLIRLowerer::visit(const op::FusedBatchNormPtr op) {
+void HLIRLower::visit(const op::FusedBatchNormPtr op) {
     recurse(op->x);
     recurse(op->scale);
     recurse(op->offset);
@@ -367,7 +364,7 @@ void HLIRLowerer::visit(const op::FusedBatchNormPtr op) {
     set_expr(op->y, y);
 }
 
-void HLIRLowerer::visit(const op::Relu6Ptr op) {
+void HLIRLower::visit(const op::Relu6Ptr op) {
     recurse(op->features);
 
     Expr features = get_expr(op->features);
@@ -385,7 +382,7 @@ void HLIRLowerer::visit(const op::Relu6Ptr op) {
     set_expr(op->activations, activations);
 }
 
-void HLIRLowerer::visit(const op::ReshapePtr op) {
+void HLIRLower::visit(const op::ReshapePtr op) {
     recurse(op->tensor);
     recurse(op->shape);
 
@@ -420,7 +417,7 @@ void HLIRLowerer::visit(const op::ReshapePtr op) {
     set_expr(op->output, output);
 }
 
-void HLIRLowerer::visit(const op::ShapePtr op) {
+void HLIRLower::visit(const op::ShapePtr op) {
     recurse(op->input);
 
     Expr input = get_expr(op->input);
@@ -430,7 +427,7 @@ void HLIRLowerer::visit(const op::ShapePtr op) {
     set_expr(op->output, output);
 }
 
-void HLIRLowerer::visit(const op::SoftmaxPtr op) {
+void HLIRLower::visit(const op::SoftmaxPtr op) {
     recurse(op->logits);
 
     Expr logits = get_expr(op->logits);
@@ -439,11 +436,10 @@ void HLIRLowerer::visit(const op::SoftmaxPtr op) {
 
     CHECK(logits_shape.size() == 2);
 
-    Axes r_l = expr::to_axes(logits_shape);
-    Expr max = expr::compute({}, [&](Axes) -> Expr {
+    Expr max = expr::compute(logits_shape, [&](Axes i) -> Expr {
             return expr::Reduce::make(
-                    ReduceType::MAX, r_l,
-                    expr::index(logits, r_l[0], r_l[1]));
+                    ReduceType::MAX, i,
+                    expr::index(logits, i[0], i[1]));
             });
 
     Expr diff = expr::compute(logits_shape, [&](Axes i) -> Expr {
@@ -454,11 +450,10 @@ void HLIRLowerer::visit(const op::SoftmaxPtr op) {
 
     Expr exp = expr::Exp::make(diff);
 
-    Axes r_p = expr::to_axes({ logits_shape[1] });
-    Expr sum = expr::compute({ logits_shape[0] }, [&](Axes i) -> Expr {
+    Expr sum = expr::compute(logits_shape, [&](Axes i) -> Expr {
             return expr::Reduce::make(
-                    ReduceType::SUM, r_p,
-                    expr::index(exp, i[0], r_p[0]));
+                    ReduceType::SUM, { i[1] },
+                    expr::index(exp, i[0], i[1]));
             });
 
     Expr output = expr::compute(logits_shape, [&](Axes i) -> Expr {
@@ -470,7 +465,7 @@ void HLIRLowerer::visit(const op::SoftmaxPtr op) {
     set_expr(op->output, output);
 }
 
-void HLIRLowerer::visit(const op::SqueezePtr op) {
+void HLIRLower::visit(const op::SqueezePtr op) {
     recurse(op->input);
 
     Expr input = get_expr(op->input);

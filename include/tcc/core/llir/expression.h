@@ -54,6 +54,8 @@ struct BaseExpression {
     /* Virtual accept method to support visitor pattern. */
     virtual void accept(LLIRVisitor *v) const = 0;
 
+    virtual void initialize(Axes axes_) const;
+
     ExprType expr_type;
     mutable DataDesc data_desc;
     mutable Axes axes;
@@ -174,6 +176,8 @@ DECLARE_EXPRESSION(Reduce)
 
     Expr input;
 
+    void initialize(Axes axes_) const override;
+
     static Expr make(
             ReduceType reduce_type_,
             std::vector<Expr> reduce_axes_,
@@ -198,16 +202,19 @@ template<typename T> std::shared_ptr<const T> downcast(Expr expr) {
 /* compute function allows the building of complex
  * computations using LLIR Expressions with non-trivial
  * data access patterns.
- * The user will provide the ret shape of the computation
+ * The user will provide the iteration shape of the computation
  * and a corresponding lambda expressing the computation.
  * The function will automatically create Range Expressions
- * based on the ret shape as the input to the lambda. */
+ * based on the iteration shape as the input to the lambda. */
 Expr compute(
         std::vector<long> shape,
         std::function<Expr(Axes)> lambda);
 
 /* to_axes converts shape to vector of expr::Ranges. */
 std::vector<Expr> to_axes(std::vector<long> shape);
+
+/* to_shape converts Axes to shape. */
+std::vector<long> to_shape(Axes axes);
 
 /* index function provides a shortcut for expr::Index. */
 template<typename ... Args> Expr index(Expr tensor, Args ... args) {
