@@ -1,128 +1,106 @@
-#include <fstream>
-#include <iterator>
+#include "tcc/common/logging.h"
+#include "tcc/frontend/parse.h"
+#include <iostream>
+#include <unordered_map>
+#include <vector>
 
-#include "glog/logging.h"
-#include "gflags/gflags.h"
-#include "tcc/frontend/frontend.h"
-#include "tcc/core/hlir/visualize.h"
-#include "tcc/core/hlir/lower.h"
-#include "tcc/core/llir/visualize.h"
-#include "tcc/core/llir/cgen.h"
+struct tcc_config
+{
+    std::string input_path;
+    std::unordered_map<std::string, std::vector<long>> input_shapes;
+};
 
-/* Commandline API helper functions. */
-
-static std::vector<std::string> split_string(std::string str, std::string delimiter) {
-    std::vector<std::string> tokens;
-    size_t pos = 0;
-    while ((pos = str.find(delimiter)) != std::string::npos) {
-        tokens.push_back(str.substr(0, pos));
-        str.erase(0, pos + delimiter.length());
-    }
-    if (!str.empty()) {
-        tokens.push_back(str);
-    }
-    return tokens;
+static void
+print_usage_and_exit()
+{
+    std::cout << "Usage: tcc -input_path=\"./example.pb\" "
+                 "-input_shapes=\"{a:[1,2],b:[3,4]}\"\n"
+              << "\t-input_path\t- Path to frozen tensorflow graph.\n"
+              << "\t-input_shapes\t- A map of input placeholder names to "
+                 "placeholder shapes.\n"
+              << "\t-help\t\t- Displays command line options.\n";
+    exit(0);
 }
 
-static std::unordered_map<std::string, std::vector<long>> parse_input_shapes(std::string value) {
-    std::unordered_map<std::string, std::vector<long>> input_shapes;
+static void
+parse_input_path(tcc_config& config, std::string arg)
+{
+    config.input_path = arg.substr(arg.rfind("=") + 1);
+}
 
-    // Split value by empty space
-    std::istringstream buffer(value);
-    std::vector<std::string> segments{
-        std::istream_iterator<std::string>(buffer),
-            std::istream_iterator<std::string>()};
+static void
+parse_input_shapes(tcc_config& config, std::string arg)
+{
+    size_t pos;
+    std::string value = arg.substr(arg.rfind("=") + 1);
+    value = value.substr(1, value.size() - 2);
 
-    for (std::string segment : segments) {
-        // Split segment by '=' sign
-        std::vector<std::string> pair = split_string(segment, "=");
-        if (pair.size() == 2 && pair[1].size() >= 2) {
-            // Stripe '()' and split shape_str by ","
-            std::string shape_str = pair[1].substr(1, pair[1].size()-2);
-            std::vector<std::string> dims = split_string(shape_str, ",");
-            // Convert string vec to long vec
-            std::vector<long> shape;
-            for (std::string dim : dims) {
-                try {
-                    shape.push_back(std::stol(dim, nullptr));
-                } catch (...) {
-                    printf("String to long conversion can not be completed.");
-                    return {};
-                }
-            }
-            // Add to input_shapes
-            input_shapes.insert({pair[0], shape});
-        } else {
-            return {};
+    std::vector<std::string> entries;
+    while ((pos = value.find("],")) != std::string::npos)
+    {
+        entries.push_back(value.substr(0, pos + 1));
+        value.erase(0, pos + 2);
+    }
+    entries.push_back(value);
+
+    for (std::string entry : entries)
+    {
+        std::string key = entry.substr(0, entry.find(":"));
+        std::string val = entry.substr(entry.rfind(":") + 1);
+        val = val.substr(1, val.size() - 2);
+
+        std::vector<long> shape;
+        while ((pos = val.find(",")) != std::string::npos)
+        {
+            shape.push_back(stol(val.substr(0, pos)));
+            val.erase(0, pos + 1);
+        }
+        shape.push_back(stol(val));
+
+        config.input_shapes[key] = shape;
+    }
+}
+
+static tcc_config
+parse_config(int argc, char** argv)
+{
+    tcc_config config;
+
+    for (int i = 1; i < argc; i++)
+    {
+        std::string arg = argv[i];
+        if (arg == "-help")
+        {
+            print_usage_and_exit();
+        }
+        else if (arg.rfind("-input_path", 0) == 0)
+        {
+            parse_input_path(config, arg);
+        }
+        else if (arg.rfind("-input_shapes", 0) == 0)
+        {
+            parse_input_shapes(config, arg);
+        }
+        else
+        {
+            tcc_error("unknown command line argument \"%s\".", arg.c_str());
         }
     }
 
-    return input_shapes;
-}
-
-/* Commandline flag validators. */
-
-static bool validate_input_path(const char* flag_name, const std::string& value) {
-    if (value.empty()) {
-        return false;
-    } else if (std::fstream file = std::fstream(value, std::ios::in | std::ios::binary)) {
-        return true;
-    } else {
-        printf("-%s: '%s' can not be opened.\n", flag_name, value.c_str());
-        return false;
+    if (config.input_path.empty())
+    {
+        print_usage_and_exit();
     }
+
+    return config;
 }
 
-static bool validate_input_shapes(const char* flag_name, const std::string& value) {
-    if (!value.empty() && parse_input_shapes(value).empty()) {
-        printf("-%s: incorrect syntax.\n", flag_name);
-        return false;
-    } else {
-        return true;
-    }
+int
+main(int argc, char** argv)
+{
+    using namespace tcc;
+
+    tcc_config config = parse_config(argc, argv);
+
+    hlir::expr hlir = frontend::parse(config.input_path, config.input_shapes);
 }
-
-/* gflags macros */
-
-DEFINE_string(input_path, "", "Path to TensorFlow frozen graph.");
-DEFINE_validator(input_path, &validate_input_path);
-DEFINE_string(input_shapes, "", "Input placeholder shapes (e.g., -input_shapes=\"a=(1,1,224) b=()\").");
-DEFINE_validator(input_shapes, &validate_input_shapes);
-
-using namespace tcc::frontend;
-using namespace tcc::core;
-
-int main(int argc, char **argv) {
-    /* Initialize glog. */
-    google::InitGoogleLogging(argv[0]);
-
-    /* Parse command line arguments using gflag. */
-    gflags::SetUsageMessage("tcc -input_path=\"/PATH/TO/FROZEN/GRAPH\"");
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
-
-    /* Parse TensorFlow frozen graph into HLIR. */
-    HLIR hlir = parse_tensorflow(
-            FLAGS_input_path,
-            parse_input_shapes(FLAGS_input_shapes));
-
-    /* Visualize HLIR. */
-    HLIRVisualize hlir_visualize;
-    hlir.accept(&hlir_visualize);
-    hlir_visualize.write("./hlir.dot");
-
-    /* Lower HLIR to LLIR. */
-    HLIRLower hlir_lower;
-    hlir.accept(&hlir_lower);
-    LLIR llir = hlir_lower.lower();
-
-    /* Visualize LLIR. */
-    LLIRVisualize llir_visualize;
-    llir.accept(&llir_visualize);
-    llir_visualize.write("./llir.dot");
-
-    /* Codegen from LLIR */
-    LLIRCgen llir_cgen;
-    llir.accept(&llir_cgen);
-    llir_cgen.generate("./output");
-}
-

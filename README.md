@@ -1,15 +1,6 @@
-# TCC
-A multi-level compiler stack to compile TensorFlow frozen graphs into optimized binaries.
-
 # Quick Start
-* Install `Protobuf` (tested with `protobuf-3.7.1`) by following offical instructions [here](https://github.com/protocolbuffers/protobuf/blob/master/src/README.md).
-* Clone submodules.
-
-    ```
-    git submodule update --init --recursive
-    ```
-
-* Compile `TCC` from source.
+* Install Protobuf by following the offical instructions [here](https://github.com/protocolbuffers/protobuf/blob/master/src/README.md).
+* Compile from source.
 
     ```
     mkdir build
@@ -18,10 +9,10 @@ A multi-level compiler stack to compile TensorFlow frozen graphs into optimized 
     make
     ```
 
-* Run `TCC` compiler.
+* Run `tcc` compiler from command line.
 
     ```
-    ./apps/tcc -input_path=./PATH/TO/FROZEN/GRAPH
+    ./build/app/tcc --help 
     ```
 
-* Pre-made frozen graphs can be found [here](https://github.com/tensorflow/models/tree/master/research/slim).
+* Tensorflow frozen graphs can be found [here](https://github.com/tensorflow/models/tree/master/research/slim).

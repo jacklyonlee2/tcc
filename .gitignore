@@ -1,6 +1,6 @@
-# Distribution
+# distribution
 build/
 
-# Vim
+# vim
 *.swo
 *.swp
