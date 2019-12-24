@@ -13,10 +13,10 @@ struct tcc_config
 static void
 print_usage_and_exit()
 {
-    std::cout << "Usage: tcc -input_path=\"./example.pb\" "
-                 "-input_shapes=\"{a:[1,2],b:[3,4]}\"\n"
-              << "\t-input_path\t- Path to frozen tensorflow graph.\n"
-              << "\t-input_shapes\t- A map of input placeholder names to "
+    std::cout << "Usage: tcc -input-path=\"./example.pb\" "
+                 "-input-shapes=\"{a:[1,2],b:[3,4]}\"\n"
+              << "\t-input-path\t- Path to frozen tensorflow graph.\n"
+              << "\t-input-shapes\t- A map of input placeholder names to "
                  "placeholder shapes.\n"
               << "\t-help\t\t- Displays command line options.\n";
     exit(0);
@@ -73,17 +73,17 @@ parse_config(int argc, char** argv)
         {
             print_usage_and_exit();
         }
-        else if (arg.rfind("-input_path", 0) == 0)
+        else if (arg.rfind("-input-path", 0) == 0)
         {
             parse_input_path(config, arg);
         }
-        else if (arg.rfind("-input_shapes", 0) == 0)
+        else if (arg.rfind("-input-shapes", 0) == 0)
         {
             parse_input_shapes(config, arg);
         }
         else
         {
-            tcc_error("unknown command line argument \"%s\".", arg.c_str());
+            tcc_error("unknown command line argument \"" + arg + "\".");
         }
     }
 

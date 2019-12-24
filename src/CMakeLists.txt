@@ -31,7 +31,14 @@ target_link_libraries(proto
 
 add_library(frontend
     ${TCC_INCLUDE_DIR}/tcc/frontend/parse.h
-    frontend/parse.cc)
+    ${TCC_INCLUDE_DIR}/tcc/frontend/op.h
+    frontend/parse.cc
+    frontend/op.cc)
+
+target_include_directories(frontend
+    PRIVATE
+    ${PROTOBUF_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(frontend
     PRIVATE

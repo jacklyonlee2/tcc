@@ -8,11 +8,11 @@
 namespace tcc {
 namespace frontend {
 
-/* deserializes the TensorFlow frozen graph and parses it into hlir.
+/* deserializes the tensorflow frozen graph and parses it into hlir.
  * the parser uses provided input placeholder shapes to perform static
- * shape inference as hlir is constructed from the TensorFlow graph. */
+ * shape inference as hlir is constructed from the tensorflow graph. */
 hlir::expr
-parse(std::string, std::unordered_map<std::string, std::vector<long>>);
+parse(std::string, std::unordered_map<std::string, std::vector<long>>&);
 
 } // namespace frontend
 } // namespace tcc
