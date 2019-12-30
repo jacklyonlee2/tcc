@@ -1,7 +1,10 @@
 list(APPEND CORE_SRC
     ${TCC_INCLUDE_DIR}/tcc/common/logging.h
+    ${TCC_INCLUDE_DIR}/tcc/common/datatype.h
     ${TCC_INCLUDE_DIR}/tcc/hlir/ir.h
-    hlir/ir.cc)
+    ${TCC_INCLUDE_DIR}/tcc/hlir/visitor.h
+    hlir/ir.cc
+    hlir/visitor.cc)
 
 add_library(core
     ${CORE_SRC})
