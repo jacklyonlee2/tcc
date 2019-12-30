@@ -6,6 +6,7 @@ namespace tcc {
 enum class data_type
 {
     VOID, // uninitialized
+    BOOL, // bool
     FP32, // float
     INT32 // int
 };

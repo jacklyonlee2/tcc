@@ -13,6 +13,8 @@ enum class expr_type
 {
     var,
     cnst,
+    range,
+    index,
     exp,
     sqrt,
     add,
@@ -20,9 +22,9 @@ enum class expr_type
     mul,
     div,
     mod,
-    greater_than,
-    greater_than_or_equal_to,
-    less_than,
+    greater,
+    greater_equal,
+    less,
     logical_and,
     select,
     reduce
@@ -64,7 +66,7 @@ struct expr_template
     void accept(visitor* v) const override;
 };
 
-/* below are hlir primitive declarations.
+/* hlir primitive declarations.
  * when declaring a new hlir primitive:
  * * add the respective expr_type to the expr_type enum class;
  * * declare the struct for the respective hlir primitive deriving
@@ -89,21 +91,176 @@ struct cnst : expr_template<cnst>
     std::string data;
 
     static expr make(const std::string, data_type, std::vector<long>);
+    static expr make(const float);
+    static expr make(const int);
 
     static const expr_type etype = expr_type::cnst;
 };
 
-/* below are aliases for pointers to hlir primitives. */
+struct range : expr_template<range>
+{
+    static const expr_type etype = expr_type::range;
+};
+
+struct index : expr_template<index>
+{
+    static const expr_type etype = expr_type::index;
+};
+
+struct exp : expr_template<exp>
+{
+    expr x;
+
+    static expr make(expr);
+
+    static const expr_type etype = expr_type::exp;
+};
+
+struct sqrt : expr_template<sqrt>
+{
+    expr x;
+
+    static expr make(expr);
+
+    static const expr_type etype = expr_type::sqrt;
+};
+
+struct add : expr_template<add>
+{
+    expr x;
+    expr y;
+
+    static expr make(expr, expr);
+
+    static const expr_type etype = expr_type::add;
+};
+
+struct sub : expr_template<sub>
+{
+    expr x;
+    expr y;
+
+    static expr make(expr, expr);
+
+    static const expr_type etype = expr_type::sub;
+};
+
+struct mul : expr_template<mul>
+{
+    expr x;
+    expr y;
+
+    static expr make(expr, expr);
+
+    static const expr_type etype = expr_type::mul;
+};
+
+struct div : expr_template<div>
+{
+    expr x;
+    expr y;
+
+    static expr make(expr, expr);
+
+    static const expr_type etype = expr_type::div;
+};
+
+struct mod : expr_template<mod>
+{
+    expr x;
+    expr y;
+
+    static expr make(expr, expr);
+
+    static const expr_type etype = expr_type::mod;
+};
+
+struct greater : expr_template<greater>
+{
+    expr x;
+    expr y;
+
+    static expr make(expr, expr);
+
+    static const expr_type etype = expr_type::greater;
+};
+
+struct greater_equal : expr_template<greater_equal>
+{
+    expr x;
+    expr y;
+
+    static expr make(expr, expr);
+
+    static const expr_type etype = expr_type::greater_equal;
+};
+
+struct less : expr_template<less>
+{
+    expr x;
+    expr y;
+
+    static expr make(expr, expr);
+
+    static const expr_type etype = expr_type::less;
+};
+
+struct logical_and : expr_template<logical_and>
+{
+    expr x;
+    expr y;
+
+    static expr make(expr, expr);
+
+    static const expr_type etype = expr_type::logical_and;
+};
+
+struct select : expr_template<select>
+{
+    static const expr_type etype = expr_type::select;
+};
+
+struct reduce : expr_template<reduce>
+{
+    static const expr_type etype = expr_type::reduce;
+};
+
+/* aliases for pointers to hlir primitives. */
 
 typedef std::shared_ptr<const var> var_expr;
 typedef std::shared_ptr<const cnst> cnst_expr;
+typedef std::shared_ptr<const range> range_expr;
+typedef std::shared_ptr<const index> index_expr;
+typedef std::shared_ptr<const exp> exp_expr;
+typedef std::shared_ptr<const sqrt> sqrt_expr;
+typedef std::shared_ptr<const add> add_expr;
+typedef std::shared_ptr<const sub> sub_expr;
+typedef std::shared_ptr<const mul> mul_expr;
+typedef std::shared_ptr<const div> div_expr;
+typedef std::shared_ptr<const mod> mod_expr;
+typedef std::shared_ptr<const greater> greater_expr;
+typedef std::shared_ptr<const greater_equal> greater_equal_expr;
+typedef std::shared_ptr<const less> less_expr;
+typedef std::shared_ptr<const logical_and> logical_and_expr;
+typedef std::shared_ptr<const select> select_expr;
+typedef std::shared_ptr<const reduce> reduce_expr;
 
-/* helper function downcast casts expr to derived expr. */
+/* overload arithmetic and logical operators for expr. */
+
+expr operator+(expr lhs, expr rhs);
+expr operator-(expr lhs, expr rhs);
+expr operator*(expr lhs, expr rhs);
+expr operator/(expr lhs, expr rhs);
+expr operator%(expr lhs, expr rhs);
+expr operator>(expr lhs, expr rhs);
+expr operator>=(expr lhs, expr rhs);
+expr operator<(expr lhs, expr rhs);
+
+/* downcast casts expr to derived expr. */
 template<typename T>
-std::shared_ptr<const T>
-downcast(expr e)
+std::shared_ptr<const T> downcast(expr e)
 {
-    tcc_assert(e && e->type == T::etype, "illegal downcast of hlir expr.");
+    tcc_assert(e && e->type == T::etype, "illegal downcast.");
     return std::static_pointer_cast<const T>(e);
 }
 

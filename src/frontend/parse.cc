@@ -7,8 +7,7 @@
 namespace tcc {
 namespace frontend {
 
-static tensorflow::GraphDef
-load_graph(std::string input_path)
+static tensorflow::GraphDef load_graph(std::string input_path)
 {
     std::fstream file;
     file.open(input_path, std::ios::in | std::ios::binary);
@@ -23,8 +22,7 @@ load_graph(std::string input_path)
     return graph;
 }
 
-static data_type
-parse_dtype(tensorflow::DataType dtype)
+static data_type parse_dtype(tensorflow::DataType dtype)
 {
     switch (dtype)
     {
@@ -38,8 +36,7 @@ parse_dtype(tensorflow::DataType dtype)
     }
 }
 
-static data_type
-parse_tensor_dtype(
+static data_type parse_tensor_dtype(
     google::protobuf::Map<std::string, tensorflow::AttrValue> attrs)
 {
     tcc_assert_has_key(attrs, "value");
@@ -50,8 +47,7 @@ parse_tensor_dtype(
     return parse_dtype(value.tensor().dtype());
 }
 
-static const std::string
-parse_tensor_data(
+static const std::string parse_tensor_data(
     google::protobuf::Map<std::string, tensorflow::AttrValue> attrs)
 {
     tcc_assert_has_key(attrs, "value");
@@ -62,8 +58,7 @@ parse_tensor_data(
     return value.tensor().tensor_content();
 }
 
-static std::vector<long>
-parse_tensor_shape(
+static std::vector<long> parse_tensor_shape(
     google::protobuf::Map<std::string, tensorflow::AttrValue> attrs)
 {
     tcc_assert_has_key(attrs, "value");
@@ -90,8 +85,7 @@ parse_tensor_shape(
     return shape;
 }
 
-static data_type
-parse_attr_dtype(
+static data_type parse_attr_dtype(
     google::protobuf::Map<std::string, tensorflow::AttrValue> attrs)
 {
     tcc_assert_has_key(attrs, "dtype");
@@ -102,8 +96,7 @@ parse_attr_dtype(
     return parse_dtype(dtype.type());
 }
 
-static std::string
-parse_attr_string(
+static std::string parse_attr_string(
     google::protobuf::Map<std::string, tensorflow::AttrValue> attrs,
     std::string attr_name)
 {
@@ -116,8 +109,7 @@ parse_attr_string(
     return attr_val.s();
 }
 
-static float
-parse_attr_float(
+static float parse_attr_float(
     google::protobuf::Map<std::string, tensorflow::AttrValue> attrs,
     std::string attr_name)
 {
@@ -130,8 +122,7 @@ parse_attr_float(
     return attr_val.f();
 }
 
-static std::vector<long>
-parse_attr_long_vec(
+static std::vector<long> parse_attr_long_vec(
     google::protobuf::Map<std::string, tensorflow::AttrValue> attrs,
     std::string attr_name)
 {
@@ -150,10 +141,10 @@ parse_attr_long_vec(
     return std::vector<long>(val, val + attr_val_list.i_size());
 }
 
-static void
-parse_node(tensorflow::NodeDef& node,
-           std::unordered_map<std::string, hlir::expr>& parsed_nodes,
-           std::unordered_map<std::string, std::vector<long>>& input_shapes)
+static void parse_node(
+    tensorflow::NodeDef& node,
+    std::unordered_map<std::string, hlir::expr>& parsed_nodes,
+    std::unordered_map<std::string, std::vector<long>>& input_shapes)
 {
     hlir::expr output;
 
@@ -167,7 +158,7 @@ parse_node(tensorflow::NodeDef& node,
         tcc_assert_has_key(input_shapes, node.name());
         std::vector<long> shape = input_shapes.at(node.name());
 
-        output = build_op_placeholder(dtype, shape);
+        output = build_placeholder(dtype, shape);
     }
     else if (node.op() == "Const")
     {
@@ -177,7 +168,7 @@ parse_node(tensorflow::NodeDef& node,
         data_type dtype = parse_tensor_dtype(node.attr());
         std::vector<long> shape = parse_tensor_shape(node.attr());
 
-        output = build_op_const(data, dtype, shape);
+        output = build_const(data, dtype, shape);
     }
     else if (node.op() == "Add")
     {
@@ -186,7 +177,7 @@ parse_node(tensorflow::NodeDef& node,
         hlir::expr x = parsed_nodes.at(node.input()[0]);
         hlir::expr y = parsed_nodes.at(node.input()[1]);
 
-        output = build_op_add(x, y);
+        output = build_add(x, y);
     }
     else if (node.op() == "AvgPool")
     {
@@ -197,6 +188,8 @@ parse_node(tensorflow::NodeDef& node,
         std::vector<long> ksize = parse_attr_long_vec(node.attr(), "ksize");
         std::vector<long> strides = parse_attr_long_vec(node.attr(), "strides");
         hlir::expr value = parsed_nodes.at(node.input()[0]);
+
+        output = build_avgpool(data_format, padding, ksize, strides, value);
     }
     else if (node.op() == "BiasAdd")
     {
@@ -205,6 +198,8 @@ parse_node(tensorflow::NodeDef& node,
         std::string data_format = parse_attr_string(node.attr(), "data_format");
         hlir::expr input = parsed_nodes.at(node.input()[0]);
         hlir::expr bias = parsed_nodes.at(node.input()[1]);
+        
+        output = build_biasadd(data_format, input, bias);
     }
     else if (node.op() == "Conv2D")
     {
@@ -217,6 +212,8 @@ parse_node(tensorflow::NodeDef& node,
             parse_attr_long_vec(node.attr(), "dilations");
         hlir::expr input = parsed_nodes.at(node.input()[0]);
         hlir::expr filter = parsed_nodes.at(node.input()[1]);
+
+        output = build_conv2d(data_format, padding, strides, dilations, input, filter);
     }
     else if (node.op() == "DepthwiseConv2dNative")
     {
@@ -229,6 +226,8 @@ parse_node(tensorflow::NodeDef& node,
             parse_attr_long_vec(node.attr(), "dilations");
         hlir::expr input = parsed_nodes.at(node.input()[0]);
         hlir::expr filter = parsed_nodes.at(node.input()[1]);
+
+        output = build_depthwiseconv2dnative(data_format, padding, strides, dilations, input, filter);
     }
     else if (node.op() == "FusedBatchNorm")
     {
@@ -241,12 +240,16 @@ parse_node(tensorflow::NodeDef& node,
         hlir::expr offset = parsed_nodes.at(node.input()[2]);
         hlir::expr mean = parsed_nodes.at(node.input()[3]);
         hlir::expr variance = parsed_nodes.at(node.input()[4]);
+
+        output = build_fusedbatchnorm(epsilon, data_format, x, scale, offset, mean, variance);
     }
     else if (node.op() == "Relu6")
     {
         tcc_assert_size_eq(node.input(), 1);
 
         hlir::expr features = parsed_nodes.at(node.input()[0]);
+
+        output = build_relu6(features);
     }
     else if (node.op() == "Reshape")
     {
@@ -254,18 +257,24 @@ parse_node(tensorflow::NodeDef& node,
 
         hlir::expr tensor = parsed_nodes.at(node.input()[0]);
         hlir::expr shape = parsed_nodes.at(node.input()[1]);
+
+        output = build_reshape(tensor, shape);
     }
     else if (node.op() == "Shape")
     {
         tcc_assert_size_eq(node.input(), 1);
 
         hlir::expr input = parsed_nodes.at(node.input()[0]);
+
+        output = build_shape(input);
     }
     else if (node.op() == "Softmax")
     {
         tcc_assert_size_eq(node.input(), 1);
 
         hlir::expr logits = parsed_nodes.at(node.input()[0]);
+
+        output = build_softmax(logits);
     }
     else if (node.op() == "Squeeze")
     {
@@ -274,6 +283,8 @@ parse_node(tensorflow::NodeDef& node,
         std::vector<long> sqeeuze_dims =
             parse_attr_long_vec(node.attr(), "sqeeuze_dims");
         hlir::expr input = parsed_nodes.at(node.input()[0]);
+
+        output = build_squeeze(sqeeuze_dims, input);
     }
     else
     {
@@ -286,11 +297,11 @@ parse_node(tensorflow::NodeDef& node,
     parsed_nodes.insert({ node.name(), output });
 }
 
-static void
-recurse_graph(std::string current_node_name,
-              std::unordered_map<std::string, tensorflow::NodeDef>& nodes,
-              std::unordered_map<std::string, hlir::expr>& parsed_nodes,
-              std::unordered_map<std::string, std::vector<long>>& input_shapes)
+static void recurse_graph(
+    std::string current_node_name,
+    std::unordered_map<std::string, tensorflow::NodeDef>& nodes,
+    std::unordered_map<std::string, hlir::expr>& parsed_nodes,
+    std::unordered_map<std::string, std::vector<long>>& input_shapes)
 {
     tcc_assert_has_key(nodes, current_node_name);
     tensorflow::NodeDef current_node = nodes.at(current_node_name);
@@ -306,9 +317,9 @@ recurse_graph(std::string current_node_name,
     parse_node(current_node, parsed_nodes, input_shapes);
 }
 
-static hlir::expr
-parse_graph(tensorflow::GraphDef& graph,
-            std::unordered_map<std::string, std::vector<long>>& input_shapes)
+static hlir::expr parse_graph(
+    tensorflow::GraphDef& graph,
+    std::unordered_map<std::string, std::vector<long>>& input_shapes)
 {
     /* collect all tensorflow nodes into hashtable and
      * find output nodes of the tensorflow graph. */
@@ -347,9 +358,9 @@ parse_graph(tensorflow::GraphDef& graph,
     return parsed_nodes.at(output_name);
 }
 
-hlir::expr
-parse(std::string input_path,
-      std::unordered_map<std::string, std::vector<long>>& input_shapes)
+hlir::expr parse(
+    std::string input_path,
+    std::unordered_map<std::string, std::vector<long>>& input_shapes)
 {
     tensorflow::GraphDef graph = load_graph(input_path);
     return parse_graph(graph, input_shapes);
