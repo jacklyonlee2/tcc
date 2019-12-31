@@ -20,6 +20,8 @@ void visitor::visit(range_expr) {}
 
 void visitor::visit(index_expr) {}
 
+void visitor::visit(select_expr) {}
+
 void visitor::visit(exp_expr) {}
 
 void visitor::visit(sqrt_expr) {}
@@ -41,8 +43,6 @@ void visitor::visit(greater_equal_expr) {}
 void visitor::visit(less_expr) {}
 
 void visitor::visit(logical_and_expr) {}
-
-void visitor::visit(select_expr) {}
 
 void visitor::visit(reduce_expr) {}
 

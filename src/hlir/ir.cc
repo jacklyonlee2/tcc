@@ -9,7 +9,6 @@ namespace hlir {
 
 expr var::make(data_type dtype, std::vector<long> shape)
 {
-    tcc_assert(dtype != data_type::VOID, "dtype is uninitialized.");
     tcc_assert(!shape.empty(), "shape is empty.");
 
     std::shared_ptr<var> e(new var);
@@ -23,7 +22,6 @@ expr cnst::make(const std::string data,
                 std::vector<long> shape)
 {
     tcc_assert(!data.empty(), "data is empty.");
-    tcc_assert(dtype != data_type::VOID, "dtype is uninitialized.");
     tcc_assert(!shape.empty(), "shape is empty.");
 
     std::shared_ptr<cnst> e(new cnst);
@@ -41,18 +39,77 @@ expr cnst::make(const float f)
     return e;
 }
 
-expr cnst::make(const int i)
+expr cnst::make(const long l)
 {
     std::shared_ptr<cnst> e(new cnst);
-    e->data = scalar_serialize<int>(i);
+    e->data = scalar_serialize<long>(l);
     e->dtype = data_type::INT32;
+    return e;
+}
+
+expr range::make(const long bound)
+{
+    tcc_assert(bound > 0, "invalid bound.");
+
+    std::shared_ptr<range> e(new range);
+    e->bound = bound;
+    e->dtype = data_type::INT32;
+    return e;
+}
+
+expr index::make(std::vector<long> shape, expr x, index_function idx_func)
+{
+    tcc_assert_not_null(x);
+    tcc_assert_not_null(idx_func);
+    tcc_assert(!shape.empty(), "shape is empty.");
+
+    std::shared_ptr<index> e(new index);
+    e->r = to_ranges(shape);
+
+    e->x = x;
+    e->idx = idx_func(e->r);
+    tcc_assert(e->x->shape.size() == e->idx.size(),
+               "rank of x and size of idx do not agree.");
+
+    e->dtype = x->dtype;
+    e->shape = shape;
+    return e;
+}
+
+expr select::make(std::vector<long> shape,
+                  cond_function cond_func,
+                  expr t,
+                  index_function tidx_func,
+                  expr f,
+                  index_function fidx_func)
+{
+    tcc_assert_not_null(cond_func);
+    tcc_assert_not_null(t);
+    tcc_assert_not_null(f);
+    tcc_assert(!shape.empty(), "shape is empty.");
+    tcc_assert(t->dtype == f->dtype, "dtypes of t and f do not agree.");
+
+    std::shared_ptr<select> e(new select);
+    e->r = to_ranges(shape);
+
+    e->t = t;
+    e->tidx = tidx_func ? tidx_func(e->r) : e->tidx;
+    tcc_assert(e->t->shape.size() == e->tidx.size(),
+               "rank of t and size of tidx do not agree.");
+
+    e->f = f;
+    e->fidx = fidx_func ? fidx_func(e->r) : e->fidx;
+    tcc_assert(e->f->shape.size() == e->fidx.size(),
+               "rank of f and size of fidx do not agree.");
+
+    e->dtype = t->dtype;
+    e->shape = shape;
     return e;
 }
 
 expr exp::make(expr x)
 {
     tcc_assert_not_null(x);
-    tcc_assert(x->dtype != data_type::VOID, "dtype of x is uninitialized.");
 
     std::shared_ptr<exp> e(new exp);
     e->x = x;
@@ -64,7 +121,6 @@ expr exp::make(expr x)
 expr sqrt::make(expr x)
 {
     tcc_assert_not_null(x);
-    tcc_assert(x->dtype != data_type::VOID, "dtype of x is uninitialized.");
 
     std::shared_ptr<sqrt> e(new sqrt);
     e->x = x;
@@ -77,8 +133,6 @@ expr add::make(expr x, expr y)
 {
     tcc_assert_not_null(x);
     tcc_assert_not_null(y);
-    tcc_assert(x->dtype != data_type::VOID, "dtype of x is uninitialized.");
-    tcc_assert(y->dtype != data_type::VOID, "dtype of y is uninitialized.");
     tcc_assert(x->dtype == y->dtype, "dtypes of x and y do not agree.");
 
     std::shared_ptr<add> e(new add);
@@ -93,8 +147,6 @@ expr sub::make(expr x, expr y)
 {
     tcc_assert_not_null(x);
     tcc_assert_not_null(y);
-    tcc_assert(x->dtype != data_type::VOID, "dtype of x is uninitialized.");
-    tcc_assert(y->dtype != data_type::VOID, "dtype of y is uninitialized.");
     tcc_assert(x->dtype == y->dtype, "dtypes of x and y do not agree.");
 
     std::shared_ptr<sub> e(new sub);
@@ -109,8 +161,6 @@ expr mul::make(expr x, expr y)
 {
     tcc_assert_not_null(x);
     tcc_assert_not_null(y);
-    tcc_assert(x->dtype != data_type::VOID, "dtype of x is uninitialized.");
-    tcc_assert(y->dtype != data_type::VOID, "dtype of y is uninitialized.");
     tcc_assert(x->dtype == y->dtype, "dtypes of x and y do not agree.");
 
     std::shared_ptr<mul> e(new mul);
@@ -125,8 +175,6 @@ expr div::make(expr x, expr y)
 {
     tcc_assert_not_null(x);
     tcc_assert_not_null(y);
-    tcc_assert(x->dtype != data_type::VOID, "dtype of x is uninitialized.");
-    tcc_assert(y->dtype != data_type::VOID, "dtype of y is uninitialized.");
     tcc_assert(x->dtype == y->dtype, "dtypes of x and y do not agree.");
 
     std::shared_ptr<div> e(new div);
@@ -141,8 +189,6 @@ expr mod::make(expr x, expr y)
 {
     tcc_assert_not_null(x);
     tcc_assert_not_null(y);
-    tcc_assert(x->dtype != data_type::VOID, "dtype of x is uninitialized.");
-    tcc_assert(y->dtype != data_type::VOID, "dtype of y is uninitialized.");
     tcc_assert(x->dtype == y->dtype, "dtypes of x and y do not agree.");
 
     std::shared_ptr<mod> e(new mod);
@@ -156,9 +202,6 @@ expr mod::make(expr x, expr y)
 expr greater::make(expr x, expr y)
 {
     tcc_assert_not_null(x);
-    tcc_assert_not_null(y);
-    tcc_assert(x->dtype != data_type::VOID, "dtype of x is uninitialized.");
-    tcc_assert(y->dtype != data_type::VOID, "dtype of y is uninitialized.");
     tcc_assert(x->dtype == y->dtype, "dtypes of x and y do not agree.");
 
     std::shared_ptr<greater> e(new greater);
@@ -173,8 +216,6 @@ expr greater_equal::make(expr x, expr y)
 {
     tcc_assert_not_null(x);
     tcc_assert_not_null(y);
-    tcc_assert(x->dtype != data_type::VOID, "dtype of x is uninitialized.");
-    tcc_assert(y->dtype != data_type::VOID, "dtype of y is uninitialized.");
     tcc_assert(x->dtype == y->dtype, "dtypes of x and y do not agree.");
 
     std::shared_ptr<greater_equal> e(new greater_equal);
@@ -189,8 +230,6 @@ expr less::make(expr x, expr y)
 {
     tcc_assert_not_null(x);
     tcc_assert_not_null(y);
-    tcc_assert(x->dtype != data_type::VOID, "dtype of x is uninitialized.");
-    tcc_assert(y->dtype != data_type::VOID, "dtype of y is uninitialized.");
     tcc_assert(x->dtype == y->dtype, "dtypes of x and y do not agree.");
 
     std::shared_ptr<less> e(new less);
@@ -205,8 +244,6 @@ expr logical_and::make(expr x, expr y)
 {
     tcc_assert_not_null(x);
     tcc_assert_not_null(y);
-    tcc_assert(x->dtype != data_type::VOID, "dtype of x is uninitialized.");
-    tcc_assert(y->dtype != data_type::VOID, "dtype of y is uninitialized.");
     tcc_assert(x->dtype == y->dtype, "dtypes of x and y do not agree.");
 
     std::shared_ptr<logical_and> e(new logical_and);
@@ -214,6 +251,33 @@ expr logical_and::make(expr x, expr y)
     e->y = y;
     e->dtype = data_type::BOOL;
     e->shape = boardcast(x->shape, y->shape);
+    return e;
+}
+
+expr reduce::make(reduce_type rtype, std::unordered_set<unsigned> rdims, expr x)
+{
+    tcc_assert_not_null(x);
+    tcc_assert(!rdims.empty(), "rdim is empty.");
+
+    for (unsigned rdim : rdims)
+    {
+        tcc_assert(rdim < x->shape.size(), "rdim is out of bound.");
+    }
+
+    std::shared_ptr<reduce> e(new reduce);
+    e->rtype = rtype;
+    e->rdims = rdims;
+    e->x = x;
+    e->dtype = x->dtype;
+
+    for (unsigned dim = 0; dim < x->shape.size(); dim++)
+    {
+        if (rdims.find(dim) == rdims.end())
+        {
+            e->shape.push_back(x->shape[dim]);
+        }
+    }
+
     return e;
 }
 
@@ -259,6 +323,11 @@ expr operator<(expr lhs, expr rhs)
     return less::make(lhs, rhs);
 }
 
+expr operator&&(expr lhs, expr rhs)
+{
+    return logical_and::make(lhs, rhs);
+}
+
 /* overridden expr_template accept methods. */
 
 template<>
@@ -283,6 +352,12 @@ template<>
 void expr_template<index>::accept(visitor* v) const
 {
     v->visit(downcast<index>(shared_from_this()));
+}
+
+template<>
+void expr_template<select>::accept(visitor* v) const
+{
+    v->visit(downcast<select>(shared_from_this()));
 }
 
 template<>
@@ -349,12 +424,6 @@ template<>
 void expr_template<logical_and>::accept(visitor* v) const
 {
     v->visit(downcast<logical_and>(shared_from_this()));
-}
-
-template<>
-void expr_template<select>::accept(visitor* v) const
-{
-    v->visit(downcast<select>(shared_from_this()));
 }
 
 template<>

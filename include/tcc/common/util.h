@@ -17,7 +17,7 @@ T scalar_deserialize(std::string str)
     return *p;
 }
 
-std::vector<long> boardcast(std::vector<long> x, std::vector<long> y)
+inline std::vector<long> boardcast(std::vector<long> x, std::vector<long> y)
 {
     tcc_assert(x.size() == y.size(), "ranks of x and y do not agree.");
 
