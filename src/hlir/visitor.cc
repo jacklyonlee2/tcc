@@ -3,48 +3,112 @@
 namespace tcc {
 namespace hlir {
 
-void visitor::recurse(expr e)
+void visitor_base::visit(expr e)
 {
     if (visited.find(e) == visited.end())
     {
         visited.insert(e);
-        e->accept(this);
+        e->accept(shared_from_this());
     }
 }
 
-void visitor::visit(var_expr) {}
+void visitor_base::visit(exprs es)
+{
+    for (expr e : es)
+    {
+        visit(e);
+    }
+}
 
-void visitor::visit(cnst_expr) {}
+void visitor_base::visit(var_expr) {}
 
-void visitor::visit(range_expr) {}
+void visitor_base::visit(cnst_expr) {}
 
-void visitor::visit(index_expr) {}
+void visitor_base::visit(range_expr) {}
 
-void visitor::visit(select_expr) {}
+void visitor_base::visit(index_expr e)
+{
+    visit(e->rs);
+    visit(e->x);
+    visit(e->indices);
+}
 
-void visitor::visit(exp_expr) {}
+void visitor_base::visit(select_expr e)
+{
+    visit(e->rs);
+    visit(e->cond);
+    visit(e->t);
+    visit(e->f);
+}
 
-void visitor::visit(sqrt_expr) {}
+void visitor_base::visit(exp_expr e)
+{
+    visit(e->x);
+}
 
-void visitor::visit(add_expr) {}
+void visitor_base::visit(sqrt_expr e)
+{
+    visit(e->x);
+}
 
-void visitor::visit(sub_expr) {}
+void visitor_base::visit(add_expr e)
+{
+    visit(e->x);
+    visit(e->y);
+}
 
-void visitor::visit(mul_expr) {}
+void visitor_base::visit(sub_expr e)
+{
+    visit(e->x);
+    visit(e->y);
+}
 
-void visitor::visit(div_expr) {}
+void visitor_base::visit(mul_expr e)
+{
+    visit(e->x);
+    visit(e->y);
+}
 
-void visitor::visit(mod_expr) {}
+void visitor_base::visit(div_expr e)
+{
+    visit(e->x);
+    visit(e->y);
+}
 
-void visitor::visit(greater_expr) {}
+void visitor_base::visit(mod_expr e)
+{
+    visit(e->x);
+    visit(e->y);
+}
 
-void visitor::visit(greater_equal_expr) {}
+void visitor_base::visit(greater_expr e)
+{
+    visit(e->x);
+    visit(e->y);
+}
 
-void visitor::visit(less_expr) {}
+void visitor_base::visit(greater_equal_expr e)
+{
+    visit(e->x);
+    visit(e->y);
+}
 
-void visitor::visit(logical_and_expr) {}
+void visitor_base::visit(less_expr e)
+{
+    visit(e->x);
+    visit(e->y);
+}
 
-void visitor::visit(reduce_expr) {}
+void visitor_base::visit(logical_and_expr e)
+{
+    visit(e->x);
+    visit(e->y);
+}
+
+void visitor_base::visit(reduce_expr e)
+{
+    visit(e->x);
+}
 
 } // namespace hlir
 } // namespace tcc

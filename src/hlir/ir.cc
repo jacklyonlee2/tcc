@@ -1,5 +1,6 @@
 #include "tcc/hlir/ir.h"
 #include "tcc/common/util.h"
+#include "tcc/hlir/index_validator.h"
 #include "tcc/hlir/visitor.h"
 
 namespace tcc {
@@ -57,53 +58,46 @@ expr range::make(const long bound)
     return e;
 }
 
-expr index::make(std::vector<long> shape, expr x, index_function idx_func)
+expr index::make(ranges rs, expr x, exprs indices)
 {
     tcc_assert_not_null(x);
-    tcc_assert_not_null(idx_func);
-    tcc_assert(!shape.empty(), "shape is empty.");
+    tcc_assert(!rs.empty(), "rs is empty.");
+    tcc_assert(x->shape.size() == indices.size(),
+               "rank of x and size of indices do not agree.");
+
+    /* validate indices does not contain any unspecified range exprs. */
+    index_validator::make(rs)->visit(indices);
 
     std::shared_ptr<index> e(new index);
-    e->r = to_ranges(shape);
-
+    e->rs = rs;
     e->x = x;
-    e->idx = idx_func(e->r);
-    tcc_assert(e->x->shape.size() == e->idx.size(),
-               "rank of x and size of idx do not agree.");
-
+    e->indices = indices;
     e->dtype = x->dtype;
-    e->shape = shape;
+    e->shape = to_shape(rs);
     return e;
 }
 
-expr select::make(std::vector<long> shape,
-                  cond_function cond_func,
-                  expr t,
-                  index_function tidx_func,
-                  expr f,
-                  index_function fidx_func)
+expr select::make(ranges rs, expr cond, expr t, expr f)
 {
-    tcc_assert_not_null(cond_func);
+    tcc_assert_not_null(cond);
     tcc_assert_not_null(t);
     tcc_assert_not_null(f);
-    tcc_assert(!shape.empty(), "shape is empty.");
+    tcc_assert(!rs.empty(), "rs is empty.");
+    tcc_assert(cond->dtype == data_type::BOOL, "dtype of cond is not BOOL.");
     tcc_assert(t->dtype == f->dtype, "dtypes of t and f do not agree.");
+    tcc_assert(t->shape.empty() || (t->type == expr_type::index &&
+                                    downcast<index>(t)->rs == rs),
+               "t is not a scalar or index expr with equivalent ranges.");
+    tcc_assert(f->shape.empty() || (f->type == expr_type::index &&
+                                    downcast<index>(f)->rs == rs),
+               "f is not a scalar or index expr with equivalent ranges.");
 
     std::shared_ptr<select> e(new select);
-    e->r = to_ranges(shape);
-
+    e->rs = rs;
     e->t = t;
-    e->tidx = tidx_func ? tidx_func(e->r) : e->tidx;
-    tcc_assert(e->t->shape.size() == e->tidx.size(),
-               "rank of t and size of tidx do not agree.");
-
     e->f = f;
-    e->fidx = fidx_func ? fidx_func(e->r) : e->fidx;
-    tcc_assert(e->f->shape.size() == e->fidx.size(),
-               "rank of f and size of fidx do not agree.");
-
     e->dtype = t->dtype;
-    e->shape = shape;
+    e->shape = to_shape(rs);
     return e;
 }
 
@@ -331,103 +325,103 @@ expr operator&&(expr lhs, expr rhs)
 /* overridden expr_template accept methods. */
 
 template<>
-void expr_template<var>::accept(visitor* v) const
+void expr_template<var>::accept(visitor v) const
 {
     v->visit(downcast<var>(shared_from_this()));
 }
 
 template<>
-void expr_template<cnst>::accept(visitor* v) const
+void expr_template<cnst>::accept(visitor v) const
 {
     v->visit(downcast<cnst>(shared_from_this()));
 }
 
 template<>
-void expr_template<range>::accept(visitor* v) const
+void expr_template<range>::accept(visitor v) const
 {
     v->visit(downcast<range>(shared_from_this()));
 }
 
 template<>
-void expr_template<index>::accept(visitor* v) const
+void expr_template<index>::accept(visitor v) const
 {
     v->visit(downcast<index>(shared_from_this()));
 }
 
 template<>
-void expr_template<select>::accept(visitor* v) const
+void expr_template<select>::accept(visitor v) const
 {
     v->visit(downcast<select>(shared_from_this()));
 }
 
 template<>
-void expr_template<exp>::accept(visitor* v) const
+void expr_template<exp>::accept(visitor v) const
 {
     v->visit(downcast<exp>(shared_from_this()));
 }
 
 template<>
-void expr_template<sqrt>::accept(visitor* v) const
+void expr_template<sqrt>::accept(visitor v) const
 {
     v->visit(downcast<sqrt>(shared_from_this()));
 }
 
 template<>
-void expr_template<add>::accept(visitor* v) const
+void expr_template<add>::accept(visitor v) const
 {
     v->visit(downcast<add>(shared_from_this()));
 }
 
 template<>
-void expr_template<sub>::accept(visitor* v) const
+void expr_template<sub>::accept(visitor v) const
 {
     v->visit(downcast<sub>(shared_from_this()));
 }
 
 template<>
-void expr_template<mul>::accept(visitor* v) const
+void expr_template<mul>::accept(visitor v) const
 {
     v->visit(downcast<mul>(shared_from_this()));
 }
 
 template<>
-void expr_template<div>::accept(visitor* v) const
+void expr_template<div>::accept(visitor v) const
 {
     v->visit(downcast<div>(shared_from_this()));
 }
 
 template<>
-void expr_template<mod>::accept(visitor* v) const
+void expr_template<mod>::accept(visitor v) const
 {
     v->visit(downcast<mod>(shared_from_this()));
 }
 
 template<>
-void expr_template<greater>::accept(visitor* v) const
+void expr_template<greater>::accept(visitor v) const
 {
     v->visit(downcast<greater>(shared_from_this()));
 }
 
 template<>
-void expr_template<greater_equal>::accept(visitor* v) const
+void expr_template<greater_equal>::accept(visitor v) const
 {
     v->visit(downcast<greater_equal>(shared_from_this()));
 }
 
 template<>
-void expr_template<less>::accept(visitor* v) const
+void expr_template<less>::accept(visitor v) const
 {
     v->visit(downcast<less>(shared_from_this()));
 }
 
 template<>
-void expr_template<logical_and>::accept(visitor* v) const
+void expr_template<logical_and>::accept(visitor v) const
 {
     v->visit(downcast<logical_and>(shared_from_this()));
 }
 
 template<>
-void expr_template<reduce>::accept(visitor* v) const
+void expr_template<reduce>::accept(visitor v) const
 {
     v->visit(downcast<reduce>(shared_from_this()));
 }

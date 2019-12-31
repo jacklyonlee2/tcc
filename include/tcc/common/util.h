@@ -19,27 +19,21 @@ T scalar_deserialize(std::string str)
 
 inline std::vector<long> boardcast(std::vector<long> x, std::vector<long> y)
 {
-    tcc_assert(x.size() == y.size(), "ranks of x and y do not agree.");
+    tcc_assert(x.size() >= y.size(), "y can not be boardcasted to x.");
 
-    std::vector<long> boardcasted;
+    std::vector<long> boardcasted(x.size() - y.size(), 1);
+    boardcasted.insert(boardcasted.end(), y.begin(), y.end());
+
     for (unsigned i = 0; i < x.size(); i++)
     {
-        if (x[i] > y[i] && y[i] == 1)
+        if (x[i] == boardcasted[i] || boardcasted[i] == 1)
         {
-            boardcasted.push_back(x[i]);
-        }
-        else if (y[i] > x[i] && x[i] == 1)
-        {
-            boardcasted.push_back(y[i]);
-        }
-        else if (x[i] == y[i])
-        {
-            boardcasted.push_back(x[i]);
+            boardcasted[i] = x[i];
         }
         else
         {
-            tcc_error("dimension of " + std::to_string(x[i]) + " and " +
-                      std::to_string(y[i]) + " are not boardcastable.");
+            tcc_error("dimension " + std::to_string(i) +
+                      " of x and y are not boardcastable.");
         }
     }
 

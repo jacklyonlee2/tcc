@@ -40,7 +40,8 @@ enum class reduce_type
 };
 
 /* forward declare hlir visitor class. */
-class visitor;
+class visitor_base;
+typedef std::shared_ptr<visitor_base> visitor;
 
 /* expr_base is the base class all hlir primitives derive from.
  * expr_base stores the expr_type of the derived class, the
@@ -52,7 +53,7 @@ struct expr_base
         : type(t)
     {}
 
-    virtual void accept(visitor* v) const = 0;
+    virtual void accept(visitor v) const = 0;
 
     expr_type type;
     mutable data_type dtype;
@@ -70,15 +71,13 @@ struct expr_template
         : expr_base(T::etype)
     {}
 
-    void accept(visitor* v) const override;
+    void accept(visitor v) const override;
 };
 
 /* aliases and syntax sugars for the hlir api. */
 typedef std::shared_ptr<const expr_base> expr;
+typedef std::vector<expr> exprs;
 typedef std::vector<expr> ranges;
-typedef std::vector<expr> indices;
-typedef std::function<indices(ranges)> index_function;
-typedef std::function<expr(ranges)> cond_function;
 
 /* hlir primitive declarations.
  * when declaring a new hlir primitive:
@@ -122,30 +121,23 @@ struct range : expr_template<range>
 
 struct index : expr_template<index>
 {
-    ranges r;
+    ranges rs;
     expr x;
-    indices idx;
+    exprs indices;
 
-    static expr make(std::vector<long>, expr, index_function);
+    static expr make(ranges, expr, exprs);
 
     static const expr_type etype = expr_type::index;
 };
 
 struct select : expr_template<select>
 {
-    ranges r;
+    ranges rs;
     expr cond;
     expr t;
-    indices tidx;
     expr f;
-    indices fidx;
 
-    static expr make(std::vector<long>,
-                     cond_function,
-                     expr,
-                     index_function,
-                     expr,
-                     index_function);
+    static expr make(ranges, expr, expr, expr);
 
     static const expr_type etype = expr_type::select;
 };
@@ -312,12 +304,23 @@ std::shared_ptr<const T> downcast(expr e)
 /* construct ranges from shape. */
 inline ranges to_ranges(std::vector<long> shape)
 {
-    ranges r;
+    ranges rs;
     for (long dim : shape)
     {
-        r.push_back(range::make(dim));
+        rs.push_back(range::make(dim));
     }
-    return r;
+    return rs;
+}
+
+/* construct shape from ranges. */
+inline std::vector<long> to_shape(ranges rs)
+{
+    std::vector<long> shape;
+    for (expr r : rs)
+    {
+        shape.push_back(downcast<range>(r)->bound);
+    }
+    return shape;
 }
 
 } // namespace hlir

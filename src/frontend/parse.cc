@@ -158,7 +158,7 @@ static void parse_node(
         tcc_assert_has_key(input_shapes, node.name());
         std::vector<long> shape = input_shapes.at(node.name());
 
-        output = build_placeholder(dtype, shape);
+        output = parse_op_placeholder(dtype, shape);
     }
     else if (node.op() == "Const")
     {
@@ -168,7 +168,7 @@ static void parse_node(
         data_type dtype = parse_tensor_dtype(node.attr());
         std::vector<long> shape = parse_tensor_shape(node.attr());
 
-        output = build_const(data, dtype, shape);
+        output = parse_op_const(data, dtype, shape);
     }
     else if (node.op() == "Add")
     {
@@ -177,7 +177,7 @@ static void parse_node(
         hlir::expr x = parsed_nodes.at(node.input()[0]);
         hlir::expr y = parsed_nodes.at(node.input()[1]);
 
-        output = build_add(x, y);
+        output = parse_op_add(x, y);
     }
     else if (node.op() == "AvgPool")
     {
@@ -189,7 +189,7 @@ static void parse_node(
         std::vector<long> strides = parse_attr_long_vec(node.attr(), "strides");
         hlir::expr value = parsed_nodes.at(node.input()[0]);
 
-        output = build_avgpool(data_format, padding, ksize, strides, value);
+        output = parse_op_avgpool(data_format, padding, ksize, strides, value);
     }
     else if (node.op() == "BiasAdd")
     {
@@ -198,8 +198,8 @@ static void parse_node(
         std::string data_format = parse_attr_string(node.attr(), "data_format");
         hlir::expr input = parsed_nodes.at(node.input()[0]);
         hlir::expr bias = parsed_nodes.at(node.input()[1]);
-        
-        output = build_biasadd(data_format, input, bias);
+
+        output = parse_op_biasadd(data_format, input, bias);
     }
     else if (node.op() == "Conv2D")
     {
@@ -213,7 +213,8 @@ static void parse_node(
         hlir::expr input = parsed_nodes.at(node.input()[0]);
         hlir::expr filter = parsed_nodes.at(node.input()[1]);
 
-        output = build_conv2d(data_format, padding, strides, dilations, input, filter);
+        output = parse_op_conv2d(
+            data_format, padding, strides, dilations, input, filter);
     }
     else if (node.op() == "DepthwiseConv2dNative")
     {
@@ -227,7 +228,8 @@ static void parse_node(
         hlir::expr input = parsed_nodes.at(node.input()[0]);
         hlir::expr filter = parsed_nodes.at(node.input()[1]);
 
-        output = build_depthwiseconv2dnative(data_format, padding, strides, dilations, input, filter);
+        output = parse_op_depthwiseconv2dnative(
+            data_format, padding, strides, dilations, input, filter);
     }
     else if (node.op() == "FusedBatchNorm")
     {
@@ -241,7 +243,8 @@ static void parse_node(
         hlir::expr mean = parsed_nodes.at(node.input()[3]);
         hlir::expr variance = parsed_nodes.at(node.input()[4]);
 
-        output = build_fusedbatchnorm(epsilon, data_format, x, scale, offset, mean, variance);
+        output = parse_op_fusedbatchnorm(
+            epsilon, data_format, x, scale, offset, mean, variance);
     }
     else if (node.op() == "Relu6")
     {
@@ -249,7 +252,7 @@ static void parse_node(
 
         hlir::expr features = parsed_nodes.at(node.input()[0]);
 
-        output = build_relu6(features);
+        output = parse_op_relu6(features);
     }
     else if (node.op() == "Reshape")
     {
@@ -258,7 +261,7 @@ static void parse_node(
         hlir::expr tensor = parsed_nodes.at(node.input()[0]);
         hlir::expr shape = parsed_nodes.at(node.input()[1]);
 
-        output = build_reshape(tensor, shape);
+        output = parse_op_reshape(tensor, shape);
     }
     else if (node.op() == "Shape")
     {
@@ -266,7 +269,7 @@ static void parse_node(
 
         hlir::expr input = parsed_nodes.at(node.input()[0]);
 
-        output = build_shape(input);
+        output = parse_op_shape(input);
     }
     else if (node.op() == "Softmax")
     {
@@ -274,7 +277,7 @@ static void parse_node(
 
         hlir::expr logits = parsed_nodes.at(node.input()[0]);
 
-        output = build_softmax(logits);
+        output = parse_op_softmax(logits);
     }
     else if (node.op() == "Squeeze")
     {
@@ -284,7 +287,7 @@ static void parse_node(
             parse_attr_long_vec(node.attr(), "sqeeuze_dims");
         hlir::expr input = parsed_nodes.at(node.input()[0]);
 
-        output = build_squeeze(sqeeuze_dims, input);
+        output = parse_op_squeeze(sqeeuze_dims, input);
     }
     else
     {

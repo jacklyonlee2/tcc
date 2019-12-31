@@ -42,7 +42,7 @@
                    "\" already exists in \"" #map "\".")
 
 #define tcc_assert_not_null(ptr)                                               \
-    tcc_assert((ptr), "\"" #ptr "\" can not be null.")
+    tcc_assert((ptr) != nullptr, "\"" #ptr "\" can not be null.")
 
 #define tcc_assert_size_eq(obj, sz)                                            \
     tcc_assert((obj).size() == (sz),                                           \

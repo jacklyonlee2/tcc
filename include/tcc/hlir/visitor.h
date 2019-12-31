@@ -7,10 +7,11 @@
 namespace tcc {
 namespace hlir {
 
-class visitor
+struct visitor_base : std::enable_shared_from_this<visitor_base>
 {
   public:
-    virtual void recurse(expr);
+    virtual void visit(expr);
+    virtual void visit(exprs);
 
   protected:
     virtual void visit(var_expr);
@@ -36,6 +37,8 @@ class visitor
     template<typename T>
     friend struct expr_template;
 };
+
+typedef std::shared_ptr<visitor_base> visitor;
 
 } // namespace hlir
 } // namespace tcc
