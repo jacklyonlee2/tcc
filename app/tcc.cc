@@ -1,5 +1,7 @@
+#include "tcc/common/datatype.h"
 #include "tcc/common/logging.h"
-#include "tcc/frontend/parse.h"
+#include "tcc/frontend/parser.h"
+#include "tcc/hlir/dot_printer.h"
 #include <iostream>
 #include <unordered_map>
 #include <vector>
@@ -7,11 +9,10 @@
 struct tcc_config
 {
     std::string input_path;
-    std::unordered_map<std::string, std::vector<long>> input_shapes;
+    std::unordered_map<std::string, tcc::dimensions> input_shapes;
 };
 
-static void
-print_usage_and_exit()
+static void print_usage_and_exit()
 {
     std::cout << "Usage: tcc -input-path=\"./example.pb\" "
                  "-input-shapes=\"{a:[1,2],b:[3,4]}\"\n"
@@ -22,14 +23,12 @@ print_usage_and_exit()
     exit(0);
 }
 
-static void
-parse_input_path(tcc_config& config, std::string arg)
+static void parse_input_path(tcc_config& config, std::string arg)
 {
     config.input_path = arg.substr(arg.rfind("=") + 1);
 }
 
-static void
-parse_input_shapes(tcc_config& config, std::string arg)
+static void parse_input_shapes(tcc_config& config, std::string arg)
 {
     size_t pos;
     std::string value = arg.substr(arg.rfind("=") + 1);
@@ -49,7 +48,7 @@ parse_input_shapes(tcc_config& config, std::string arg)
         std::string val = entry.substr(entry.rfind(":") + 1);
         val = val.substr(1, val.size() - 2);
 
-        std::vector<long> shape;
+        tcc::dimensions shape;
         while ((pos = val.find(",")) != std::string::npos)
         {
             shape.push_back(stol(val.substr(0, pos)));
@@ -61,8 +60,7 @@ parse_input_shapes(tcc_config& config, std::string arg)
     }
 }
 
-static tcc_config
-parse_config(int argc, char** argv)
+static tcc_config parse_config(int argc, char** argv)
 {
     tcc_config config;
 
@@ -95,12 +93,16 @@ parse_config(int argc, char** argv)
     return config;
 }
 
-int
-main(int argc, char** argv)
+int main(int argc, char** argv)
 {
     using namespace tcc;
 
+    tcc_info("parsing command line flags.");
     tcc_config config = parse_config(argc, argv);
 
+    tcc_info("parsing tensorflow graph into hlir.");
     hlir::expr hlir = frontend::parse(config.input_path, config.input_shapes);
+
+    tcc_info("generating DOT file for hlir.");
+    hlir::dot_printer::apply("./hlir.dot", hlir);
 }

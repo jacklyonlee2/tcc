@@ -19,6 +19,7 @@ struct visitor_base : std::enable_shared_from_this<visitor_base>
     virtual void visit(range_expr);
     virtual void visit(index_expr);
     virtual void visit(select_expr);
+    virtual void visit(reshape_expr);
     virtual void visit(exp_expr);
     virtual void visit(sqrt_expr);
     virtual void visit(add_expr);

@@ -1,5 +1,5 @@
-#ifndef TCC_FRONTEND_PARSE
-#define TCC_FRONTEND_PARSE
+#ifndef TCC_FRONTEND_PARSER
+#define TCC_FRONTEND_PARSER
 
 #include "tcc/hlir/ir.h"
 #include <unordered_map>
@@ -12,9 +12,9 @@ namespace frontend {
  * the parser uses provided input placeholder shapes to perform static
  * shape inference as hlir is constructed from the tensorflow graph. */
 hlir::expr parse(std::string,
-                 std::unordered_map<std::string, std::vector<long>>&);
+                 std::unordered_map<std::string, dimensions>&);
 
 } // namespace frontend
 } // namespace tcc
 
-#endif // TCC_FRONTEND_PARSE
+#endif // TCC_FRONTEND_PARSER

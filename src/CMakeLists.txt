@@ -5,9 +5,11 @@ list(APPEND CORE_SRC
     ${TCC_INCLUDE_DIR}/tcc/hlir/ir.h
     ${TCC_INCLUDE_DIR}/tcc/hlir/visitor.h
     ${TCC_INCLUDE_DIR}/tcc/hlir/index_validator.h
+    ${TCC_INCLUDE_DIR}/tcc/hlir/dot_printer.h
     hlir/ir.cc
     hlir/visitor.cc
-    hlir/index_validator.cc)
+    hlir/index_validator.cc
+    hlir/dot_printer.cc)
 
 add_library(core
     ${CORE_SRC})
@@ -36,9 +38,9 @@ target_link_libraries(proto
     ${PROTOBUF_LIBRARIES})
 
 add_library(frontend
-    ${TCC_INCLUDE_DIR}/tcc/frontend/parse.h
+    ${TCC_INCLUDE_DIR}/tcc/frontend/parser.h
     ${TCC_INCLUDE_DIR}/tcc/frontend/op.h
-    frontend/parse.cc
+    frontend/parser.cc
     frontend/op.cc)
 
 target_include_directories(frontend

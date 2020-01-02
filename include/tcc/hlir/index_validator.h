@@ -10,13 +10,13 @@ namespace hlir {
  * range exprs are contained within the index exprs. */
 struct index_validator : visitor_base
 {
-  public:
-    static visitor make(ranges);
+    static bool apply(exprs, exprs);
 
   protected:
     void visit(range_expr) override;
 
     std::unordered_set<range_expr> valid_ranges;
+    bool valid;
 };
 
 } // namespace hlir

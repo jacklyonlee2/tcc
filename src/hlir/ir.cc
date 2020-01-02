@@ -2,13 +2,14 @@
 #include "tcc/common/util.h"
 #include "tcc/hlir/index_validator.h"
 #include "tcc/hlir/visitor.h"
+#include <numeric>
 
 namespace tcc {
 namespace hlir {
 
 /* hlir primitive implementations. */
 
-expr var::make(data_type dtype, std::vector<long> shape)
+expr var::make(data_type dtype, dimensions shape)
 {
     tcc_assert(!shape.empty(), "shape is empty.");
 
@@ -18,9 +19,7 @@ expr var::make(data_type dtype, std::vector<long> shape)
     return e;
 }
 
-expr cnst::make(const std::string data,
-                data_type dtype,
-                std::vector<long> shape)
+expr cnst::make(std::string data, data_type dtype, dimensions shape)
 {
     tcc_assert(!data.empty(), "data is empty.");
     tcc_assert(!shape.empty(), "shape is empty.");
@@ -32,7 +31,7 @@ expr cnst::make(const std::string data,
     return e;
 }
 
-expr cnst::make(const float f)
+expr cnst::make(float f)
 {
     std::shared_ptr<cnst> e(new cnst);
     e->data = scalar_serialize<float>(f);
@@ -40,64 +39,91 @@ expr cnst::make(const float f)
     return e;
 }
 
-expr cnst::make(const long l)
+expr cnst::make(dimension dim)
 {
     std::shared_ptr<cnst> e(new cnst);
-    e->data = scalar_serialize<long>(l);
-    e->dtype = data_type::INT32;
+    e->data = scalar_serialize<dimension>(dim);
+    e->dtype = data_type::INT64;
     return e;
 }
 
-expr range::make(const long bound)
+expr cnst::make(dimensions dims)
+{
+    std::shared_ptr<cnst> e(new cnst);
+    e->data = vector_serialize<dimension>(dims);
+    e->dtype = data_type::INT64;
+    e->shape = dimensions({ static_cast<dimension>(dims.size()) });
+    return e;
+}
+
+expr range::make(dimension bound)
 {
     tcc_assert(bound > 0, "invalid bound.");
 
     std::shared_ptr<range> e(new range);
     e->bound = bound;
-    e->dtype = data_type::INT32;
+    e->dtype = data_type::INT64;
     return e;
 }
 
-expr index::make(ranges rs, expr x, exprs indices)
+expr index::make(exprs ranges, expr x, exprs indices)
 {
     tcc_assert_not_null(x);
-    tcc_assert(!rs.empty(), "rs is empty.");
+    tcc_assert(!ranges.empty(), "ranges is empty.");
     tcc_assert(x->shape.size() == indices.size(),
                "rank of x and size of indices do not agree.");
-
-    /* validate indices does not contain any unspecified range exprs. */
-    index_validator::make(rs)->visit(indices);
+    tcc_assert(index_validator::apply(ranges, indices),
+               "indices contain unspecified range that is not in ranges.");
 
     std::shared_ptr<index> e(new index);
-    e->rs = rs;
+    e->ranges = ranges;
     e->x = x;
     e->indices = indices;
     e->dtype = x->dtype;
-    e->shape = to_shape(rs);
+    e->shape = to_shape(ranges);
     return e;
 }
 
-expr select::make(ranges rs, expr cond, expr t, expr f)
+expr select::make(exprs ranges, expr cond, expr t, expr f)
 {
     tcc_assert_not_null(cond);
     tcc_assert_not_null(t);
     tcc_assert_not_null(f);
-    tcc_assert(!rs.empty(), "rs is empty.");
+    tcc_assert(!ranges.empty(), "ranges is empty.");
     tcc_assert(cond->dtype == data_type::BOOL, "dtype of cond is not BOOL.");
     tcc_assert(t->dtype == f->dtype, "dtypes of t and f do not agree.");
     tcc_assert(t->shape.empty() || (t->type == expr_type::index &&
-                                    downcast<index>(t)->rs == rs),
+                                    downcast<index>(t)->ranges == ranges),
                "t is not a scalar or index expr with equivalent ranges.");
     tcc_assert(f->shape.empty() || (f->type == expr_type::index &&
-                                    downcast<index>(f)->rs == rs),
+                                    downcast<index>(f)->ranges == ranges),
                "f is not a scalar or index expr with equivalent ranges.");
 
     std::shared_ptr<select> e(new select);
-    e->rs = rs;
+    e->ranges = ranges;
     e->t = t;
     e->f = f;
     e->dtype = t->dtype;
-    e->shape = to_shape(rs);
+    e->shape = to_shape(ranges);
+    return e;
+}
+
+expr reshape::make(dimensions shape, expr x)
+{
+    tcc_assert_not_null(x);
+    tcc_assert(
+        std::accumulate(
+            shape.begin(), shape.end(), 1l, std::multiplies<dimension>()) ==
+            std::accumulate(x->shape.begin(),
+                            x->shape.end(),
+                            1l,
+                            std::multiplies<dimension>()),
+        "shape do not have the same size as shape of x.");
+
+    std::shared_ptr<reshape> e(new reshape);
+    e->x = x;
+    e->dtype = x->dtype;
+    e->shape = shape;
     return e;
 }
 
@@ -248,25 +274,27 @@ expr logical_and::make(expr x, expr y)
     return e;
 }
 
-expr reduce::make(reduce_type rtype, std::unordered_set<unsigned> rdims, expr x)
+expr reduce::make(type reduce_type,
+                  std::unordered_set<unsigned> reduce_dims,
+                  expr x)
 {
     tcc_assert_not_null(x);
-    tcc_assert(!rdims.empty(), "rdim is empty.");
+    tcc_assert(!reduce_dims.empty(), "reduce_dims is empty.");
 
-    for (unsigned rdim : rdims)
+    for (unsigned dim : reduce_dims)
     {
-        tcc_assert(rdim < x->shape.size(), "rdim is out of bound.");
+        tcc_assert(dim < x->shape.size(), "reduce dim is out of bound.");
     }
 
     std::shared_ptr<reduce> e(new reduce);
-    e->rtype = rtype;
-    e->rdims = rdims;
+    e->reduce_type = reduce_type;
+    e->reduce_dims = reduce_dims;
     e->x = x;
     e->dtype = x->dtype;
 
     for (unsigned dim = 0; dim < x->shape.size(); dim++)
     {
-        if (rdims.find(dim) == rdims.end())
+        if (reduce_dims.find(dim) == reduce_dims.end())
         {
             e->shape.push_back(x->shape[dim]);
         }
@@ -352,6 +380,12 @@ template<>
 void expr_template<select>::accept(visitor v) const
 {
     v->visit(downcast<select>(shared_from_this()));
+}
+
+template<>
+void expr_template<reshape>::accept(visitor v) const
+{
+    v->visit(downcast<reshape>(shared_from_this()));
 }
 
 template<>

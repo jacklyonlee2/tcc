@@ -1,6 +1,9 @@
 #ifndef TCC_COMMON_UTIL_H
 #define TCC_COMMON_UTIL_H
 
+#include <string.h>
+#include <vector>
+
 namespace tcc {
 
 template<typename T>
@@ -13,17 +16,30 @@ std::string scalar_serialize(T data)
 template<typename T>
 T scalar_deserialize(std::string str)
 {
-    T* p = reinterpret_cast<T*>(str);
+    T* p = reinterpret_cast<T*>(const_cast<char*>(str.data()));
     return *p;
 }
 
-inline std::vector<long> boardcast(std::vector<long> x, std::vector<long> y)
+template<typename T>
+std::string vector_serialize(std::vector<T> vec)
+{
+    char* p = reinterpret_cast<char*>(vec.data());
+    return std::string(p, p + vec.size());
+}
+
+template<typename T>
+std::vector<T> vector_deserialize(std::string str, size_t size)
+{
+    T* p = reinterpret_cast<T*>(strdup(str.data()));
+    return std::vector<T>(p, p + size);
+}
+
+inline dimensions boardcast(dimensions x, dimensions y)
 {
     tcc_assert(x.size() >= y.size(), "y can not be boardcasted to x.");
 
-    std::vector<long> boardcasted(x.size() - y.size(), 1);
+    dimensions boardcasted(x.size() - y.size(), 1);
     boardcasted.insert(boardcasted.end(), y.begin(), y.end());
-
     for (unsigned i = 0; i < x.size(); i++)
     {
         if (x[i] == boardcasted[i] || boardcasted[i] == 1)

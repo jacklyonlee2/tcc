@@ -3,8 +3,10 @@
 
 #include "tcc/common/datatype.h"
 #include "tcc/common/logging.h"
+#include "tcc/common/util.h"
 #include <functional>
 #include <memory>
+#include <numeric>
 #include <unordered_set>
 #include <vector>
 
@@ -18,6 +20,7 @@ enum class expr_type
     range,
     index,
     select,
+    reshape,
     exp,
     sqrt,
     add,
@@ -32,15 +35,8 @@ enum class expr_type
     reduce
 };
 
-enum class reduce_type
-{
-    avg,
-    sum,
-    max
-};
-
 /* forward declare hlir visitor class. */
-class visitor_base;
+struct visitor_base;
 typedef std::shared_ptr<visitor_base> visitor;
 
 /* expr_base is the base class all hlir primitives derive from.
@@ -57,7 +53,7 @@ struct expr_base
 
     expr_type type;
     mutable data_type dtype;
-    mutable std::vector<long> shape;
+    mutable dimensions shape;
 };
 
 /* expr_template is a template class
@@ -77,7 +73,6 @@ struct expr_template
 /* aliases and syntax sugars for the hlir api. */
 typedef std::shared_ptr<const expr_base> expr;
 typedef std::vector<expr> exprs;
-typedef std::vector<expr> ranges;
 
 /* hlir primitive declarations.
  * when declaring a new hlir primitive:
@@ -94,7 +89,7 @@ typedef std::vector<expr> ranges;
 
 struct var : expr_template<var>
 {
-    static expr make(data_type, std::vector<long>);
+    static expr make(data_type, dimensions);
 
     static const expr_type etype = expr_type::var;
 };
@@ -103,43 +98,63 @@ struct cnst : expr_template<cnst>
 {
     std::string data;
 
-    static expr make(const std::string, data_type, std::vector<long>);
-    static expr make(const float);
-    static expr make(const long);
+    template<typename T>
+    std::vector<T> to_vector() const
+    {
+        tcc_assert(!shape.empty(), "can not convert scalar to vector.");
+        return vector_deserialize<T>(
+            data,
+            std::accumulate(
+                shape.begin(), shape.end(), 1, std::multiplies<dimension>()));
+    }
+
+    static expr make(std::string, data_type, dimensions);
+    static expr make(float);
+    static expr make(dimension);
+    static expr make(dimensions);
 
     static const expr_type etype = expr_type::cnst;
 };
 
 struct range : expr_template<range>
 {
-    long bound;
+    dimension bound;
 
-    static expr make(const long);
+    static expr make(dimension);
 
     static const expr_type etype = expr_type::range;
 };
 
 struct index : expr_template<index>
 {
-    ranges rs;
+    exprs ranges;
     expr x;
     exprs indices;
 
-    static expr make(ranges, expr, exprs);
+    static expr make(exprs, expr, exprs);
 
     static const expr_type etype = expr_type::index;
 };
 
 struct select : expr_template<select>
 {
-    ranges rs;
-    expr cond;
+    exprs ranges;
+    expr condition;
     expr t;
     expr f;
 
-    static expr make(ranges, expr, expr, expr);
+    static expr make(exprs, expr, expr, expr);
 
     static const expr_type etype = expr_type::select;
+};
+
+struct reshape : expr_template<reshape>
+{
+    expr x;
+
+    static expr make(dimensions, expr);
+
+    static const expr_type etype = expr_type::reshape;
 };
 
 struct exp : expr_template<exp>
@@ -252,11 +267,18 @@ struct logical_and : expr_template<logical_and>
 
 struct reduce : expr_template<reduce>
 {
-    reduce_type rtype;
-    std::unordered_set<unsigned> rdims;
+    enum class type
+    {
+        avg,
+        max,
+        sum
+    };
+
+    type reduce_type;
+    std::unordered_set<unsigned> reduce_dims;
     expr x;
 
-    static expr make(reduce_type, std::unordered_set<unsigned>, expr);
+    static expr make(type, std::unordered_set<unsigned>, expr);
 
     static const expr_type etype = expr_type::reduce;
 };
@@ -268,6 +290,7 @@ typedef std::shared_ptr<const cnst> cnst_expr;
 typedef std::shared_ptr<const range> range_expr;
 typedef std::shared_ptr<const index> index_expr;
 typedef std::shared_ptr<const select> select_expr;
+typedef std::shared_ptr<const reshape> reshape_expr;
 typedef std::shared_ptr<const exp> exp_expr;
 typedef std::shared_ptr<const sqrt> sqrt_expr;
 typedef std::shared_ptr<const add> add_expr;
@@ -302,24 +325,28 @@ std::shared_ptr<const T> downcast(expr e)
 }
 
 /* construct ranges from shape. */
-inline ranges to_ranges(std::vector<long> shape)
+inline exprs to_ranges(dimensions shape)
 {
-    ranges rs;
-    for (long dim : shape)
+    exprs ranges;
+
+    for (dimension dim : shape)
     {
-        rs.push_back(range::make(dim));
+        ranges.push_back(range::make(dim));
     }
-    return rs;
+
+    return ranges;
 }
 
 /* construct shape from ranges. */
-inline std::vector<long> to_shape(ranges rs)
+inline dimensions to_shape(exprs ranges)
 {
-    std::vector<long> shape;
-    for (expr r : rs)
+    dimensions shape;
+
+    for (expr e : ranges)
     {
-        shape.push_back(downcast<range>(r)->bound);
+        shape.push_back(downcast<range>(e)->bound);
     }
+
     return shape;
 }
 

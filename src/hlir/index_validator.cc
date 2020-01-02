@@ -3,22 +3,28 @@
 namespace tcc {
 namespace hlir {
 
-visitor index_validator::make(ranges rs)
+bool index_validator::apply(exprs ranges, exprs indices)
 {
     std::shared_ptr<index_validator> v(new index_validator);
-    
-    for (expr r : rs)
+
+    for (expr e : ranges)
     {
-        v->valid_ranges.insert(downcast<range>(r));
+        v->valid_ranges.insert(downcast<range>(e));
     }
 
-    return v;
+    v->valid = true;
+
+    static_cast<visitor>(v)->visit(indices);
+
+    return v->valid;
 }
 
 void index_validator::visit(range_expr e)
 {
-    tcc_assert(valid_ranges.find(e) != valid_ranges.end(),
-               "unspecified range expr is found.");
+    if (valid_ranges.find(e) == valid_ranges.end())
+    {
+        valid = false;
+    }
 }
 
 } // namespace hlir

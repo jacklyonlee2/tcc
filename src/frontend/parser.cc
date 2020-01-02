@@ -1,4 +1,4 @@
-#include "tcc/frontend/parse.h"
+#include "tcc/frontend/parser.h"
 #include "graph.pb.h"
 #include "tcc/common/logging.h"
 #include "tcc/frontend/op.h"
@@ -58,7 +58,7 @@ static const std::string parse_tensor_data(
     return value.tensor().tensor_content();
 }
 
-static std::vector<long> parse_tensor_shape(
+static dimensions parse_tensor_shape(
     google::protobuf::Map<std::string, tensorflow::AttrValue> attrs)
 {
     tcc_assert_has_key(attrs, "value");
@@ -73,7 +73,7 @@ static std::vector<long> parse_tensor_shape(
     tcc_assert(tensor.tensor_shape().dim_size() > 0,
                "tensorflow tensor can not have empty shape.");
 
-    std::vector<long> shape;
+    dimensions shape;
     for (tensorflow::TensorShapeProto_Dim dim : tensor.tensor_shape().dim())
     {
         tcc_assert(
@@ -122,7 +122,7 @@ static float parse_attr_float(
     return attr_val.f();
 }
 
-static std::vector<long> parse_attr_long_vec(
+static dimensions parse_attr_dimensions(
     google::protobuf::Map<std::string, tensorflow::AttrValue> attrs,
     std::string attr_name)
 {
@@ -137,14 +137,14 @@ static std::vector<long> parse_attr_long_vec(
     tcc_assert(attr_val_list.i_size() > 0,
                "tensorflow integer list attribute \"" + attr_name +
                    "\" can not be empty.");
-    const long* val = attr_val_list.i().data();
-    return std::vector<long>(val, val + attr_val_list.i_size());
+    const dimension* val = attr_val_list.i().data();
+    return dimensions(val, val + attr_val_list.i_size());
 }
 
 static void parse_node(
     tensorflow::NodeDef& node,
     std::unordered_map<std::string, hlir::expr>& parsed_nodes,
-    std::unordered_map<std::string, std::vector<long>>& input_shapes)
+    std::unordered_map<std::string, dimensions>& input_shapes)
 {
     hlir::expr output;
 
@@ -156,7 +156,7 @@ static void parse_node(
 
         data_type dtype = parse_attr_dtype(node.attr());
         tcc_assert_has_key(input_shapes, node.name());
-        std::vector<long> shape = input_shapes.at(node.name());
+        dimensions shape = input_shapes.at(node.name());
 
         output = parse_op_placeholder(dtype, shape);
     }
@@ -166,7 +166,7 @@ static void parse_node(
 
         const std::string data = parse_tensor_data(node.attr());
         data_type dtype = parse_tensor_dtype(node.attr());
-        std::vector<long> shape = parse_tensor_shape(node.attr());
+        dimensions shape = parse_tensor_shape(node.attr());
 
         output = parse_op_const(data, dtype, shape);
     }
@@ -185,8 +185,8 @@ static void parse_node(
 
         std::string data_format = parse_attr_string(node.attr(), "data_format");
         std::string padding = parse_attr_string(node.attr(), "padding");
-        std::vector<long> ksize = parse_attr_long_vec(node.attr(), "ksize");
-        std::vector<long> strides = parse_attr_long_vec(node.attr(), "strides");
+        dimensions ksize = parse_attr_dimensions(node.attr(), "ksize");
+        dimensions strides = parse_attr_dimensions(node.attr(), "strides");
         hlir::expr value = parsed_nodes.at(node.input()[0]);
 
         output = parse_op_avgpool(data_format, padding, ksize, strides, value);
@@ -207,9 +207,8 @@ static void parse_node(
 
         std::string data_format = parse_attr_string(node.attr(), "data_format");
         std::string padding = parse_attr_string(node.attr(), "padding");
-        std::vector<long> strides = parse_attr_long_vec(node.attr(), "strides");
-        std::vector<long> dilations =
-            parse_attr_long_vec(node.attr(), "dilations");
+        dimensions strides = parse_attr_dimensions(node.attr(), "strides");
+        dimensions dilations = parse_attr_dimensions(node.attr(), "dilations");
         hlir::expr input = parsed_nodes.at(node.input()[0]);
         hlir::expr filter = parsed_nodes.at(node.input()[1]);
 
@@ -222,9 +221,8 @@ static void parse_node(
 
         std::string data_format = parse_attr_string(node.attr(), "data_format");
         std::string padding = parse_attr_string(node.attr(), "padding");
-        std::vector<long> strides = parse_attr_long_vec(node.attr(), "strides");
-        std::vector<long> dilations =
-            parse_attr_long_vec(node.attr(), "dilations");
+        dimensions strides = parse_attr_dimensions(node.attr(), "strides");
+        dimensions dilations = parse_attr_dimensions(node.attr(), "dilations");
         hlir::expr input = parsed_nodes.at(node.input()[0]);
         hlir::expr filter = parsed_nodes.at(node.input()[1]);
 
@@ -283,11 +281,11 @@ static void parse_node(
     {
         tcc_assert_size_eq(node.input(), 1);
 
-        std::vector<long> sqeeuze_dims =
-            parse_attr_long_vec(node.attr(), "sqeeuze_dims");
+        dimensions squeeze_dims =
+            parse_attr_dimensions(node.attr(), "squeeze_dims");
         hlir::expr input = parsed_nodes.at(node.input()[0]);
 
-        output = parse_op_squeeze(sqeeuze_dims, input);
+        output = parse_op_squeeze(squeeze_dims, input);
     }
     else
     {
@@ -303,26 +301,33 @@ static void parse_node(
 static void recurse_graph(
     std::string current_node_name,
     std::unordered_map<std::string, tensorflow::NodeDef>& nodes,
+    std::unordered_set<std::string>& traversed,
     std::unordered_map<std::string, hlir::expr>& parsed_nodes,
-    std::unordered_map<std::string, std::vector<long>>& input_shapes)
+    std::unordered_map<std::string, dimensions>& input_shapes)
 {
-    tcc_assert_has_key(nodes, current_node_name);
-    tensorflow::NodeDef current_node = nodes.at(current_node_name);
-
-    /* recurses the inputs of the current node;
-     * reaches base case when there is no inputs to the current node. */
-    for (std::string input_node_name : current_node.input())
+    if (traversed.find(current_node_name) == traversed.end())
     {
-        recurse_graph(input_node_name, nodes, parsed_nodes, input_shapes);
-        tcc_assert_has_key(parsed_nodes, input_node_name);
-    }
+        traversed.insert(current_node_name);
 
-    parse_node(current_node, parsed_nodes, input_shapes);
+        tcc_assert_has_key(nodes, current_node_name);
+        tensorflow::NodeDef current_node = nodes.at(current_node_name);
+
+        /* recurses the inputs of the current node;
+         * reaches base case when there is no inputs to the current node. */
+        for (std::string input_node_name : current_node.input())
+        {
+            recurse_graph(
+                input_node_name, nodes, traversed, parsed_nodes, input_shapes);
+            tcc_assert_has_key(parsed_nodes, input_node_name);
+        }
+
+        parse_node(current_node, parsed_nodes, input_shapes);
+    }
 }
 
 static hlir::expr parse_graph(
     tensorflow::GraphDef& graph,
-    std::unordered_map<std::string, std::vector<long>>& input_shapes)
+    std::unordered_map<std::string, dimensions>& input_shapes)
 {
     /* collect all tensorflow nodes into hashtable and
      * find output nodes of the tensorflow graph. */
@@ -353,17 +358,16 @@ static hlir::expr parse_graph(
 
     /* recurive traverse the tensorflow graph and
      * parse each tensorflow node into hlir. */
+    std::unordered_set<std::string> traversed;
     std::unordered_map<std::string, hlir::expr> parsed_nodes;
-
-    recurse_graph(output_name, nodes, parsed_nodes, input_shapes);
+    recurse_graph(output_name, nodes, traversed, parsed_nodes, input_shapes);
 
     tcc_assert_has_key(parsed_nodes, output_name);
     return parsed_nodes.at(output_name);
 }
 
-hlir::expr parse(
-    std::string input_path,
-    std::unordered_map<std::string, std::vector<long>>& input_shapes)
+hlir::expr parse(std::string input_path,
+                 std::unordered_map<std::string, dimensions>& input_shapes)
 {
     tensorflow::GraphDef graph = load_graph(input_path);
     return parse_graph(graph, input_shapes);

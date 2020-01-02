@@ -28,17 +28,22 @@ void visitor_base::visit(range_expr) {}
 
 void visitor_base::visit(index_expr e)
 {
-    visit(e->rs);
+    visit(e->ranges);
     visit(e->x);
     visit(e->indices);
 }
 
 void visitor_base::visit(select_expr e)
 {
-    visit(e->rs);
-    visit(e->cond);
+    visit(e->ranges);
+    visit(e->condition);
     visit(e->t);
     visit(e->f);
+}
+
+void visitor_base::visit(reshape_expr e)
+{
+    visit(e->x);
 }
 
 void visitor_base::visit(exp_expr e)
