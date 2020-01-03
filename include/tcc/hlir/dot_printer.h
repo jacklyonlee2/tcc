@@ -2,6 +2,7 @@
 #define TCC_HLIR_DOT_PRINTER_H
 
 #include "tcc/hlir/visitor.h"
+#include <unordered_map>
 
 namespace tcc {
 namespace hlir {
@@ -32,6 +33,52 @@ struct dot_printer : visitor_base
     void visit(less_expr) override;
     void visit(logical_and_expr) override;
     void visit(reduce_expr) override;
+
+    struct graph
+    {
+      public:
+        void add_node(expr, std::string, std::vector<std::string> = {});
+        void add_edge(expr, expr, std::string);
+        std::string str() const;
+
+      private:
+        struct node
+        {
+          public:
+            node(expr,
+                 std::string,
+                 data_type,
+                 dimensions,
+                 std::vector<std::string>);
+            std::string get_input_label(std::string) const;
+            std::string str() const;
+
+          private:
+            std::string e;
+            std::string etype;
+            std::string dtype;
+            std::string shape;
+            std::vector<std::string> inputs;
+            std::unordered_map<std::string, std::string> input_labels;
+        };
+
+        struct edge
+        {
+          public:
+            edge(expr, expr, std::string);
+            std::string str() const;
+
+          private:
+            std::string src;
+            std::string dst;
+            std::string dst_input_label;
+        };
+
+        std::unordered_map<expr, node> nodes;
+        std::vector<edge> edges;
+    };
+
+    graph ir;
 };
 
 } // namespace hlir

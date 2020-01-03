@@ -33,13 +33,11 @@
 
 #define tcc_assert_has_key(map, key)                                           \
     tcc_assert((map).find((key)) != (map).end(),                               \
-               "key \"" + std::string(key) +                                   \
-                   "\" is not found in \"" #map "\".")
+               "key \"" #key "\" is not found in \"" #map "\".")
 
 #define tcc_assert_no_key(map, key)                                            \
     tcc_assert((map).find((key)) == (map).end(),                               \
-               "key \"" + std::string(key) +                                   \
-                   "\" already exists in \"" #map "\".")
+               "key \"" #key "\" already exists in \"" #map "\".")
 
 #define tcc_assert_not_null(ptr)                                               \
     tcc_assert((ptr) != nullptr, "\"" #ptr "\" can not be null.")

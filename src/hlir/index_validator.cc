@@ -12,8 +12,6 @@ bool index_validator::apply(exprs ranges, exprs indices)
         v->valid_ranges.insert(downcast<range>(e));
     }
 
-    v->valid = true;
-
     static_cast<visitor>(v)->visit(indices);
 
     return v->valid;

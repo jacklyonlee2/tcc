@@ -16,7 +16,7 @@ struct index_validator : visitor_base
     void visit(range_expr) override;
 
     std::unordered_set<range_expr> valid_ranges;
-    bool valid;
+    bool valid = true;
 };
 
 } // namespace hlir

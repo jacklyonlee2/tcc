@@ -90,7 +90,8 @@ expr select::make(exprs ranges, expr cond, expr t, expr f)
     tcc_assert_not_null(t);
     tcc_assert_not_null(f);
     tcc_assert(!ranges.empty(), "ranges is empty.");
-    tcc_assert(cond->dtype == data_type::BOOL, "dtype of cond is not BOOL.");
+    tcc_assert(cond->dtype == data_type::BOOL,
+               "dtype of cond is not BOOL.");
     tcc_assert(t->dtype == f->dtype, "dtypes of t and f do not agree.");
     tcc_assert(t->shape.empty() || (t->type == expr_type::index &&
                                     downcast<index>(t)->ranges == ranges),
@@ -101,6 +102,7 @@ expr select::make(exprs ranges, expr cond, expr t, expr f)
 
     std::shared_ptr<select> e(new select);
     e->ranges = ranges;
+    e->cond = cond;
     e->t = t;
     e->f = f;
     e->dtype = t->dtype;

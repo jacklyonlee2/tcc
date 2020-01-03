@@ -99,6 +99,13 @@ struct cnst : expr_template<cnst>
     std::string data;
 
     template<typename T>
+    T to_scalar() const
+    {
+        tcc_assert(shape.empty(), "can not convert vector to scalar.");
+        return scalar_deserialize<T>(data);
+    }
+
+    template<typename T>
     std::vector<T> to_vector() const
     {
         tcc_assert(!shape.empty(), "can not convert scalar to vector.");
@@ -139,7 +146,7 @@ struct index : expr_template<index>
 struct select : expr_template<select>
 {
     exprs ranges;
-    expr condition;
+    expr cond;
     expr t;
     expr f;
 

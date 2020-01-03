@@ -5,6 +5,7 @@ namespace hlir {
 
 void visitor_base::visit(expr e)
 {
+    tcc_assert_not_null(e);
     if (visited.find(e) == visited.end())
     {
         visited.insert(e);
@@ -28,15 +29,13 @@ void visitor_base::visit(range_expr) {}
 
 void visitor_base::visit(index_expr e)
 {
-    visit(e->ranges);
     visit(e->x);
     visit(e->indices);
 }
 
 void visitor_base::visit(select_expr e)
 {
-    visit(e->ranges);
-    visit(e->condition);
+    visit(e->cond);
     visit(e->t);
     visit(e->f);
 }
