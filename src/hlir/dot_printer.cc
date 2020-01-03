@@ -20,7 +20,6 @@ void dot_printer::apply(std::string output_path, expr hlir)
 
     std::ofstream file(output_path, std::ios::trunc);
     tcc_assert(file, "failed to open file at \"" + output_path + "\".");
-
     file << v->ir.str();
     file.close();
 }

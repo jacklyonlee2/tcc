@@ -70,7 +70,7 @@ struct expr_template
     void accept(visitor v) const override;
 };
 
-/* aliases and syntax sugars for the hlir api. */
+/* aliases for pointers of expr_base. */
 typedef std::shared_ptr<const expr_base> expr;
 typedef std::vector<expr> exprs;
 

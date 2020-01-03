@@ -2,6 +2,7 @@
 #include "tcc/common/logging.h"
 #include "tcc/frontend/parser.h"
 #include "tcc/hlir/dot_printer.h"
+#include "tcc/hlir/lower.h"
 #include <iostream>
 #include <unordered_map>
 #include <vector>
@@ -97,12 +98,15 @@ int main(int argc, char** argv)
 {
     using namespace tcc;
 
-    tcc_info("parsing command line flags.");
+    tcc_info("parsing command line flags ...");
     tcc_config config = parse_config(argc, argv);
 
-    tcc_info("parsing tensorflow graph into hlir.");
+    tcc_info("parsing tensorflow graph into hlir ...");
     hlir::expr hlir = frontend::parse(config.input_path, config.input_shapes);
 
-    tcc_info("generating DOT file for hlir.");
+    tcc_info("generating hlir DOT file ...");
     hlir::dot_printer::apply("./hlir.dot", hlir);
+
+    tcc_info("lowering hlir to llir ...");
+    llir::blk llir = hlir::lower::apply(hlir);
 }

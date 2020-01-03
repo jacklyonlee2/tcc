@@ -2,32 +2,32 @@
 #include "tcc/common/logging.h"
 #include <math.h>
 
-using namespace tcc::hlir;
-
 namespace tcc {
 namespace frontend {
 
-expr parse_op_placeholder(data_type dtype, dimensions shape)
+hlir::expr parse_op_placeholder(data_type dtype, dimensions shape)
 {
-    return var::make(dtype, shape);
+    return hlir::var::make(dtype, shape);
 }
 
-expr parse_op_const(std::string data, data_type dtype, dimensions shape)
+hlir::expr parse_op_const(std::string data, data_type dtype, dimensions shape)
 {
-    return cnst::make(data, dtype, shape);
+    return hlir::cnst::make(data, dtype, shape);
 }
 
-expr parse_op_add(expr x, expr y)
+hlir::expr parse_op_add(hlir::expr x, hlir::expr y)
 {
     return x + y;
 }
 
-expr parse_op_avgpool(std::string data_format,
+hlir::expr parse_op_avgpool(std::string data_format,
                       std::string padding,
                       dimensions ksize,
                       dimensions strides,
-                      expr value)
+                      hlir::expr value)
 {
+    using namespace tcc::hlir;
+
     tcc_assert(data_format == "NHWC",
                "\"" + data_format + "\" data format is not supported.");
     tcc_assert(padding == "VALID",
@@ -73,8 +73,10 @@ expr parse_op_avgpool(std::string data_format,
     return reduce::make(reduce::type::avg, { 3, 4 }, value_frag);
 }
 
-expr parse_op_biasadd(std::string data_format, expr input, expr bias)
+hlir::expr parse_op_biasadd(std::string data_format, hlir::expr input, hlir::expr bias)
 {
+    using namespace tcc::hlir;
+
     tcc_assert(data_format == "NHWC",
                "\"" + data_format + "\" data format is not supported.");
     tcc_assert_not_null(input);
@@ -87,13 +89,15 @@ expr parse_op_biasadd(std::string data_format, expr input, expr bias)
     return input + bias;
 }
 
-expr parse_op_conv2d(std::string data_format,
+hlir::expr parse_op_conv2d(std::string data_format,
                      std::string padding,
                      dimensions strides,
                      dimensions dilations,
-                     expr input,
-                     expr filter)
+                     hlir::expr input,
+                     hlir::expr filter)
 {
+    using namespace tcc::hlir;
+
     tcc_assert(data_format == "NHWC",
                "\"" + data_format + "\" data format is not supported.");
     tcc_assert(padding == "SAME",
@@ -161,13 +165,15 @@ expr parse_op_conv2d(std::string data_format,
     return reduce::make(reduce::type::sum, { 3, 4, 5 }, input_frag * filter);
 }
 
-expr parse_op_depthwiseconv2dnative(std::string data_format,
+hlir::expr parse_op_depthwiseconv2dnative(std::string data_format,
                                     std::string padding,
                                     dimensions strides,
                                     dimensions dilations,
-                                    expr input,
-                                    expr filter)
+                                    hlir::expr input,
+                                    hlir::expr filter)
 {
+    using namespace tcc::hlir;
+
     tcc_assert(data_format == "NHWC",
                "\"" + data_format + "\" data format is not supported.");
     tcc_assert(padding == "SAME",
@@ -237,14 +243,16 @@ expr parse_op_depthwiseconv2dnative(std::string data_format,
         reduce::make(reduce::type::sum, { 3, 4 }, input_frag * filter));
 }
 
-expr parse_op_fusedbatchnorm(float epsilon,
+hlir::expr parse_op_fusedbatchnorm(float epsilon,
                              std::string data_format,
-                             expr x,
-                             expr scale,
-                             expr offset,
-                             expr mean,
-                             expr variance)
+                             hlir::expr x,
+                             hlir::expr scale,
+                             hlir::expr offset,
+                             hlir::expr mean,
+                             hlir::expr variance)
 {
+    using namespace tcc::hlir;
+
     tcc_assert(data_format == "NHWC",
                "\"" + data_format + "\" data format is not supported.");
     tcc_assert_not_null(x);
@@ -267,8 +275,10 @@ expr parse_op_fusedbatchnorm(float epsilon,
            offset;
 }
 
-expr parse_op_relu6(expr features)
+hlir::expr parse_op_relu6(hlir::expr features)
 {
+    using namespace tcc::hlir;
+
     tcc_assert_not_null(features);
 
     exprs i = to_ranges(features->shape);
@@ -278,8 +288,10 @@ expr parse_op_relu6(expr features)
                         cnst::make(0.0f));
 }
 
-expr parse_op_reshape(expr tensor, expr shape)
+hlir::expr parse_op_reshape(hlir::expr tensor, hlir::expr shape)
 {
+    using namespace tcc::hlir;
+
     tcc_assert_not_null(tensor);
     tcc_assert_not_null(shape);
     tcc_assert(shape->type == expr_type::cnst,
@@ -308,14 +320,16 @@ expr parse_op_reshape(expr tensor, expr shape)
     return reshape::make(to_shape, tensor);
 }
 
-expr parse_op_shape(expr input)
+hlir::expr parse_op_shape(hlir::expr input)
 {
     tcc_assert_not_null(input);
-    return cnst::make(input->shape);
+    return hlir::cnst::make(input->shape);
 }
 
-expr parse_op_softmax(expr logits)
+hlir::expr parse_op_softmax(hlir::expr logits)
 {
+    using namespace tcc::hlir;
+
     tcc_assert_not_null(logits);
     tcc_assert_size_eq(logits->shape, 2);
 
@@ -326,8 +340,10 @@ expr parse_op_softmax(expr logits)
     return de / index::make(i, sm, { i[0] });
 }
 
-expr parse_op_squeeze(dimensions squeeze_dims, expr input)
+hlir::expr parse_op_squeeze(dimensions squeeze_dims, hlir::expr input)
 {
+    using namespace tcc::hlir;
+
     tcc_assert(!squeeze_dims.empty(), "squeeze_dims is empty.");
     tcc_assert_not_null(input);
 

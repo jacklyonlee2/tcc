@@ -1,7 +1,7 @@
 #include "tcc/frontend/parser.h"
-#include "graph.pb.h"
 #include "tcc/common/logging.h"
 #include "tcc/frontend/op.h"
+#include "tensorflow/graph.pb.h"
 #include <fstream>
 
 namespace tcc {
