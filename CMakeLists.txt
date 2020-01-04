@@ -5,7 +5,7 @@ project(tcc
     DESCRIPTION "End-to-End Ahead-of-Time ML Compiler"
     LANGUAGES CXX)
 
-add_compile_options(-Wall -Wextra -Wpedantic)
+add_compile_options(-Wall -Wextra -Wpedantic -g)
 
 set(TCC_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(TCC_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})

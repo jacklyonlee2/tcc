@@ -1,8 +1,39 @@
 #ifndef TCC_COMMON_UTIL_H
 #define TCC_COMMON_UTIL_H
 
+#include "tcc/common/datatype.h"
+#include "tcc/common/logging.h"
+#include <sstream>
 #include <string.h>
 #include <vector>
+
+namespace std {
+
+inline string to_string(const void* val)
+{
+    stringstream ss;
+    ss << val;
+    return ss.str();
+}
+
+inline string to_string(tcc::data_type val)
+{
+    switch (val)
+    {
+        case tcc::data_type::BOOL:
+            return "BOOL";
+        case tcc::data_type::FP32:
+            return "FP32";
+        case tcc::data_type::INT32:
+            return "INT32";
+        case tcc::data_type::INT64:
+            return "INT64";
+        default:
+            tcc_error("unknown data type.");
+    }
+}
+
+} // namespace std
 
 namespace tcc {
 

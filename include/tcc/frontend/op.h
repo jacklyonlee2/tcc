@@ -2,57 +2,56 @@
 #define TCC_FRONTEND_OP
 
 #include "tcc/common/datatype.h"
-#include "tcc/hlir/ir.h"
-#include <vector>
+#include "tcc/affn/ir.h"
 
 namespace tcc {
 namespace frontend {
 
-hlir::expr parse_op_placeholder(data_type, dimensions);
+affn::expr build_placeholder(data_type, dimensions);
 
-hlir::expr parse_op_const(std::string, data_type, dimensions);
+affn::expr build_const(std::string, data_type, dimensions);
 
-hlir::expr parse_op_add(hlir::expr, hlir::expr);
+affn::expr build_add(affn::expr, affn::expr);
 
-hlir::expr parse_op_avgpool(std::string,
+affn::expr build_avgpool(std::string,
                             std::string,
                             dimensions,
                             dimensions,
-                            hlir::expr);
+                            affn::expr);
 
-hlir::expr parse_op_biasadd(std::string, hlir::expr, hlir::expr);
+affn::expr build_biasadd(std::string, affn::expr, affn::expr);
 
-hlir::expr parse_op_conv2d(std::string,
+affn::expr build_conv2d(std::string,
                            std::string,
                            dimensions,
                            dimensions,
-                           hlir::expr,
-                           hlir::expr);
+                           affn::expr,
+                           affn::expr);
 
-hlir::expr parse_op_depthwiseconv2dnative(std::string,
+affn::expr build_depthwiseconv2dnative(std::string,
                                           std::string,
                                           dimensions,
                                           dimensions,
-                                          hlir::expr,
-                                          hlir::expr);
+                                          affn::expr,
+                                          affn::expr);
 
-hlir::expr parse_op_fusedbatchnorm(float,
+affn::expr build_fusedbatchnorm(float,
                                    std::string,
-                                   hlir::expr,
-                                   hlir::expr,
-                                   hlir::expr,
-                                   hlir::expr,
-                                   hlir::expr);
+                                   affn::expr,
+                                   affn::expr,
+                                   affn::expr,
+                                   affn::expr,
+                                   affn::expr);
 
-hlir::expr parse_op_relu6(hlir::expr);
+affn::expr build_relu6(affn::expr);
 
-hlir::expr parse_op_reshape(hlir::expr, hlir::expr);
+affn::expr build_reshape(affn::expr, affn::expr);
 
-hlir::expr parse_op_shape(hlir::expr);
+affn::expr build_shape(affn::expr);
 
-hlir::expr parse_op_softmax(hlir::expr);
+affn::expr build_softmax(affn::expr);
 
-hlir::expr parse_op_squeeze(dimensions, hlir::expr);
+affn::expr build_squeeze(dimensions, affn::expr);
 
 } // namespace frontend
 } // namespace tcc

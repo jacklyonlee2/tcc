@@ -13,10 +13,10 @@ list(APPEND PROTO
 protobuf_generate_cpp(PROTO_SRC PROTO_HDR
     ${PROTO})
 
-add_library(tensorflow_proto
+add_library(proto
     ${PROTO_HDR}
     ${PROTO_SRC})
 
-target_link_libraries(tensorflow_proto
+target_link_libraries(proto
     PRIVATE
     ${PROTOBUF_LIBRARIES})

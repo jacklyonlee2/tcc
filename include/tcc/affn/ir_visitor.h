@@ -1,13 +1,13 @@
-#ifndef TCC_HLIR_VISITOR_H
-#define TCC_HLIR_VISITOR_H
+#ifndef TCC_AFFN_IR_VISITOR_H
+#define TCC_AFFN_IR_VISITOR_H
 
-#include "tcc/hlir/ir.h"
+#include "tcc/affn/ir.h"
 #include <unordered_set>
 
 namespace tcc {
-namespace hlir {
+namespace affn {
 
-struct visitor_base : std::enable_shared_from_this<visitor_base>
+struct ir_visitor : std::enable_shared_from_this<ir_visitor>
 {
   public:
     virtual void visit(expr);
@@ -36,12 +36,10 @@ struct visitor_base : std::enable_shared_from_this<visitor_base>
     std::unordered_set<expr> visited;
 
     template<typename T>
-    friend struct expr_template;
+    friend struct base_expr;
 };
 
-typedef std::shared_ptr<visitor_base> visitor;
-
-} // namespace hlir
+} // namespace affn
 } // namespace tcc
 
-#endif // TCC_HLIR_VISITOR_H
+#endif // TCC_AFFN_IR_VISITOR_H

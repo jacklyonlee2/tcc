@@ -1,13 +1,119 @@
-#include "tcc/hlir/ir.h"
+#include "tcc/affn/ir.h"
+#include "tcc/affn/index_validator.h"
+#include "tcc/affn/ir_visitor.h"
 #include "tcc/common/util.h"
-#include "tcc/hlir/index_validator.h"
-#include "tcc/hlir/visitor.h"
 #include <numeric>
 
 namespace tcc {
-namespace hlir {
+namespace affn {
 
-/* hlir primitive implementations. */
+template<>
+void base_expr<var>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<var>(shared_from_this()));
+}
+
+template<>
+void base_expr<cnst>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<cnst>(shared_from_this()));
+}
+
+template<>
+void base_expr<range>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<range>(shared_from_this()));
+}
+
+template<>
+void base_expr<index>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<index>(shared_from_this()));
+}
+
+template<>
+void base_expr<select>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<select>(shared_from_this()));
+}
+
+template<>
+void base_expr<reshape>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<reshape>(shared_from_this()));
+}
+
+template<>
+void base_expr<exp>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<exp>(shared_from_this()));
+}
+
+template<>
+void base_expr<sqrt>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<sqrt>(shared_from_this()));
+}
+
+template<>
+void base_expr<add>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<add>(shared_from_this()));
+}
+
+template<>
+void base_expr<sub>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<sub>(shared_from_this()));
+}
+
+template<>
+void base_expr<mul>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<mul>(shared_from_this()));
+}
+
+template<>
+void base_expr<div>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<div>(shared_from_this()));
+}
+
+template<>
+void base_expr<mod>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<mod>(shared_from_this()));
+}
+
+template<>
+void base_expr<greater>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<greater>(shared_from_this()));
+}
+
+template<>
+void base_expr<greater_equal>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<greater_equal>(shared_from_this()));
+}
+
+template<>
+void base_expr<less>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<less>(shared_from_this()));
+}
+
+template<>
+void base_expr<logical_and>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<logical_and>(shared_from_this()));
+}
+
+template<>
+void base_expr<reduce>::accept(std::shared_ptr<ir_visitor> v) const
+{
+    v->visit(downcast<reduce>(shared_from_this()));
+}
 
 expr var::make(data_type dtype, dimensions shape)
 {
@@ -90,8 +196,7 @@ expr select::make(exprs ranges, expr cond, expr t, expr f)
     tcc_assert_not_null(t);
     tcc_assert_not_null(f);
     tcc_assert(!ranges.empty(), "ranges is empty.");
-    tcc_assert(cond->dtype == data_type::BOOL,
-               "dtype of cond is not BOOL.");
+    tcc_assert(cond->dtype == data_type::BOOL, "dtype of cond is not BOOL.");
     tcc_assert(t->dtype == f->dtype, "dtypes of t and f do not agree.");
     tcc_assert(t->shape.empty() || (t->type == expr_type::index &&
                                     downcast<index>(t)->ranges == ranges),
@@ -305,8 +410,6 @@ expr reduce::make(type reduce_type,
     return e;
 }
 
-/* overload arithmetic and logical operators for expr. */
-
 expr operator+(expr lhs, expr rhs)
 {
     return add::make(lhs, rhs);
@@ -352,115 +455,5 @@ expr operator&&(expr lhs, expr rhs)
     return logical_and::make(lhs, rhs);
 }
 
-/* overridden expr_template accept methods. */
-
-template<>
-void expr_template<var>::accept(visitor v) const
-{
-    v->visit(downcast<var>(shared_from_this()));
-}
-
-template<>
-void expr_template<cnst>::accept(visitor v) const
-{
-    v->visit(downcast<cnst>(shared_from_this()));
-}
-
-template<>
-void expr_template<range>::accept(visitor v) const
-{
-    v->visit(downcast<range>(shared_from_this()));
-}
-
-template<>
-void expr_template<index>::accept(visitor v) const
-{
-    v->visit(downcast<index>(shared_from_this()));
-}
-
-template<>
-void expr_template<select>::accept(visitor v) const
-{
-    v->visit(downcast<select>(shared_from_this()));
-}
-
-template<>
-void expr_template<reshape>::accept(visitor v) const
-{
-    v->visit(downcast<reshape>(shared_from_this()));
-}
-
-template<>
-void expr_template<exp>::accept(visitor v) const
-{
-    v->visit(downcast<exp>(shared_from_this()));
-}
-
-template<>
-void expr_template<sqrt>::accept(visitor v) const
-{
-    v->visit(downcast<sqrt>(shared_from_this()));
-}
-
-template<>
-void expr_template<add>::accept(visitor v) const
-{
-    v->visit(downcast<add>(shared_from_this()));
-}
-
-template<>
-void expr_template<sub>::accept(visitor v) const
-{
-    v->visit(downcast<sub>(shared_from_this()));
-}
-
-template<>
-void expr_template<mul>::accept(visitor v) const
-{
-    v->visit(downcast<mul>(shared_from_this()));
-}
-
-template<>
-void expr_template<div>::accept(visitor v) const
-{
-    v->visit(downcast<div>(shared_from_this()));
-}
-
-template<>
-void expr_template<mod>::accept(visitor v) const
-{
-    v->visit(downcast<mod>(shared_from_this()));
-}
-
-template<>
-void expr_template<greater>::accept(visitor v) const
-{
-    v->visit(downcast<greater>(shared_from_this()));
-}
-
-template<>
-void expr_template<greater_equal>::accept(visitor v) const
-{
-    v->visit(downcast<greater_equal>(shared_from_this()));
-}
-
-template<>
-void expr_template<less>::accept(visitor v) const
-{
-    v->visit(downcast<less>(shared_from_this()));
-}
-
-template<>
-void expr_template<logical_and>::accept(visitor v) const
-{
-    v->visit(downcast<logical_and>(shared_from_this()));
-}
-
-template<>
-void expr_template<reduce>::accept(visitor v) const
-{
-    v->visit(downcast<reduce>(shared_from_this()));
-}
-
-} // namespace hlir
+} // namespace affn
 } // namespace tcc

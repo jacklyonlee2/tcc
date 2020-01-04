@@ -1,17 +1,18 @@
-#ifndef TCC_HLIR_LOWER_H
-#define TCC_HLIR_LOWER_H
+#ifndef TCC_AFFN_IR_LOWER_H
+#define TCC_AFFN_IR_LOWER_H
 
-#include "tcc/hlir/visitor.h"
-#include "tcc/llir/ir.h"
+#include "tcc/affn/ir_visitor.h"
+#include "tcc/lang/ir.h"
+#include <stack>
 
 namespace tcc {
-namespace hlir {
+namespace affn {
 
-/* lower given hlir into corresponding llir. */
-struct lower : visitor_base
+/* ir_lower constructs lang ir from affn ir. */
+struct ir_lower : ir_visitor
 {
   public:
-    static llir::blk apply(expr);
+    static lang::prim apply(expr);
 
   protected:
     void visit(var_expr) override;
@@ -32,9 +33,11 @@ struct lower : visitor_base
     void visit(less_expr) override;
     void visit(logical_and_expr) override;
     void visit(reduce_expr) override;
+
+    std::stack<lang::prims> scopes;
 };
 
-} // namespace hlir
+} // namespace affn
 } // namespace tcc
 
-#endif // TCC_HLIR_LOWER_H
+#endif // TCC_AFFN_IR_LOWER_H

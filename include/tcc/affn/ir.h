@@ -1,17 +1,16 @@
-#ifndef TCC_HLIR_IR_H
-#define TCC_HLIR_IR_H
+#ifndef TCC_AFFN_IR_H
+#define TCC_AFFN_IR_H
 
 #include "tcc/common/datatype.h"
 #include "tcc/common/logging.h"
 #include "tcc/common/util.h"
-#include <functional>
 #include <memory>
 #include <numeric>
 #include <unordered_set>
 #include <vector>
 
 namespace tcc {
-namespace hlir {
+namespace affn {
 
 enum class expr_type
 {
@@ -35,66 +34,46 @@ enum class expr_type
     reduce
 };
 
-/* forward declare hlir visitor class. */
-struct visitor_base;
-typedef std::shared_ptr<visitor_base> visitor;
+struct ir_visitor;
 
-/* expr_base is the base class all hlir primitives derive from.
- * expr_base stores the expr_type of the derived class, the
- * shape of its output and "accept" virtual method to support
- * visitor design pattern. */
-struct expr_base
+/* abstract base class for affn exprs. */
+struct abstract_expr
 {
-    expr_base(expr_type t)
+    abstract_expr(expr_type t)
         : type(t)
     {}
 
-    virtual void accept(visitor v) const = 0;
+    virtual void accept(std::shared_ptr<ir_visitor> v) const = 0;
 
     expr_type type;
     mutable data_type dtype;
     mutable dimensions shape;
 };
 
-/* expr_template is a template class
- * used to declare hlir primitives. */
+/* base class for affn exprs. */
 template<typename T>
-struct expr_template
-    : expr_base
-    , std::enable_shared_from_this<expr_template<T>>
+struct base_expr
+    : abstract_expr
+    , std::enable_shared_from_this<base_expr<T>>
 {
-    expr_template()
-        : expr_base(T::etype)
+    base_expr()
+        : abstract_expr(T::etype)
     {}
 
-    void accept(visitor v) const override;
+    void accept(std::shared_ptr<ir_visitor> v) const override;
 };
 
-/* aliases for pointers of expr_base. */
-typedef std::shared_ptr<const expr_base> expr;
+typedef std::shared_ptr<const abstract_expr> expr;
 typedef std::vector<expr> exprs;
 
-/* hlir primitive declarations.
- * when declaring a new hlir primitive:
- * * add the respective expr_type to the expr_type enum class;
- * * declare the struct for the respective hlir primitive deriving
- *   for the expr_template class;
- * * declare and implement "make" method used for initialization
- *   in place of the default constructor;
- * * declare "etype" field initialized to the respective expr_type;
- * * add a new type alias for pointers to the respective hlir primitive;
- * * add a new visit method to the hlir visitor class and all of
- *   its derived classes for ther respective hlir primitive.
- * * override the respective "accept" method of expr_template. */
-
-struct var : expr_template<var>
+struct var : base_expr<var>
 {
     static expr make(data_type, dimensions);
 
     static const expr_type etype = expr_type::var;
 };
 
-struct cnst : expr_template<cnst>
+struct cnst : base_expr<cnst>
 {
     std::string data;
 
@@ -123,7 +102,7 @@ struct cnst : expr_template<cnst>
     static const expr_type etype = expr_type::cnst;
 };
 
-struct range : expr_template<range>
+struct range : base_expr<range>
 {
     dimension bound;
 
@@ -132,7 +111,7 @@ struct range : expr_template<range>
     static const expr_type etype = expr_type::range;
 };
 
-struct index : expr_template<index>
+struct index : base_expr<index>
 {
     exprs ranges;
     expr x;
@@ -143,7 +122,7 @@ struct index : expr_template<index>
     static const expr_type etype = expr_type::index;
 };
 
-struct select : expr_template<select>
+struct select : base_expr<select>
 {
     exprs ranges;
     expr cond;
@@ -155,7 +134,7 @@ struct select : expr_template<select>
     static const expr_type etype = expr_type::select;
 };
 
-struct reshape : expr_template<reshape>
+struct reshape : base_expr<reshape>
 {
     expr x;
 
@@ -164,7 +143,7 @@ struct reshape : expr_template<reshape>
     static const expr_type etype = expr_type::reshape;
 };
 
-struct exp : expr_template<exp>
+struct exp : base_expr<exp>
 {
     expr x;
 
@@ -173,7 +152,7 @@ struct exp : expr_template<exp>
     static const expr_type etype = expr_type::exp;
 };
 
-struct sqrt : expr_template<sqrt>
+struct sqrt : base_expr<sqrt>
 {
     expr x;
 
@@ -182,7 +161,7 @@ struct sqrt : expr_template<sqrt>
     static const expr_type etype = expr_type::sqrt;
 };
 
-struct add : expr_template<add>
+struct add : base_expr<add>
 {
     expr x;
     expr y;
@@ -192,7 +171,7 @@ struct add : expr_template<add>
     static const expr_type etype = expr_type::add;
 };
 
-struct sub : expr_template<sub>
+struct sub : base_expr<sub>
 {
     expr x;
     expr y;
@@ -202,7 +181,7 @@ struct sub : expr_template<sub>
     static const expr_type etype = expr_type::sub;
 };
 
-struct mul : expr_template<mul>
+struct mul : base_expr<mul>
 {
     expr x;
     expr y;
@@ -212,7 +191,7 @@ struct mul : expr_template<mul>
     static const expr_type etype = expr_type::mul;
 };
 
-struct div : expr_template<div>
+struct div : base_expr<div>
 {
     expr x;
     expr y;
@@ -222,7 +201,7 @@ struct div : expr_template<div>
     static const expr_type etype = expr_type::div;
 };
 
-struct mod : expr_template<mod>
+struct mod : base_expr<mod>
 {
     expr x;
     expr y;
@@ -232,7 +211,7 @@ struct mod : expr_template<mod>
     static const expr_type etype = expr_type::mod;
 };
 
-struct greater : expr_template<greater>
+struct greater : base_expr<greater>
 {
     expr x;
     expr y;
@@ -242,7 +221,7 @@ struct greater : expr_template<greater>
     static const expr_type etype = expr_type::greater;
 };
 
-struct greater_equal : expr_template<greater_equal>
+struct greater_equal : base_expr<greater_equal>
 {
     expr x;
     expr y;
@@ -252,7 +231,7 @@ struct greater_equal : expr_template<greater_equal>
     static const expr_type etype = expr_type::greater_equal;
 };
 
-struct less : expr_template<less>
+struct less : base_expr<less>
 {
     expr x;
     expr y;
@@ -262,7 +241,7 @@ struct less : expr_template<less>
     static const expr_type etype = expr_type::less;
 };
 
-struct logical_and : expr_template<logical_and>
+struct logical_and : base_expr<logical_and>
 {
     expr x;
     expr y;
@@ -272,7 +251,7 @@ struct logical_and : expr_template<logical_and>
     static const expr_type etype = expr_type::logical_and;
 };
 
-struct reduce : expr_template<reduce>
+struct reduce : base_expr<reduce>
 {
     enum class type
     {
@@ -289,8 +268,6 @@ struct reduce : expr_template<reduce>
 
     static const expr_type etype = expr_type::reduce;
 };
-
-/* aliases for pointers to hlir primitives. */
 
 typedef std::shared_ptr<const var> var_expr;
 typedef std::shared_ptr<const cnst> cnst_expr;
@@ -311,8 +288,6 @@ typedef std::shared_ptr<const less> less_expr;
 typedef std::shared_ptr<const logical_and> logical_and_expr;
 typedef std::shared_ptr<const reduce> reduce_expr;
 
-/* overload arithmetic and logical operators for expr. */
-
 expr operator+(expr lhs, expr rhs);
 expr operator-(expr lhs, expr rhs);
 expr operator*(expr lhs, expr rhs);
@@ -323,7 +298,7 @@ expr operator>=(expr lhs, expr rhs);
 expr operator<(expr lhs, expr rhs);
 expr operator&&(expr lhs, expr rhs);
 
-/* downcast casts expr to derived expr. */
+/* downcast casts expr to affn expr. */
 template<typename T>
 std::shared_ptr<const T> downcast(expr e)
 {
@@ -331,7 +306,7 @@ std::shared_ptr<const T> downcast(expr e)
     return std::static_pointer_cast<const T>(e);
 }
 
-/* construct ranges from shape. */
+/* to_ranges construct ranges from shape. */
 inline exprs to_ranges(dimensions shape)
 {
     exprs ranges;
@@ -344,7 +319,7 @@ inline exprs to_ranges(dimensions shape)
     return ranges;
 }
 
-/* construct shape from ranges. */
+/* to_shape construct shape from ranges. */
 inline dimensions to_shape(exprs ranges)
 {
     dimensions shape;
@@ -357,7 +332,7 @@ inline dimensions to_shape(exprs ranges)
     return shape;
 }
 
-} // namespace hlir
+} // namespace affn
 } // namespace tcc
 
-#endif // TCC_HLIR_IR_H
+#endif // TCC_AFFN_IR_H

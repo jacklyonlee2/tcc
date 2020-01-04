@@ -1,8 +1,8 @@
+#include "tcc/affn/ir_lower.h"
+#include "tcc/affn/ir_printer.h"
 #include "tcc/common/datatype.h"
 #include "tcc/common/logging.h"
 #include "tcc/frontend/parser.h"
-#include "tcc/hlir/dot_printer.h"
-#include "tcc/hlir/lower.h"
 #include <iostream>
 #include <unordered_map>
 #include <vector>
@@ -99,14 +99,14 @@ int main(int argc, char** argv)
     using namespace tcc;
 
     tcc_info("parsing command line flags ...");
-    tcc_config config = parse_config(argc, argv);
+    tcc_config conf = parse_config(argc, argv);
 
-    tcc_info("parsing tensorflow graph into hlir ...");
-    hlir::expr hlir = frontend::parse(config.input_path, config.input_shapes);
+    tcc_info("parsing tensorflow graph into affn ir ...");
+    affn::expr affn_ir = frontend::parse(conf.input_path, conf.input_shapes);
 
-    tcc_info("generating hlir DOT file ...");
-    hlir::dot_printer::apply("./hlir.dot", hlir);
+    tcc_info("generating affn ir dot file ...");
+    affn::ir_printer::apply("./affn.dot", affn_ir);
 
-    tcc_info("lowering hlir to llir ...");
-    llir::blk llir = hlir::lower::apply(hlir);
+    tcc_info("lowering affn ir to lang ir ...");
+    lang::prim lang_ir = affn::ir_lower::apply(affn_ir);
 }

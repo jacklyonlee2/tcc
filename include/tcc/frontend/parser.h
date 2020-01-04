@@ -1,18 +1,14 @@
 #ifndef TCC_FRONTEND_PARSER
 #define TCC_FRONTEND_PARSER
 
-#include "tcc/hlir/ir.h"
+#include "tcc/affn/ir.h"
 #include <unordered_map>
-#include <vector>
 
 namespace tcc {
 namespace frontend {
 
-/* deserializes the tensorflow frozen graph and parses it into hlir.
- * the parser uses provided input placeholder shapes to perform static
- * shape inference as hlir is constructed from the tensorflow graph. */
-hlir::expr parse(std::string,
-                 std::unordered_map<std::string, dimensions>&);
+/* parse deserializes the tensorflow frozen graph and parses it into affn ir. */
+affn::expr parse(std::string, std::unordered_map<std::string, dimensions>&);
 
 } // namespace frontend
 } // namespace tcc
