@@ -5,55 +5,38 @@
 #include "tcc/core/ir.h"
 
 namespace tcc {
-namespace frontend {
 
-core::expr build_placeholder(data_type, dimensions);
+expr build_placeholder(datatype, dimensions);
 
-core::expr build_const(std::string, data_type, dimensions);
+expr build_const(std::string, datatype, dimensions);
 
-core::expr build_add(core::expr, core::expr);
+expr build_add(expr, expr);
 
-core::expr build_avgpool(std::string,
-                            std::string,
-                            std::vector<int64_t>,
-                            std::vector<int64_t>,
-                            core::expr);
+expr build_avgpool(std::string, std::string, dimensions, dimensions, expr);
 
-core::expr build_biasadd(std::string, core::expr, core::expr);
+expr build_biasadd(std::string, expr, expr);
 
-core::expr build_conv2d(std::string,
-                           std::string,
-                           std::vector<int64_t>,
-                           std::vector<int64_t>,
-                           core::expr,
-                           core::expr);
+expr build_conv2d(std::string, std::string, dimensions, dimensions, expr, expr);
 
-core::expr build_depthwiseconv2dnative(std::string,
-                                          std::string,
-                                          std::vector<int64_t>,
-                                          std::vector<int64_t>,
-                                          core::expr,
-                                          core::expr);
+expr build_depthwiseconv2dnative(std::string,
+                                 std::string,
+                                 dimensions,
+                                 dimensions,
+                                 expr,
+                                 expr);
 
-core::expr build_fusedbatchnorm(float,
-                                   std::string,
-                                   core::expr,
-                                   core::expr,
-                                   core::expr,
-                                   core::expr,
-                                   core::expr);
+expr build_fusedbatchnorm(float, std::string, expr, expr, expr, expr, expr);
 
-core::expr build_relu6(core::expr);
+expr build_relu6(expr);
 
-core::expr build_reshape(core::expr, core::expr);
+expr build_reshape(expr, expr);
 
-core::expr build_shape(core::expr);
+expr build_shape(expr);
 
-core::expr build_softmax(core::expr);
+expr build_softmax(expr);
 
-core::expr build_squeeze(std::vector<int64_t>, core::expr);
+expr build_squeeze(dimensions, expr);
 
-} // namespace frontend
 } // namespace tcc
 
 #endif // TCC_FRONTEND_OP_H

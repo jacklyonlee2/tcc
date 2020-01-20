@@ -5,6 +5,7 @@
 #include "tcc/common/logging.h"
 #include <sstream>
 #include <string.h>
+#include <typeinfo>
 #include <vector>
 
 namespace std {
@@ -16,17 +17,17 @@ inline string to_string(const void* val)
     return ss.str();
 }
 
-inline string to_string(tcc::data_type val)
+inline string to_string(tcc::datatype val)
 {
     switch (val)
     {
-        case tcc::data_type::BOOL:
+        case tcc::datatype::BOOL:
             return "BOOL";
-        case tcc::data_type::FP32:
+        case tcc::datatype::FP32:
             return "FP32";
-        case tcc::data_type::INT32:
+        case tcc::datatype::INT32:
             return "INT32";
-        case tcc::data_type::INT64:
+        case tcc::datatype::INT64:
             return "INT64";
         default:
             tcc_error("unknown data type.");
@@ -55,7 +56,7 @@ template<typename T>
 std::string vector_serialize(std::vector<T> vec)
 {
     char* p = reinterpret_cast<char*>(vec.data());
-    return std::string(p, p + vec.size() * sizeof(T));
+    return std::string(p, p + vec.size());
 }
 
 template<typename T>
@@ -63,6 +64,23 @@ std::vector<T> vector_deserialize(std::string str, size_t size)
 {
     T* p = reinterpret_cast<T*>(strdup(str.data()));
     return std::vector<T>(p, p + size);
+}
+
+template<typename T>
+datatype to_datatype()
+{
+    if (typeid(T) == typeid(float))
+    {
+        return datatype::FP32;
+    }
+    else if (typeid(T) == typeid(int64_t))
+    {
+        return datatype::INT64;
+    }
+    else
+    {
+        tcc_error("unsupported C++ type.");
+    }
 }
 
 inline dimensions boardcast(dimensions x, dimensions y)

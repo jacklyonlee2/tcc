@@ -6,7 +6,6 @@
 #include <unordered_map>
 
 namespace tcc {
-namespace core {
 
 /* ir_printer generate graphviz dot file
  * corresponding to the given ir */
@@ -43,7 +42,6 @@ struct ir_printer : ir_visitor
     std::ofstream file;
 };
 
-} // namespace core
 } // namespace tcc
 
 #endif // TCC_CORE_IR_PRINTER_H

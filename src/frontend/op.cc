@@ -3,31 +3,28 @@
 #include <math.h>
 
 namespace tcc {
-namespace frontend {
 
-core::expr build_placeholder(data_type dtype, dimensions shape)
+expr build_placeholder(datatype dtype, dimensions shape)
 {
-    return core::var::make(dtype, shape);
+    return var::make(dtype, shape);
 }
 
-core::expr build_const(std::string data, data_type dtype, dimensions shape)
+expr build_const(std::string data, datatype dtype, dimensions shape)
 {
-    return core::cnst::make(data, dtype, shape);
+    return cnst::make(data, dtype, shape);
 }
 
-core::expr build_add(core::expr x, core::expr y)
+expr build_add(expr x, expr y)
 {
     return x + y;
 }
 
-core::expr build_avgpool(std::string data_format,
-                         std::string padding,
-                         std::vector<int64_t> ksize,
-                         std::vector<int64_t> strides,
-                         core::expr value)
+expr build_avgpool(std::string data_format,
+                   std::string padding,
+                   dimensions ksize,
+                   dimensions strides,
+                   expr value)
 {
-    using namespace tcc::core;
-
     tcc_assert(data_format == "NHWC",
                "\"" + data_format + "\" data format is not supported.");
     tcc_assert(padding == "VALID",
@@ -73,12 +70,8 @@ core::expr build_avgpool(std::string data_format,
     return reduce::make(reduce::type::avg, { 3, 4 }, value_frag);
 }
 
-core::expr build_biasadd(std::string data_format,
-                         core::expr input,
-                         core::expr bias)
+expr build_biasadd(std::string data_format, expr input, expr bias)
 {
-    using namespace tcc::core;
-
     tcc_assert(data_format == "NHWC",
                "\"" + data_format + "\" data format is not supported.");
     tcc_assert_not_null(input);
@@ -91,22 +84,20 @@ core::expr build_biasadd(std::string data_format,
     return input + bias;
 }
 
-core::expr build_conv2d(std::string data_format,
-                        std::string padding,
-                        std::vector<int64_t> strides,
-                        std::vector<int64_t> dilations,
-                        core::expr input,
-                        core::expr filter)
+expr build_conv2d(std::string data_format,
+                  std::string padding,
+                  dimensions strides,
+                  dimensions dilations,
+                  expr input,
+                  expr filter)
 {
-    using namespace tcc::core;
-
     tcc_assert(data_format == "NHWC",
                "\"" + data_format + "\" data format is not supported.");
     tcc_assert(padding == "SAME",
                "\"" + padding + "\" padding is not supported.");
     tcc_assert(strides.size() == 4 && strides[0] == 1 && strides[3] == 1,
                "strides along batch or channel dimension are not supported.");
-    tcc_assert(dilations == std::vector<int64_t>({ 1, 1, 1, 1 }),
+    tcc_assert(dilations == dimensions({ 1, 1, 1, 1 }),
                "dilations are not supported.");
     tcc_assert_not_null(input);
     tcc_assert_not_null(filter);
@@ -167,22 +158,20 @@ core::expr build_conv2d(std::string data_format,
     return reduce::make(reduce::type::sum, { 3, 4, 5 }, input_frag * filter);
 }
 
-core::expr build_depthwiseconv2dnative(std::string data_format,
-                                       std::string padding,
-                                       std::vector<int64_t> strides,
-                                       std::vector<int64_t> dilations,
-                                       core::expr input,
-                                       core::expr filter)
+expr build_depthwiseconv2dnative(std::string data_format,
+                                 std::string padding,
+                                 dimensions strides,
+                                 dimensions dilations,
+                                 expr input,
+                                 expr filter)
 {
-    using namespace tcc::core;
-
     tcc_assert(data_format == "NHWC",
                "\"" + data_format + "\" data format is not supported.");
     tcc_assert(padding == "SAME",
                "\"" + padding + "\" padding is not supported.");
     tcc_assert(strides.size() == 4 && strides[0] == 1 && strides[3] == 1,
                "strides along batch or channel dimension are not supported.");
-    tcc_assert(dilations == std::vector<int64_t>({ 1, 1, 1, 1 }),
+    tcc_assert(dilations == dimensions({ 1, 1, 1, 1 }),
                "dilations are not supported.");
     tcc_assert_not_null(input);
     tcc_assert_not_null(filter);
@@ -245,16 +234,14 @@ core::expr build_depthwiseconv2dnative(std::string data_format,
         reduce::make(reduce::type::sum, { 3, 4 }, input_frag * filter));
 }
 
-core::expr build_fusedbatchnorm(float epsilon,
-                                std::string data_format,
-                                core::expr x,
-                                core::expr scale,
-                                core::expr offset,
-                                core::expr mean,
-                                core::expr variance)
+expr build_fusedbatchnorm(float epsilon,
+                          std::string data_format,
+                          expr x,
+                          expr scale,
+                          expr offset,
+                          expr mean,
+                          expr variance)
 {
-    using namespace tcc::core;
-
     tcc_assert(data_format == "NHWC",
                "\"" + data_format + "\" data format is not supported.");
     tcc_assert_not_null(x);
@@ -277,10 +264,8 @@ core::expr build_fusedbatchnorm(float epsilon,
            offset;
 }
 
-core::expr build_relu6(core::expr features)
+expr build_relu6(expr features)
 {
-    using namespace tcc::core;
-
     tcc_assert_not_null(features);
 
     exprs i = to_ranges(features->shape);
@@ -290,24 +275,22 @@ core::expr build_relu6(core::expr features)
                         cnst::make(0.0f));
 }
 
-core::expr build_reshape(core::expr tensor, core::expr shape)
+expr build_reshape(expr tensor, expr shape)
 {
-    using namespace tcc::core;
-
     tcc_assert_not_null(tensor);
     tcc_assert_not_null(shape);
-    tcc_assert(shape->type == expr_type::cnst,
+    tcc_assert(shape->type == exprtype::cnst,
                "expr type of shape is not cnst.");
 
     dimensions to_shape;
-    if (shape->dtype == data_type::INT64)
+    if (shape->dtype == datatype::INT64)
     {
         for (int64_t dim : downcast<cnst>(shape)->to_vector<int64_t>())
         {
             to_shape.push_back(dim < 0 ? 1 : static_cast<dimension>(dim));
         }
     }
-    else if (shape->dtype == data_type::INT32)
+    else if (shape->dtype == datatype::INT32)
     {
         for (int32_t dim : downcast<cnst>(shape)->to_vector<int32_t>())
         {
@@ -322,16 +305,14 @@ core::expr build_reshape(core::expr tensor, core::expr shape)
     return reshape::make(to_shape, tensor);
 }
 
-core::expr build_shape(core::expr input)
+expr build_shape(expr input)
 {
     tcc_assert_not_null(input);
-    return core::cnst::make(input->shape);
+    return cnst::make(input->shape);
 }
 
-core::expr build_softmax(core::expr logits)
+expr build_softmax(expr logits)
 {
-    using namespace tcc::core;
-
     tcc_assert_not_null(logits);
     tcc_assert_size_eq(logits->shape, 2);
 
@@ -342,10 +323,8 @@ core::expr build_softmax(core::expr logits)
     return de / index::make(i, sm, { i[0] });
 }
 
-core::expr build_squeeze(std::vector<int64_t> squeeze_dims, core::expr input)
+expr build_squeeze(dimensions squeeze_dims, expr input)
 {
-    using namespace tcc::core;
-
     tcc_assert(!squeeze_dims.empty(), "squeeze_dims is empty.");
     tcc_assert_not_null(input);
 
@@ -358,7 +337,7 @@ core::expr build_squeeze(std::vector<int64_t> squeeze_dims, core::expr input)
     }
 
     dimensions squeezed_shape;
-    for (dimension dim = 0; dim < input->shape.size(); dim++)
+    for (unsigned dim = 0; dim < input->shape.size(); dim++)
     {
         if (squeeze_dim_set.find(dim) == squeeze_dim_set.end())
         {
@@ -369,5 +348,4 @@ core::expr build_squeeze(std::vector<int64_t> squeeze_dims, core::expr input)
     return reshape::make(squeezed_shape, input);
 }
 
-} // namespace frontend
 } // namespace tcc

@@ -4,7 +4,6 @@
 #include "tcc/core/ir_visitor.h"
 
 namespace tcc {
-namespace core {
 
 /* index_validator ensures all range exprs reachable from
  * the given indices are contained within the given ranges. */
@@ -20,7 +19,6 @@ struct index_validator : ir_visitor
     bool found_invalid_range = false;
 };
 
-} // namespace core
 } // namespace tcc
 
 #endif // TCC_CORE_IR_UTIL_H

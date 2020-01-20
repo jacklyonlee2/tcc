@@ -5,7 +5,6 @@
 #include <unordered_set>
 
 namespace tcc {
-namespace core {
 
 /* base class for all ir visitors. */
 struct ir_visitor : std::enable_shared_from_this<ir_visitor>
@@ -39,7 +38,6 @@ struct ir_visitor : std::enable_shared_from_this<ir_visitor>
     friend struct base_expr;
 };
 
-} // namespace core
 } // namespace tcc
 
 #endif // TCC_CORE_IR_VISITOR_H

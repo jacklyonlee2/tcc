@@ -1,7 +1,6 @@
 #include "tcc/core/ir_codegen.h"
 
 namespace tcc {
-namespace core {
 
 std::string ir_flatten::apply(symbol_map symbols, expr ir)
 {
@@ -16,18 +15,18 @@ std::string ir_flatten::get_symbol(expr e)
 {
     if (symbols.find(e) == symbols.end())
     {
-        if (e->type == expr_type::cnst && e->shape.empty())
+        if (e->type == exprtype::cnst && e->shape.empty())
         {
             switch (e->dtype)
             {
-                case data_type::FP32:
+                case datatype::FP32:
                     symbols.insert(
                         { e,
                           std::to_string(
                               downcast<cnst>(e)->to_scalar<float>()) +
                               "f" });
                     break;
-                case data_type::INT64:
+                case datatype::INT64:
                     symbols.insert(
                         { e,
                           std::to_string(
@@ -233,12 +232,12 @@ void ir_codegen::visit(index_expr e)
 
 void ir_codegen::visit(select_expr e)
 {
-    if (e->t->type == expr_type::index)
+    if (e->t->type == exprtype::index)
     {
         ir_visitor::visit(downcast<index>(e->t)->x);
     }
 
-    if (e->f->type == expr_type::index)
+    if (e->f->type == exprtype::index)
     {
         ir_visitor::visit(downcast<index>(e->f)->x);
     }
@@ -337,5 +336,4 @@ void ir_codegen::visit(reduce_expr e)
     add_variable(e);
 }
 
-} // namespace core
 } // namespace tcc

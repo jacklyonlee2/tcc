@@ -7,7 +7,6 @@
 #include <unordered_map>
 
 namespace tcc {
-namespace core {
 
 typedef std::unordered_map<expr, std::string> symbol_map;
 
@@ -71,7 +70,6 @@ struct ir_codegen : ir_visitor
     std::string source;
 };
 
-} // namespace core
 } // namespace tcc
 
 #endif // TCC_CORE_IR_CODEGEN_H

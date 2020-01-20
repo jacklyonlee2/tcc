@@ -10,9 +10,8 @@
 #include <vector>
 
 namespace tcc {
-namespace core {
 
-enum class expr_type
+enum class exprtype
 {
     var,
     cnst,
@@ -39,14 +38,14 @@ struct ir_visitor;
 /* abstract base class for exprs. */
 struct abstract_expr
 {
-    abstract_expr(expr_type t)
+    abstract_expr(exprtype t)
         : type(t)
     {}
 
     virtual void accept(std::shared_ptr<ir_visitor> v) const = 0;
 
-    expr_type type;
-    mutable data_type dtype;
+    exprtype type;
+    mutable datatype dtype;
     mutable dimensions shape;
 };
 
@@ -68,9 +67,9 @@ typedef std::vector<expr> exprs;
 
 struct var : base_expr<var>
 {
-    static expr make(data_type, dimensions);
+    static expr make(datatype, dimensions);
 
-    static const expr_type etype = expr_type::var;
+    static const exprtype etype = exprtype::var;
 };
 
 struct cnst : base_expr<cnst>
@@ -94,14 +93,28 @@ struct cnst : base_expr<cnst>
                 shape.begin(), shape.end(), 1, std::multiplies<dimension>()));
     }
 
-    static expr make(std::string, data_type, dimensions);
-    static expr make(float);
-    static expr make(int64_t);
-    static expr make(std::vector<int64_t>);
-    static expr make(uint64_t);
-    static expr make(std::vector<uint64_t>);
+    template<typename T>
+    static expr make(T data)
+    {
+        std::shared_ptr<cnst> e(new cnst);
+        e->data = scalar_serialize<T>(data);
+        e->dtype = to_datatype<T>();
+        return e;
+    }
 
-    static const expr_type etype = expr_type::cnst;
+    template<typename T>
+    static expr make(std::vector<T> data)
+    {
+        std::shared_ptr<cnst> e(new cnst);
+        e->data = vector_serialize<T>(data);
+        e->dtype = to_datatype<T>();
+        e->shape = dimensions({ static_cast<dimension>(data.size()) });
+        return e;
+    }
+
+    static expr make(std::string, datatype, dimensions);
+
+    static const exprtype etype = exprtype::cnst;
 };
 
 struct range : base_expr<range>
@@ -110,7 +123,7 @@ struct range : base_expr<range>
 
     static expr make(dimension);
 
-    static const expr_type etype = expr_type::range;
+    static const exprtype etype = exprtype::range;
 };
 
 struct index : base_expr<index>
@@ -121,7 +134,7 @@ struct index : base_expr<index>
 
     static expr make(exprs, expr, exprs);
 
-    static const expr_type etype = expr_type::index;
+    static const exprtype etype = exprtype::index;
 };
 
 struct select : base_expr<select>
@@ -133,7 +146,7 @@ struct select : base_expr<select>
 
     static expr make(exprs, expr, expr, expr);
 
-    static const expr_type etype = expr_type::select;
+    static const exprtype etype = exprtype::select;
 };
 
 struct reshape : base_expr<reshape>
@@ -142,7 +155,7 @@ struct reshape : base_expr<reshape>
 
     static expr make(dimensions, expr);
 
-    static const expr_type etype = expr_type::reshape;
+    static const exprtype etype = exprtype::reshape;
 };
 
 struct exp : base_expr<exp>
@@ -151,7 +164,7 @@ struct exp : base_expr<exp>
 
     static expr make(expr);
 
-    static const expr_type etype = expr_type::exp;
+    static const exprtype etype = exprtype::exp;
 };
 
 struct sqrt : base_expr<sqrt>
@@ -160,7 +173,7 @@ struct sqrt : base_expr<sqrt>
 
     static expr make(expr);
 
-    static const expr_type etype = expr_type::sqrt;
+    static const exprtype etype = exprtype::sqrt;
 };
 
 struct add : base_expr<add>
@@ -170,7 +183,7 @@ struct add : base_expr<add>
 
     static expr make(expr, expr);
 
-    static const expr_type etype = expr_type::add;
+    static const exprtype etype = exprtype::add;
 };
 
 struct sub : base_expr<sub>
@@ -180,7 +193,7 @@ struct sub : base_expr<sub>
 
     static expr make(expr, expr);
 
-    static const expr_type etype = expr_type::sub;
+    static const exprtype etype = exprtype::sub;
 };
 
 struct mul : base_expr<mul>
@@ -190,7 +203,7 @@ struct mul : base_expr<mul>
 
     static expr make(expr, expr);
 
-    static const expr_type etype = expr_type::mul;
+    static const exprtype etype = exprtype::mul;
 };
 
 struct div : base_expr<div>
@@ -200,7 +213,7 @@ struct div : base_expr<div>
 
     static expr make(expr, expr);
 
-    static const expr_type etype = expr_type::div;
+    static const exprtype etype = exprtype::div;
 };
 
 struct mod : base_expr<mod>
@@ -210,7 +223,7 @@ struct mod : base_expr<mod>
 
     static expr make(expr, expr);
 
-    static const expr_type etype = expr_type::mod;
+    static const exprtype etype = exprtype::mod;
 };
 
 struct greater : base_expr<greater>
@@ -220,7 +233,7 @@ struct greater : base_expr<greater>
 
     static expr make(expr, expr);
 
-    static const expr_type etype = expr_type::greater;
+    static const exprtype etype = exprtype::greater;
 };
 
 struct greater_equal : base_expr<greater_equal>
@@ -230,7 +243,7 @@ struct greater_equal : base_expr<greater_equal>
 
     static expr make(expr, expr);
 
-    static const expr_type etype = expr_type::greater_equal;
+    static const exprtype etype = exprtype::greater_equal;
 };
 
 struct less : base_expr<less>
@@ -240,7 +253,7 @@ struct less : base_expr<less>
 
     static expr make(expr, expr);
 
-    static const expr_type etype = expr_type::less;
+    static const exprtype etype = exprtype::less;
 };
 
 struct logical_and : base_expr<logical_and>
@@ -250,7 +263,7 @@ struct logical_and : base_expr<logical_and>
 
     static expr make(expr, expr);
 
-    static const expr_type etype = expr_type::logical_and;
+    static const exprtype etype = exprtype::logical_and;
 };
 
 struct reduce : base_expr<reduce>
@@ -268,7 +281,7 @@ struct reduce : base_expr<reduce>
 
     static expr make(type, std::unordered_set<unsigned>, expr);
 
-    static const expr_type etype = expr_type::reduce;
+    static const exprtype etype = exprtype::reduce;
 };
 
 typedef std::shared_ptr<const var> var_expr;
@@ -330,7 +343,6 @@ inline dimensions to_shape(exprs ranges)
     return shape;
 }
 
-} // namespace core
 } // namespace tcc
 
 #endif // TCC_CORE_IR_H

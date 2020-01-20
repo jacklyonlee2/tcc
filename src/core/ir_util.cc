@@ -1,7 +1,6 @@
 #include "tcc/core/ir_util.h"
 
 namespace tcc {
-namespace core {
 
 bool index_validator::apply(exprs ranges, exprs indices)
 {
@@ -23,5 +22,4 @@ void index_validator::visit(range_expr e)
     }
 }
 
-} // namespace core
 } // namespace tcc

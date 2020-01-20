@@ -2,7 +2,6 @@
 #include "tcc/common/util.h"
 
 namespace tcc {
-namespace core {
 
 void ir_printer::apply(std::string output_path, expr ir)
 {
@@ -68,10 +67,10 @@ void ir_printer::visit(cnst_expr e)
     {
         switch (e->dtype)
         {
-            case data_type::FP32:
+            case datatype::FP32:
                 print_node(e, std::to_string(e->to_scalar<float>()));
                 break;
-            case data_type::INT64:
+            case datatype::INT64:
                 print_node(e, std::to_string(e->to_scalar<int64_t>()));
                 break;
             default:
@@ -259,5 +258,4 @@ void ir_printer::visit(reduce_expr e)
     print_edge(e->x, e);
 }
 
-} // namespace core
 } // namespace tcc

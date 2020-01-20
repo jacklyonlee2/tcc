@@ -6,7 +6,7 @@
 
 namespace tcc {
 
-enum class data_type
+enum class datatype
 {
     BOOL,  // bool
     FP32,  // float
@@ -14,7 +14,7 @@ enum class data_type
     INT64, // int64_t
 };
 
-typedef uint64_t dimension;
+typedef int64_t dimension;
 typedef std::vector<dimension> dimensions;
 
 } // namespace tcc

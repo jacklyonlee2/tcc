@@ -1,11 +1,10 @@
 #include "tcc/core/ir.h"
+#include "tcc/common/util.h"
 #include "tcc/core/ir_util.h"
 #include "tcc/core/ir_visitor.h"
-#include "tcc/common/util.h"
 #include <numeric>
 
 namespace tcc {
-namespace core {
 
 template<>
 void base_expr<var>::accept(std::shared_ptr<ir_visitor> v) const
@@ -115,7 +114,7 @@ void base_expr<reduce>::accept(std::shared_ptr<ir_visitor> v) const
     v->visit(downcast<reduce>(shared_from_this()));
 }
 
-expr var::make(data_type dtype, dimensions shape)
+expr var::make(datatype dtype, dimensions shape)
 {
     tcc_assert(!shape.empty(), "shape is empty.");
 
@@ -125,7 +124,7 @@ expr var::make(data_type dtype, dimensions shape)
     return e;
 }
 
-expr cnst::make(std::string data, data_type dtype, dimensions shape)
+expr cnst::make(std::string data, datatype dtype, dimensions shape)
 {
     tcc_assert(!data.empty(), "data is empty.");
     tcc_assert(!shape.empty(), "shape is empty.");
@@ -137,48 +136,13 @@ expr cnst::make(std::string data, data_type dtype, dimensions shape)
     return e;
 }
 
-expr cnst::make(float f)
-{
-    std::shared_ptr<cnst> e(new cnst);
-    e->data = scalar_serialize<float>(f);
-    e->dtype = data_type::FP32;
-    return e;
-}
-
-expr cnst::make(int64_t i)
-{
-    std::shared_ptr<cnst> e(new cnst);
-    e->data = scalar_serialize<int64_t>(i);
-    e->dtype = data_type::INT64;
-    return e;
-}
-
-expr cnst::make(std::vector<int64_t> is)
-{
-    std::shared_ptr<cnst> e(new cnst);
-    e->data = vector_serialize<int64_t>(is);
-    e->dtype = data_type::INT64;
-    e->shape = dimensions({ is.size() });
-    return e;
-}
-
-expr cnst::make(uint64_t ui)
-{
-    return make(static_cast<int64_t>(ui));
-}
-
-expr cnst::make(std::vector<uint64_t> uis)
-{
-    return make(std::vector<int64_t>(uis.begin(), uis.end()));
-}
-
 expr range::make(dimension bound)
 {
     tcc_assert(bound > 0, "invalid bound.");
 
     std::shared_ptr<range> e(new range);
     e->bound = bound;
-    e->dtype = data_type::INT64;
+    e->dtype = datatype::INT64;
     return e;
 }
 
@@ -206,12 +170,12 @@ expr select::make(exprs ranges, expr cond, expr t, expr f)
     tcc_assert_not_null(t);
     tcc_assert_not_null(f);
     tcc_assert(!ranges.empty(), "ranges is empty.");
-    tcc_assert(cond->dtype == data_type::BOOL, "dtype of cond is not BOOL.");
+    tcc_assert(cond->dtype == datatype::BOOL, "dtype of cond is not BOOL.");
     tcc_assert(t->dtype == f->dtype, "dtypes of t and f do not agree.");
-    tcc_assert(t->shape.empty() || (t->type == expr_type::index &&
+    tcc_assert(t->shape.empty() || (t->type == exprtype::index &&
                                     downcast<index>(t)->ranges == ranges),
                "t is not a scalar or index expr with equivalent ranges.");
-    tcc_assert(f->shape.empty() || (f->type == expr_type::index &&
+    tcc_assert(f->shape.empty() || (f->type == exprtype::index &&
                                     downcast<index>(f)->ranges == ranges),
                "f is not a scalar or index expr with equivalent ranges.");
 
@@ -344,7 +308,7 @@ expr greater::make(expr x, expr y)
     std::shared_ptr<greater> e(new greater);
     e->x = x;
     e->y = y;
-    e->dtype = data_type::BOOL;
+    e->dtype = datatype::BOOL;
     e->shape = boardcast(x->shape, y->shape);
     return e;
 }
@@ -358,7 +322,7 @@ expr greater_equal::make(expr x, expr y)
     std::shared_ptr<greater_equal> e(new greater_equal);
     e->x = x;
     e->y = y;
-    e->dtype = data_type::BOOL;
+    e->dtype = datatype::BOOL;
     e->shape = boardcast(x->shape, y->shape);
     return e;
 }
@@ -372,7 +336,7 @@ expr less::make(expr x, expr y)
     std::shared_ptr<less> e(new less);
     e->x = x;
     e->y = y;
-    e->dtype = data_type::BOOL;
+    e->dtype = datatype::BOOL;
     e->shape = boardcast(x->shape, y->shape);
     return e;
 }
@@ -386,7 +350,7 @@ expr logical_and::make(expr x, expr y)
     std::shared_ptr<logical_and> e(new logical_and);
     e->x = x;
     e->y = y;
-    e->dtype = data_type::BOOL;
+    e->dtype = datatype::BOOL;
     e->shape = boardcast(x->shape, y->shape);
     return e;
 }
@@ -465,5 +429,4 @@ expr operator&&(expr lhs, expr rhs)
     return logical_and::make(lhs, rhs);
 }
 
-} // namespace core
 } // namespace tcc

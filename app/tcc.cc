@@ -1,7 +1,7 @@
-#include "tcc/core/ir_codegen.h"
-#include "tcc/core/ir_printer.h"
 #include "tcc/common/datatype.h"
 #include "tcc/common/logging.h"
+#include "tcc/core/ir_codegen.h"
+#include "tcc/core/ir_printer.h"
 #include "tcc/frontend/parser.h"
 #include <iostream>
 #include <unordered_map>
@@ -96,17 +96,15 @@ static tcc_config parse_config(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-    using namespace tcc;
-
     tcc_info("parsing command line flags ...");
     tcc_config conf = parse_config(argc, argv);
 
     tcc_info("parsing tensorflow graph into ir ...");
-    core::expr core_ir = frontend::parse(conf.input_path, conf.input_shapes);
+    tcc::expr ir = tcc::parse(conf.input_path, conf.input_shapes);
 
     tcc_info("generating ir dot file ...");
-    core::ir_printer::apply("./core.dot", core_ir);
+    tcc::ir_printer::apply("./core.dot", ir);
 
     tcc_info("generating c code from ir ...");
-    core::ir_codegen::apply("./out.cc", core_ir);
+    tcc::ir_codegen::apply("./out.cc", ir);
 }
