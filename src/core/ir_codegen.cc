@@ -31,8 +31,7 @@ std::string ir_flatten::get_symbol(expr e)
                     symbols.insert(
                         { e,
                           std::to_string(
-                              downcast<cnst>(e)->to_scalar<int64_t>()) +
-                              "l" });
+                              downcast<cnst>(e)->to_scalar<int64_t>()) });
                     break;
                 default:
                     tcc_error("unsupported dtype.");
@@ -67,6 +66,7 @@ void ir_flatten::add_symbol(expr e, std::string symbol)
 
 void ir_flatten::visit(index_expr e)
 {
+    // TODO: get_symbols -> flatten idx
     add_symbol(e, get_symbol(e->x) + "[" + get_symbols(e->indices) + "]");
 }
 
@@ -159,35 +159,35 @@ void ir_codegen::nest(exprs ranges,
                       expr e,
                       std::function<std::string(symbol_map)> generate_stmt)
 {
-    static exprs prev_ranges;
+    static exprs prev_idx_ranges;
+    exprs idx_ranges;
 
     tcc_assert(!ranges.empty(), "loop ranges is empty.");
 
-    exprs idx_ranges;
-    unsigned idx = 1;
-    unsigned matched_idx = 0;
-
-    /* create loop index symbols. */
+    unsigned idx = 1, matched_idx = 0;
     for (expr r : ranges)
     {
         if (downcast<range>(r)->bound == 1)
         {
-            symbols.insert({ r, "1" });
+            symbols.insert({ r, "0" });
         }
         else
         {
             /* find continuously matched index for loop coalescing. */
-            if (prev_ranges.size() >= idx &&
+            if (prev_idx_ranges.size() >= idx &&
                 downcast<range>(r)->bound ==
-                    downcast<range>(prev_ranges[idx - 1])->bound &&
+                    downcast<range>(prev_idx_ranges[idx - 1])->bound &&
                 idx == matched_idx + 1)
             {
                 matched_idx++;
             }
+
             symbols.insert({ r, "i" + std::to_string(idx++) });
             idx_ranges.push_back(r);
         }
     }
+
+    prev_idx_ranges = idx_ranges;
 
     /* remove closing braces for coalescable ranges. */
     tcc_assert(source.size() >= 2 * matched_idx, "source size is too small.");
@@ -210,8 +210,6 @@ void ir_codegen::nest(exprs ranges,
     {
         source += "}\n";
     }
-
-    prev_ranges = idx_ranges;
 }
 
 void ir_codegen::visit(var_expr e)
