@@ -1,10 +1,10 @@
-#ifndef TCC_AFFN_INDEX_VALIDATOR_H
-#define TCC_AFFN_INDEX_VALIDATOR_H
+#ifndef TCC_CORE_IR_UTIL_H
+#define TCC_CORE_IR_UTIL_H
 
-#include "tcc/affn/ir_visitor.h"
+#include "tcc/core/ir_visitor.h"
 
 namespace tcc {
-namespace affn {
+namespace core {
 
 /* index_validator ensures all range exprs reachable from
  * the given indices are contained within the given ranges. */
@@ -20,7 +20,7 @@ struct index_validator : ir_visitor
     bool found_invalid_range = false;
 };
 
-} // namespace affn
+} // namespace core
 } // namespace tcc
 
-#endif // TCC_AFFN_INDEX_VALIDATOR_H
+#endif // TCC_CORE_IR_UTIL_H

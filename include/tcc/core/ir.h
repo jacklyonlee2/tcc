@@ -1,5 +1,5 @@
-#ifndef TCC_AFFN_IR_H
-#define TCC_AFFN_IR_H
+#ifndef TCC_CORE_IR_H
+#define TCC_CORE_IR_H
 
 #include "tcc/common/datatype.h"
 #include "tcc/common/logging.h"
@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace tcc {
-namespace affn {
+namespace core {
 
 enum class expr_type
 {
@@ -36,7 +36,7 @@ enum class expr_type
 
 struct ir_visitor;
 
-/* abstract base class for affn exprs. */
+/* abstract base class for exprs. */
 struct abstract_expr
 {
     abstract_expr(expr_type t)
@@ -50,7 +50,7 @@ struct abstract_expr
     mutable dimensions shape;
 };
 
-/* base class for affn exprs. */
+/* base class for exprs. */
 template<typename T>
 struct base_expr
     : abstract_expr
@@ -96,8 +96,10 @@ struct cnst : base_expr<cnst>
 
     static expr make(std::string, data_type, dimensions);
     static expr make(float);
-    static expr make(dimension);
-    static expr make(dimensions);
+    static expr make(int64_t);
+    static expr make(std::vector<int64_t>);
+    static expr make(uint64_t);
+    static expr make(std::vector<uint64_t>);
 
     static const expr_type etype = expr_type::cnst;
 };
@@ -298,7 +300,7 @@ expr operator>=(expr lhs, expr rhs);
 expr operator<(expr lhs, expr rhs);
 expr operator&&(expr lhs, expr rhs);
 
-/* downcast casts expr to affn expr. */
+/* downcast casts expr to core expr. */
 template<typename T>
 std::shared_ptr<const T> downcast(expr e)
 {
@@ -310,12 +312,10 @@ std::shared_ptr<const T> downcast(expr e)
 inline exprs to_ranges(dimensions shape)
 {
     exprs ranges;
-
     for (dimension dim : shape)
     {
         ranges.push_back(range::make(dim));
     }
-
     return ranges;
 }
 
@@ -323,16 +323,14 @@ inline exprs to_ranges(dimensions shape)
 inline dimensions to_shape(exprs ranges)
 {
     dimensions shape;
-
     for (expr e : ranges)
     {
         shape.push_back(downcast<range>(e)->bound);
     }
-
     return shape;
 }
 
-} // namespace affn
+} // namespace core
 } // namespace tcc
 
-#endif // TCC_AFFN_IR_H
+#endif // TCC_CORE_IR_H

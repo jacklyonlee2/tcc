@@ -1,7 +1,7 @@
-#include "tcc/affn/ir_visitor.h"
+#include "tcc/core/ir_visitor.h"
 
 namespace tcc {
-namespace affn {
+namespace core {
 
 void ir_visitor::visit(expr e)
 {
@@ -114,5 +114,5 @@ void ir_visitor::visit(reduce_expr e)
     visit(e->x);
 }
 
-} // namespace affn
+} // namespace core
 } // namespace tcc

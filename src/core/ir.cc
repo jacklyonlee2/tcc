@@ -1,11 +1,11 @@
-#include "tcc/affn/ir.h"
-#include "tcc/affn/index_validator.h"
-#include "tcc/affn/ir_visitor.h"
+#include "tcc/core/ir.h"
+#include "tcc/core/ir_util.h"
+#include "tcc/core/ir_visitor.h"
 #include "tcc/common/util.h"
 #include <numeric>
 
 namespace tcc {
-namespace affn {
+namespace core {
 
 template<>
 void base_expr<var>::accept(std::shared_ptr<ir_visitor> v) const
@@ -145,21 +145,31 @@ expr cnst::make(float f)
     return e;
 }
 
-expr cnst::make(dimension dim)
+expr cnst::make(int64_t i)
 {
     std::shared_ptr<cnst> e(new cnst);
-    e->data = scalar_serialize<dimension>(dim);
+    e->data = scalar_serialize<int64_t>(i);
     e->dtype = data_type::INT64;
     return e;
 }
 
-expr cnst::make(dimensions dims)
+expr cnst::make(std::vector<int64_t> is)
 {
     std::shared_ptr<cnst> e(new cnst);
-    e->data = vector_serialize<dimension>(dims);
+    e->data = vector_serialize<int64_t>(is);
     e->dtype = data_type::INT64;
-    e->shape = dimensions({ static_cast<dimension>(dims.size()) });
+    e->shape = dimensions({ is.size() });
     return e;
+}
+
+expr cnst::make(uint64_t ui)
+{
+    return make(static_cast<int64_t>(ui));
+}
+
+expr cnst::make(std::vector<uint64_t> uis)
+{
+    return make(std::vector<int64_t>(uis.begin(), uis.end()));
 }
 
 expr range::make(dimension bound)
@@ -455,5 +465,5 @@ expr operator&&(expr lhs, expr rhs)
     return logical_and::make(lhs, rhs);
 }
 
-} // namespace affn
+} // namespace core
 } // namespace tcc

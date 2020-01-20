@@ -2,18 +2,16 @@ list(APPEND CORE_SRC
     ${TCC_INCLUDE_DIR}/tcc/common/logging.h
     ${TCC_INCLUDE_DIR}/tcc/common/datatype.h
     ${TCC_INCLUDE_DIR}/tcc/common/util.h
-    ${TCC_INCLUDE_DIR}/tcc/affn/ir.h
-    ${TCC_INCLUDE_DIR}/tcc/affn/ir_visitor.h
-    ${TCC_INCLUDE_DIR}/tcc/affn/index_validator.h
-    ${TCC_INCLUDE_DIR}/tcc/affn/ir_printer.h
-    ${TCC_INCLUDE_DIR}/tcc/affn/ir_lower.h
-    ${TCC_INCLUDE_DIR}/tcc/lang/ir.h
-    affn/ir.cc
-    affn/ir_visitor.cc
-    affn/index_validator.cc
-    affn/ir_printer.cc
-    affn/ir_lower.cc
-    lang/ir.cc)
+    ${TCC_INCLUDE_DIR}/tcc/core/ir.h
+    ${TCC_INCLUDE_DIR}/tcc/core/ir_visitor.h
+    ${TCC_INCLUDE_DIR}/tcc/core/ir_util.h
+    ${TCC_INCLUDE_DIR}/tcc/core/ir_printer.h
+    ${TCC_INCLUDE_DIR}/tcc/core/ir_codegen.h
+    core/ir.cc
+    core/ir_visitor.cc
+    core/ir_util.cc
+    core/ir_printer.cc
+    core/ir_codegen.cc)
 
 add_library(core
     ${CORE_SRC})

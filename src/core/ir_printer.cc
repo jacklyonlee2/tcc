@@ -1,8 +1,8 @@
-#include "tcc/affn/ir_printer.h"
+#include "tcc/core/ir_printer.h"
 #include "tcc/common/util.h"
 
 namespace tcc {
-namespace affn {
+namespace core {
 
 void ir_printer::apply(std::string output_path, expr ir)
 {
@@ -10,7 +10,7 @@ void ir_printer::apply(std::string output_path, expr ir)
     v->file = std::ofstream(output_path, std::ios::trunc);
     tcc_assert(v->file, "failed to open file at \"" + output_path + "\".");
 
-    v->file << "digraph affn {\n";
+    v->file << "digraph core {\n";
     v->file << "\tnode [shape=record]\n";
     ir->accept(v);
     v->file << "}";
@@ -259,5 +259,5 @@ void ir_printer::visit(reduce_expr e)
     print_edge(e->x, e);
 }
 
-} // namespace affn
+} // namespace core
 } // namespace tcc

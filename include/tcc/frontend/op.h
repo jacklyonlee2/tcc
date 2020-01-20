@@ -1,59 +1,59 @@
-#ifndef TCC_FRONTEND_OP
-#define TCC_FRONTEND_OP
+#ifndef TCC_FRONTEND_OP_H
+#define TCC_FRONTEND_OP_H
 
 #include "tcc/common/datatype.h"
-#include "tcc/affn/ir.h"
+#include "tcc/core/ir.h"
 
 namespace tcc {
 namespace frontend {
 
-affn::expr build_placeholder(data_type, dimensions);
+core::expr build_placeholder(data_type, dimensions);
 
-affn::expr build_const(std::string, data_type, dimensions);
+core::expr build_const(std::string, data_type, dimensions);
 
-affn::expr build_add(affn::expr, affn::expr);
+core::expr build_add(core::expr, core::expr);
 
-affn::expr build_avgpool(std::string,
+core::expr build_avgpool(std::string,
                             std::string,
-                            dimensions,
-                            dimensions,
-                            affn::expr);
+                            std::vector<int64_t>,
+                            std::vector<int64_t>,
+                            core::expr);
 
-affn::expr build_biasadd(std::string, affn::expr, affn::expr);
+core::expr build_biasadd(std::string, core::expr, core::expr);
 
-affn::expr build_conv2d(std::string,
+core::expr build_conv2d(std::string,
                            std::string,
-                           dimensions,
-                           dimensions,
-                           affn::expr,
-                           affn::expr);
+                           std::vector<int64_t>,
+                           std::vector<int64_t>,
+                           core::expr,
+                           core::expr);
 
-affn::expr build_depthwiseconv2dnative(std::string,
+core::expr build_depthwiseconv2dnative(std::string,
                                           std::string,
-                                          dimensions,
-                                          dimensions,
-                                          affn::expr,
-                                          affn::expr);
+                                          std::vector<int64_t>,
+                                          std::vector<int64_t>,
+                                          core::expr,
+                                          core::expr);
 
-affn::expr build_fusedbatchnorm(float,
+core::expr build_fusedbatchnorm(float,
                                    std::string,
-                                   affn::expr,
-                                   affn::expr,
-                                   affn::expr,
-                                   affn::expr,
-                                   affn::expr);
+                                   core::expr,
+                                   core::expr,
+                                   core::expr,
+                                   core::expr,
+                                   core::expr);
 
-affn::expr build_relu6(affn::expr);
+core::expr build_relu6(core::expr);
 
-affn::expr build_reshape(affn::expr, affn::expr);
+core::expr build_reshape(core::expr, core::expr);
 
-affn::expr build_shape(affn::expr);
+core::expr build_shape(core::expr);
 
-affn::expr build_softmax(affn::expr);
+core::expr build_softmax(core::expr);
 
-affn::expr build_squeeze(dimensions, affn::expr);
+core::expr build_squeeze(std::vector<int64_t>, core::expr);
 
 } // namespace frontend
 } // namespace tcc
 
-#endif // TCC_FRONTEND_OP
+#endif // TCC_FRONTEND_OP_H

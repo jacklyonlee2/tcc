@@ -108,7 +108,7 @@ static std::string parse_attr_string(
     tcc_assert(attr_val.value_case() == tensorflow::AttrValue::kS,
                "tensorflow attribute \"" + attr_name +
                    "\" must be of type \"kS\".");
-    
+
     return attr_val.s();
 }
 
@@ -122,11 +122,11 @@ static float parse_attr_float(
     tcc_assert(attr_val.value_case() == tensorflow::AttrValue::kF,
                "tensorflow attribute \"" + attr_name +
                    "\" must be of type \"kF\".");
-    
+
     return attr_val.f();
 }
 
-static dimensions parse_attr_dimensions(
+static std::vector<int64_t> parse_attr_int_vec(
     google::protobuf::Map<std::string, tensorflow::AttrValue> attrs,
     std::string attr_name)
 {
@@ -141,17 +141,17 @@ static dimensions parse_attr_dimensions(
     tcc_assert(attr_val_list.i_size() > 0,
                "tensorflow integer list attribute \"" + attr_name +
                    "\" can not be empty.");
-    const dimension* val = attr_val_list.i().data();
+    const int64_t* val = attr_val_list.i().data();
 
-    return dimensions(val, val + attr_val_list.i_size());
+    return std::vector<int64_t>(val, val + attr_val_list.i_size());
 }
 
 static void parse_node(
     tensorflow::NodeDef& node,
-    std::unordered_map<std::string, affn::expr>& parsed_nodes,
+    std::unordered_map<std::string, core::expr>& parsed_nodes,
     std::unordered_map<std::string, dimensions>& input_shapes)
 {
-    affn::expr output;
+    core::expr output;
 
     if (node.op() == "Placeholder")
     {
@@ -177,8 +177,8 @@ static void parse_node(
     {
         tcc_assert_size_eq(node.input(), 2);
 
-        affn::expr x = parsed_nodes.at(node.input()[0]);
-        affn::expr y = parsed_nodes.at(node.input()[1]);
+        core::expr x = parsed_nodes.at(node.input()[0]);
+        core::expr y = parsed_nodes.at(node.input()[1]);
 
         output = build_add(x, y);
     }
@@ -188,9 +188,10 @@ static void parse_node(
 
         std::string data_format = parse_attr_string(node.attr(), "data_format");
         std::string padding = parse_attr_string(node.attr(), "padding");
-        dimensions ksize = parse_attr_dimensions(node.attr(), "ksize");
-        dimensions strides = parse_attr_dimensions(node.attr(), "strides");
-        affn::expr value = parsed_nodes.at(node.input()[0]);
+        std::vector<int64_t> ksize = parse_attr_int_vec(node.attr(), "ksize");
+        std::vector<int64_t> strides =
+            parse_attr_int_vec(node.attr(), "strides");
+        core::expr value = parsed_nodes.at(node.input()[0]);
 
         output = build_avgpool(data_format, padding, ksize, strides, value);
     }
@@ -199,8 +200,8 @@ static void parse_node(
         tcc_assert_size_eq(node.input(), 2);
 
         std::string data_format = parse_attr_string(node.attr(), "data_format");
-        affn::expr input = parsed_nodes.at(node.input()[0]);
-        affn::expr bias = parsed_nodes.at(node.input()[1]);
+        core::expr input = parsed_nodes.at(node.input()[0]);
+        core::expr bias = parsed_nodes.at(node.input()[1]);
 
         output = build_biasadd(data_format, input, bias);
     }
@@ -210,10 +211,12 @@ static void parse_node(
 
         std::string data_format = parse_attr_string(node.attr(), "data_format");
         std::string padding = parse_attr_string(node.attr(), "padding");
-        dimensions strides = parse_attr_dimensions(node.attr(), "strides");
-        dimensions dilations = parse_attr_dimensions(node.attr(), "dilations");
-        affn::expr input = parsed_nodes.at(node.input()[0]);
-        affn::expr filter = parsed_nodes.at(node.input()[1]);
+        std::vector<int64_t> strides =
+            parse_attr_int_vec(node.attr(), "strides");
+        std::vector<int64_t> dilations =
+            parse_attr_int_vec(node.attr(), "dilations");
+        core::expr input = parsed_nodes.at(node.input()[0]);
+        core::expr filter = parsed_nodes.at(node.input()[1]);
 
         output = build_conv2d(
             data_format, padding, strides, dilations, input, filter);
@@ -224,10 +227,12 @@ static void parse_node(
 
         std::string data_format = parse_attr_string(node.attr(), "data_format");
         std::string padding = parse_attr_string(node.attr(), "padding");
-        dimensions strides = parse_attr_dimensions(node.attr(), "strides");
-        dimensions dilations = parse_attr_dimensions(node.attr(), "dilations");
-        affn::expr input = parsed_nodes.at(node.input()[0]);
-        affn::expr filter = parsed_nodes.at(node.input()[1]);
+        std::vector<int64_t> strides =
+            parse_attr_int_vec(node.attr(), "strides");
+        std::vector<int64_t> dilations =
+            parse_attr_int_vec(node.attr(), "dilations");
+        core::expr input = parsed_nodes.at(node.input()[0]);
+        core::expr filter = parsed_nodes.at(node.input()[1]);
 
         output = build_depthwiseconv2dnative(
             data_format, padding, strides, dilations, input, filter);
@@ -238,11 +243,11 @@ static void parse_node(
 
         float epsilon = parse_attr_float(node.attr(), "epsilon");
         std::string data_format = parse_attr_string(node.attr(), "data_format");
-        affn::expr x = parsed_nodes.at(node.input()[0]);
-        affn::expr scale = parsed_nodes.at(node.input()[1]);
-        affn::expr offset = parsed_nodes.at(node.input()[2]);
-        affn::expr mean = parsed_nodes.at(node.input()[3]);
-        affn::expr variance = parsed_nodes.at(node.input()[4]);
+        core::expr x = parsed_nodes.at(node.input()[0]);
+        core::expr scale = parsed_nodes.at(node.input()[1]);
+        core::expr offset = parsed_nodes.at(node.input()[2]);
+        core::expr mean = parsed_nodes.at(node.input()[3]);
+        core::expr variance = parsed_nodes.at(node.input()[4]);
 
         output = build_fusedbatchnorm(
             epsilon, data_format, x, scale, offset, mean, variance);
@@ -251,7 +256,7 @@ static void parse_node(
     {
         tcc_assert_size_eq(node.input(), 1);
 
-        affn::expr features = parsed_nodes.at(node.input()[0]);
+        core::expr features = parsed_nodes.at(node.input()[0]);
 
         output = build_relu6(features);
     }
@@ -259,8 +264,8 @@ static void parse_node(
     {
         tcc_assert_size_eq(node.input(), 2);
 
-        affn::expr tensor = parsed_nodes.at(node.input()[0]);
-        affn::expr shape = parsed_nodes.at(node.input()[1]);
+        core::expr tensor = parsed_nodes.at(node.input()[0]);
+        core::expr shape = parsed_nodes.at(node.input()[1]);
 
         output = build_reshape(tensor, shape);
     }
@@ -268,7 +273,7 @@ static void parse_node(
     {
         tcc_assert_size_eq(node.input(), 1);
 
-        affn::expr input = parsed_nodes.at(node.input()[0]);
+        core::expr input = parsed_nodes.at(node.input()[0]);
 
         output = build_shape(input);
     }
@@ -276,7 +281,7 @@ static void parse_node(
     {
         tcc_assert_size_eq(node.input(), 1);
 
-        affn::expr logits = parsed_nodes.at(node.input()[0]);
+        core::expr logits = parsed_nodes.at(node.input()[0]);
 
         output = build_softmax(logits);
     }
@@ -284,9 +289,9 @@ static void parse_node(
     {
         tcc_assert_size_eq(node.input(), 1);
 
-        dimensions squeeze_dims =
-            parse_attr_dimensions(node.attr(), "squeeze_dims");
-        affn::expr input = parsed_nodes.at(node.input()[0]);
+        std::vector<int64_t> squeeze_dims =
+            parse_attr_int_vec(node.attr(), "squeeze_dims");
+        core::expr input = parsed_nodes.at(node.input()[0]);
 
         output = build_squeeze(squeeze_dims, input);
     }
@@ -295,7 +300,7 @@ static void parse_node(
         tcc_error("unsupported tensorflow op \"" + node.op() + "\".");
     }
 
-    /* save affn output to parsed nodes. */
+    /* save core output to parsed nodes. */
     tcc_assert_not_null(output);
     tcc_assert_no_key(parsed_nodes, node.name());
     parsed_nodes.insert({ node.name(), output });
@@ -305,7 +310,7 @@ static void recurse_graph(
     std::string current_node_name,
     std::unordered_map<std::string, tensorflow::NodeDef>& nodes,
     std::unordered_set<std::string>& traversed,
-    std::unordered_map<std::string, affn::expr>& parsed_nodes,
+    std::unordered_map<std::string, core::expr>& parsed_nodes,
     std::unordered_map<std::string, dimensions>& input_shapes)
 {
     if (traversed.find(current_node_name) == traversed.end())
@@ -328,7 +333,7 @@ static void recurse_graph(
     }
 }
 
-static affn::expr parse_graph(
+static core::expr parse_graph(
     tensorflow::GraphDef& graph,
     std::unordered_map<std::string, dimensions>& input_shapes)
 {
@@ -360,16 +365,16 @@ static affn::expr parse_graph(
     std::string output_name = *output_names.begin();
 
     /* recurively traverse the tensorflow graph and
-     * parse each tensorflow node into affn. */
+     * parse each tensorflow node into core. */
     std::unordered_set<std::string> traversed;
-    std::unordered_map<std::string, affn::expr> parsed_nodes;
+    std::unordered_map<std::string, core::expr> parsed_nodes;
     recurse_graph(output_name, nodes, traversed, parsed_nodes, input_shapes);
 
     tcc_assert_has_key(parsed_nodes, output_name);
     return parsed_nodes.at(output_name);
 }
 
-affn::expr parse(std::string input_path,
+core::expr parse(std::string input_path,
                  std::unordered_map<std::string, dimensions>& input_shapes)
 {
     tensorflow::GraphDef graph = load_graph(input_path);

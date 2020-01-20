@@ -5,28 +5,28 @@
 namespace tcc {
 namespace frontend {
 
-affn::expr build_placeholder(data_type dtype, dimensions shape)
+core::expr build_placeholder(data_type dtype, dimensions shape)
 {
-    return affn::var::make(dtype, shape);
+    return core::var::make(dtype, shape);
 }
 
-affn::expr build_const(std::string data, data_type dtype, dimensions shape)
+core::expr build_const(std::string data, data_type dtype, dimensions shape)
 {
-    return affn::cnst::make(data, dtype, shape);
+    return core::cnst::make(data, dtype, shape);
 }
 
-affn::expr build_add(affn::expr x, affn::expr y)
+core::expr build_add(core::expr x, core::expr y)
 {
     return x + y;
 }
 
-affn::expr build_avgpool(std::string data_format,
-                      std::string padding,
-                      dimensions ksize,
-                      dimensions strides,
-                      affn::expr value)
+core::expr build_avgpool(std::string data_format,
+                         std::string padding,
+                         std::vector<int64_t> ksize,
+                         std::vector<int64_t> strides,
+                         core::expr value)
 {
-    using namespace tcc::affn;
+    using namespace tcc::core;
 
     tcc_assert(data_format == "NHWC",
                "\"" + data_format + "\" data format is not supported.");
@@ -73,9 +73,11 @@ affn::expr build_avgpool(std::string data_format,
     return reduce::make(reduce::type::avg, { 3, 4 }, value_frag);
 }
 
-affn::expr build_biasadd(std::string data_format, affn::expr input, affn::expr bias)
+core::expr build_biasadd(std::string data_format,
+                         core::expr input,
+                         core::expr bias)
 {
-    using namespace tcc::affn;
+    using namespace tcc::core;
 
     tcc_assert(data_format == "NHWC",
                "\"" + data_format + "\" data format is not supported.");
@@ -89,14 +91,14 @@ affn::expr build_biasadd(std::string data_format, affn::expr input, affn::expr b
     return input + bias;
 }
 
-affn::expr build_conv2d(std::string data_format,
-                     std::string padding,
-                     dimensions strides,
-                     dimensions dilations,
-                     affn::expr input,
-                     affn::expr filter)
+core::expr build_conv2d(std::string data_format,
+                        std::string padding,
+                        std::vector<int64_t> strides,
+                        std::vector<int64_t> dilations,
+                        core::expr input,
+                        core::expr filter)
 {
-    using namespace tcc::affn;
+    using namespace tcc::core;
 
     tcc_assert(data_format == "NHWC",
                "\"" + data_format + "\" data format is not supported.");
@@ -104,7 +106,7 @@ affn::expr build_conv2d(std::string data_format,
                "\"" + padding + "\" padding is not supported.");
     tcc_assert(strides.size() == 4 && strides[0] == 1 && strides[3] == 1,
                "strides along batch or channel dimension are not supported.");
-    tcc_assert(dilations == dimensions({ 1, 1, 1, 1 }),
+    tcc_assert(dilations == std::vector<int64_t>({ 1, 1, 1, 1 }),
                "dilations are not supported.");
     tcc_assert_not_null(input);
     tcc_assert_not_null(filter);
@@ -165,14 +167,14 @@ affn::expr build_conv2d(std::string data_format,
     return reduce::make(reduce::type::sum, { 3, 4, 5 }, input_frag * filter);
 }
 
-affn::expr build_depthwiseconv2dnative(std::string data_format,
-                                    std::string padding,
-                                    dimensions strides,
-                                    dimensions dilations,
-                                    affn::expr input,
-                                    affn::expr filter)
+core::expr build_depthwiseconv2dnative(std::string data_format,
+                                       std::string padding,
+                                       std::vector<int64_t> strides,
+                                       std::vector<int64_t> dilations,
+                                       core::expr input,
+                                       core::expr filter)
 {
-    using namespace tcc::affn;
+    using namespace tcc::core;
 
     tcc_assert(data_format == "NHWC",
                "\"" + data_format + "\" data format is not supported.");
@@ -180,7 +182,7 @@ affn::expr build_depthwiseconv2dnative(std::string data_format,
                "\"" + padding + "\" padding is not supported.");
     tcc_assert(strides.size() == 4 && strides[0] == 1 && strides[3] == 1,
                "strides along batch or channel dimension are not supported.");
-    tcc_assert(dilations == dimensions({ 1, 1, 1, 1 }),
+    tcc_assert(dilations == std::vector<int64_t>({ 1, 1, 1, 1 }),
                "dilations are not supported.");
     tcc_assert_not_null(input);
     tcc_assert_not_null(filter);
@@ -243,15 +245,15 @@ affn::expr build_depthwiseconv2dnative(std::string data_format,
         reduce::make(reduce::type::sum, { 3, 4 }, input_frag * filter));
 }
 
-affn::expr build_fusedbatchnorm(float epsilon,
-                             std::string data_format,
-                             affn::expr x,
-                             affn::expr scale,
-                             affn::expr offset,
-                             affn::expr mean,
-                             affn::expr variance)
+core::expr build_fusedbatchnorm(float epsilon,
+                                std::string data_format,
+                                core::expr x,
+                                core::expr scale,
+                                core::expr offset,
+                                core::expr mean,
+                                core::expr variance)
 {
-    using namespace tcc::affn;
+    using namespace tcc::core;
 
     tcc_assert(data_format == "NHWC",
                "\"" + data_format + "\" data format is not supported.");
@@ -275,9 +277,9 @@ affn::expr build_fusedbatchnorm(float epsilon,
            offset;
 }
 
-affn::expr build_relu6(affn::expr features)
+core::expr build_relu6(core::expr features)
 {
-    using namespace tcc::affn;
+    using namespace tcc::core;
 
     tcc_assert_not_null(features);
 
@@ -288,9 +290,9 @@ affn::expr build_relu6(affn::expr features)
                         cnst::make(0.0f));
 }
 
-affn::expr build_reshape(affn::expr tensor, affn::expr shape)
+core::expr build_reshape(core::expr tensor, core::expr shape)
 {
-    using namespace tcc::affn;
+    using namespace tcc::core;
 
     tcc_assert_not_null(tensor);
     tcc_assert_not_null(shape);
@@ -300,16 +302,16 @@ affn::expr build_reshape(affn::expr tensor, affn::expr shape)
     dimensions to_shape;
     if (shape->dtype == data_type::INT64)
     {
-        for (dimension dim : downcast<cnst>(shape)->to_vector<dimension>())
+        for (int64_t dim : downcast<cnst>(shape)->to_vector<int64_t>())
         {
-            to_shape.push_back(dim < 0 ? 1 : dim);
+            to_shape.push_back(dim < 0 ? 1 : static_cast<dimension>(dim));
         }
     }
     else if (shape->dtype == data_type::INT32)
     {
         for (int32_t dim : downcast<cnst>(shape)->to_vector<int32_t>())
         {
-            to_shape.push_back(dim < 0 ? 1l : static_cast<dimension>(dim));
+            to_shape.push_back(dim < 0 ? 1 : static_cast<dimension>(dim));
         }
     }
     else
@@ -320,15 +322,15 @@ affn::expr build_reshape(affn::expr tensor, affn::expr shape)
     return reshape::make(to_shape, tensor);
 }
 
-affn::expr build_shape(affn::expr input)
+core::expr build_shape(core::expr input)
 {
     tcc_assert_not_null(input);
-    return affn::cnst::make(input->shape);
+    return core::cnst::make(input->shape);
 }
 
-affn::expr build_softmax(affn::expr logits)
+core::expr build_softmax(core::expr logits)
 {
-    using namespace tcc::affn;
+    using namespace tcc::core;
 
     tcc_assert_not_null(logits);
     tcc_assert_size_eq(logits->shape, 2);
@@ -340,24 +342,23 @@ affn::expr build_softmax(affn::expr logits)
     return de / index::make(i, sm, { i[0] });
 }
 
-affn::expr build_squeeze(dimensions squeeze_dims, affn::expr input)
+core::expr build_squeeze(std::vector<int64_t> squeeze_dims, core::expr input)
 {
-    using namespace tcc::affn;
+    using namespace tcc::core;
 
     tcc_assert(!squeeze_dims.empty(), "squeeze_dims is empty.");
     tcc_assert_not_null(input);
 
     std::unordered_set<dimension> squeeze_dim_set;
-    for (dimension dim : squeeze_dims)
+    for (int64_t dim : squeeze_dims)
     {
-        tcc_assert(dim >= 0l &&
-                       dim < static_cast<dimension>(input->shape.size()),
+        tcc_assert(dim >= 0l && dim < static_cast<int64_t>(input->shape.size()),
                    "squeeze dim is out of bound.");
-        squeeze_dim_set.insert(dim);
+        squeeze_dim_set.insert(static_cast<dimension>(dim));
     }
 
     dimensions squeezed_shape;
-    for (unsigned dim = 0; dim < input->shape.size(); dim++)
+    for (dimension dim = 0; dim < input->shape.size(); dim++)
     {
         if (squeeze_dim_set.find(dim) == squeeze_dim_set.end())
         {

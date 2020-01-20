@@ -11,10 +11,10 @@ enum class data_type
     BOOL,  // bool
     FP32,  // float
     INT32, // int32_t
-    INT64  // int64_t
+    INT64, // int64_t
 };
 
-typedef int64_t dimension;
+typedef uint64_t dimension;
 typedef std::vector<dimension> dimensions;
 
 } // namespace tcc

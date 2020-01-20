@@ -1,7 +1,7 @@
-#include "tcc/affn/index_validator.h"
+#include "tcc/core/ir_util.h"
 
 namespace tcc {
-namespace affn {
+namespace core {
 
 bool index_validator::apply(exprs ranges, exprs indices)
 {
@@ -23,5 +23,5 @@ void index_validator::visit(range_expr e)
     }
 }
 
-} // namespace affn
+} // namespace core
 } // namespace tcc

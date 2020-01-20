@@ -1,20 +1,26 @@
-#ifndef TCC_AFFN_IR_LOWER_H
-#define TCC_AFFN_IR_LOWER_H
+#ifndef TCC_CORE_IR_PRINTER_H
+#define TCC_CORE_IR_PRINTER_H
 
-#include "tcc/affn/ir_visitor.h"
-#include "tcc/lang/ir.h"
-#include <stack>
+#include "tcc/core/ir_visitor.h"
+#include <fstream>
+#include <unordered_map>
 
 namespace tcc {
-namespace affn {
+namespace core {
 
-/* ir_lower constructs lang ir from affn ir. */
-struct ir_lower : ir_visitor
+/* ir_printer generate graphviz dot file
+ * corresponding to the given ir */
+struct ir_printer : ir_visitor
 {
   public:
-    static lang::prim apply(expr);
+    static void apply(std::string, expr);
 
   protected:
+    void print_node(expr,
+                    std::string,
+                    std::vector<std::pair<expr, std::string>> = {});
+    void print_edge(expr, expr);
+
     void visit(var_expr) override;
     void visit(cnst_expr) override;
     void visit(range_expr) override;
@@ -34,10 +40,10 @@ struct ir_lower : ir_visitor
     void visit(logical_and_expr) override;
     void visit(reduce_expr) override;
 
-    std::stack<lang::prims> scopes;
+    std::ofstream file;
 };
 
-} // namespace affn
+} // namespace core
 } // namespace tcc
 
-#endif // TCC_AFFN_IR_LOWER_H
+#endif // TCC_CORE_IR_PRINTER_H

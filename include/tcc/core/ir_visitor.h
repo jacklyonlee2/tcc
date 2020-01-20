@@ -1,19 +1,19 @@
-#ifndef TCC_AFFN_IR_VISITOR_H
-#define TCC_AFFN_IR_VISITOR_H
+#ifndef TCC_CORE_IR_VISITOR_H
+#define TCC_CORE_IR_VISITOR_H
 
-#include "tcc/affn/ir.h"
+#include "tcc/core/ir.h"
 #include <unordered_set>
 
 namespace tcc {
-namespace affn {
+namespace core {
 
+/* base class for all ir visitors. */
 struct ir_visitor : std::enable_shared_from_this<ir_visitor>
 {
-  public:
+  protected:
     virtual void visit(expr);
     virtual void visit(exprs);
 
-  protected:
     virtual void visit(var_expr);
     virtual void visit(cnst_expr);
     virtual void visit(range_expr);
@@ -39,7 +39,7 @@ struct ir_visitor : std::enable_shared_from_this<ir_visitor>
     friend struct base_expr;
 };
 
-} // namespace affn
+} // namespace core
 } // namespace tcc
 
-#endif // TCC_AFFN_IR_VISITOR_H
+#endif // TCC_CORE_IR_VISITOR_H

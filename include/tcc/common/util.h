@@ -55,7 +55,7 @@ template<typename T>
 std::string vector_serialize(std::vector<T> vec)
 {
     char* p = reinterpret_cast<char*>(vec.data());
-    return std::string(p, p + vec.size());
+    return std::string(p, p + vec.size() * sizeof(T));
 }
 
 template<typename T>
@@ -71,6 +71,7 @@ inline dimensions boardcast(dimensions x, dimensions y)
 
     dimensions boardcasted(x.size() - y.size(), 1);
     boardcasted.insert(boardcasted.end(), y.begin(), y.end());
+
     for (unsigned i = 0; i < x.size(); i++)
     {
         if (x[i] == boardcasted[i] || boardcasted[i] == 1)

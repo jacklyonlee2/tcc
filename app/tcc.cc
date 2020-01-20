@@ -1,5 +1,5 @@
-#include "tcc/affn/ir_lower.h"
-#include "tcc/affn/ir_printer.h"
+#include "tcc/core/ir_codegen.h"
+#include "tcc/core/ir_printer.h"
 #include "tcc/common/datatype.h"
 #include "tcc/common/logging.h"
 #include "tcc/frontend/parser.h"
@@ -101,12 +101,12 @@ int main(int argc, char** argv)
     tcc_info("parsing command line flags ...");
     tcc_config conf = parse_config(argc, argv);
 
-    tcc_info("parsing tensorflow graph into affn ir ...");
-    affn::expr affn_ir = frontend::parse(conf.input_path, conf.input_shapes);
+    tcc_info("parsing tensorflow graph into ir ...");
+    core::expr core_ir = frontend::parse(conf.input_path, conf.input_shapes);
 
-    tcc_info("generating affn ir dot file ...");
-    affn::ir_printer::apply("./affn.dot", affn_ir);
+    tcc_info("generating ir dot file ...");
+    core::ir_printer::apply("./core.dot", core_ir);
 
-    tcc_info("lowering affn ir to lang ir ...");
-    lang::prim lang_ir = affn::ir_lower::apply(affn_ir);
+    tcc_info("generating c code from ir ...");
+    core::ir_codegen::apply("./out.cc", core_ir);
 }
