@@ -132,123 +132,6 @@ void ir_printer::visit(reshape_expr e)
     print_edge(e->x, e);
 }
 
-void ir_printer::visit(exp_expr e)
-{
-    print_node(e, "exp", { { e->x, "x" } });
-
-    ir_visitor::visit(e->x);
-
-    print_edge(e->x, e);
-}
-
-void ir_printer::visit(sqrt_expr e)
-{
-    print_node(e, "sqrt", { { e->x, "x" } });
-
-    ir_visitor::visit(e->x);
-
-    print_edge(e->x, e);
-}
-
-void ir_printer::visit(add_expr e)
-{
-    print_node(e, "+", { { e->x, "x" }, { e->y, "y" } });
-
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-
-    print_edge(e->x, e);
-    print_edge(e->y, e);
-}
-
-void ir_printer::visit(sub_expr e)
-{
-    print_node(e, "-", { { e->x, "x" }, { e->y, "y" } });
-
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-
-    print_edge(e->x, e);
-    print_edge(e->y, e);
-}
-
-void ir_printer::visit(mul_expr e)
-{
-    print_node(e, "*", { { e->x, "x" }, { e->y, "y" } });
-
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-
-    print_edge(e->x, e);
-    print_edge(e->y, e);
-}
-
-void ir_printer::visit(div_expr e)
-{
-    print_node(e, "/", { { e->x, "x" }, { e->y, "y" } });
-
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-
-    print_edge(e->x, e);
-    print_edge(e->y, e);
-}
-
-void ir_printer::visit(mod_expr e)
-{
-    print_node(e, "%", { { e->x, "x" }, { e->y, "y" } });
-
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-
-    print_edge(e->x, e);
-    print_edge(e->y, e);
-}
-
-void ir_printer::visit(greater_expr e)
-{
-    print_node(e, "\\>", { { e->x, "x" }, { e->y, "y" } });
-
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-
-    print_edge(e->x, e);
-    print_edge(e->y, e);
-}
-
-void ir_printer::visit(greater_equal_expr e)
-{
-    print_node(e, "\\>=", { { e->x, "x" }, { e->y, "y" } });
-
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-
-    print_edge(e->x, e);
-    print_edge(e->y, e);
-}
-
-void ir_printer::visit(less_expr e)
-{
-    print_node(e, "\\<", { { e->x, "x" }, { e->y, "y" } });
-
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-
-    print_edge(e->x, e);
-    print_edge(e->y, e);
-}
-
-void ir_printer::visit(logical_and_expr e)
-{
-    print_node(e, "&&", { { e->x, "x" }, { e->y, "y" } });
-
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-
-    print_edge(e->x, e);
-    print_edge(e->y, e);
-}
-
 void ir_printer::visit(reduce_expr e)
 {
     print_node(e, "reduce", { { e->x, "x" } });
@@ -256,6 +139,83 @@ void ir_printer::visit(reduce_expr e)
     ir_visitor::visit(e->x);
 
     print_edge(e->x, e);
+}
+
+void ir_printer::visit(unary_expr e)
+{
+    std::string expr_symbol = ([&]() {
+        switch (e->unary_type)
+        {
+            case unary::type::exp:
+                return "exp";
+            case unary::type::sqrt:
+                return "sqrt";
+            default:
+                tcc_error("unknown unary type.");
+        }
+    }());
+
+    print_node(e, expr_symbol, { { e->x, "x" } });
+
+    ir_visitor::visit(e->x);
+
+    print_edge(e->x, e);
+}
+
+void ir_printer::visit(binary_expr e)
+{
+    std::string expr_symbol = ([&]() {
+        switch (e->binary_type)
+        {
+            case binary::type::add:
+                return "+";
+            case binary::type::sub:
+                return "-";
+            case binary::type::mul:
+                return "*";
+            case binary::type::div:
+                return "//";
+            case binary::type::mod:
+                return "%";
+            default:
+                tcc_error("unknown binary type.");
+        }
+    }());
+
+    print_node(e, expr_symbol, { { e->x, "x" }, { e->y, "y" } });
+
+    ir_visitor::visit(e->x);
+    ir_visitor::visit(e->y);
+
+    print_edge(e->x, e);
+    print_edge(e->y, e);
+}
+
+void ir_printer::visit(logical_expr e)
+{
+    std::string expr_symbol = ([&]() {
+        switch (e->logical_type)
+        {
+            case logical::type::greater:
+                return "\\>";
+            case logical::type::greater_equal:
+                return "\\>=";
+            case logical::type::less:
+                return "\\<";
+            case logical::type::and_:
+                return "&&";
+            default:
+                tcc_error("unknown logical type.");
+        }
+    }());
+
+    print_node(e, "\\>", { { e->x, "x" }, { e->y, "y" } });
+
+    ir_visitor::visit(e->x);
+    ir_visitor::visit(e->y);
+
+    print_edge(e->x, e);
+    print_edge(e->y, e);
 }
 
 } // namespace tcc

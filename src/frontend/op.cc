@@ -1,6 +1,6 @@
 #include "tcc/frontend/op.h"
 #include "tcc/common/logging.h"
-#include <math.h>
+#include "tcc/core/ir_util.h"
 
 namespace tcc {
 
@@ -131,8 +131,8 @@ expr build_conv2d(std::string data_format,
 
     dimension o_n, o_h, o_w, o_c;
     o_n = i_n;
-    o_h = floor(static_cast<double>(i_h + p_h * 2 - f_h) / s_h + 1);
-    o_w = floor(static_cast<double>(i_w + p_w * 2 - f_w) / s_w + 1);
+    o_h = (i_h + p_h * 2 - f_h) / s_h + 1;
+    o_w = (i_w + p_w * 2 - f_w) / s_w + 1;
     o_c = f_n;
 
     exprs i = to_ranges({ o_n, o_h, o_w, f_h, f_w, f_c, o_c });
@@ -205,8 +205,8 @@ expr build_depthwiseconv2dnative(std::string data_format,
 
     dimension o_n, o_h, o_w, o_c;
     o_n = i_n;
-    o_h = floor(static_cast<double>(i_h + p_h * 2 - f_h) / s_h + 1);
-    o_w = floor(static_cast<double>(i_w + p_w * 2 - f_w) / s_w + 1);
+    o_h = (i_h + p_h * 2 - f_h) / s_h + 1;
+    o_w = (i_w + p_w * 2 - f_w) / s_w + 1;
     o_c = f_n * f_c;
 
     exprs i = to_ranges({ o_n, o_h, o_w, f_h, f_w, f_c, f_n });
@@ -260,8 +260,7 @@ expr build_fusedbatchnorm(float epsilon,
         variance->shape.size() == 1 && variance->shape[0] == x->shape[3],
         "dimension of variance do not agree with channel dimension of x.");
 
-    return ((x - mean) / sqrt::make(variance + cnst::make(epsilon))) * scale +
-           offset;
+    return ((x - mean) / (variance + cnst::make(epsilon))) * scale + offset;
 }
 
 expr build_relu6(expr features)
@@ -318,7 +317,7 @@ expr build_softmax(expr logits)
 
     exprs i = to_ranges(logits->shape);
     expr mx = reduce::make(reduce::type::max, { 0, 1 }, logits);
-    expr de = exp::make(logits - mx);
+    expr de = exp(logits - mx);
     expr sm = reduce::make(reduce::type::sum, { 1 }, de);
     return de / index::make(i, sm, { i[0] });
 }

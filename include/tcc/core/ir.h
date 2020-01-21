@@ -19,23 +19,14 @@ enum class exprtype
     index,
     select,
     reshape,
-    exp,
-    sqrt,
-    add,
-    sub,
-    mul,
-    div,
-    mod,
-    greater,
-    greater_equal,
-    less,
-    logical_and,
-    reduce
+    reduce,
+    unary,
+    binary,
+    logical
 };
 
 struct ir_visitor;
 
-/* abstract base class for exprs. */
 struct abstract_expr
 {
     abstract_expr(exprtype t)
@@ -49,14 +40,13 @@ struct abstract_expr
     mutable dimensions shape;
 };
 
-/* base class for exprs. */
 template<typename T>
 struct base_expr
     : abstract_expr
     , std::enable_shared_from_this<base_expr<T>>
 {
     base_expr()
-        : abstract_expr(T::etype)
+        : abstract_expr(T::expr_type)
     {}
 
     void accept(std::shared_ptr<ir_visitor> v) const override;
@@ -69,7 +59,7 @@ struct var : base_expr<var>
 {
     static expr make(datatype, dimensions);
 
-    static const exprtype etype = exprtype::var;
+    static const exprtype expr_type = exprtype::var;
 };
 
 struct cnst : base_expr<cnst>
@@ -114,7 +104,7 @@ struct cnst : base_expr<cnst>
 
     static expr make(std::string, datatype, dimensions);
 
-    static const exprtype etype = exprtype::cnst;
+    static const exprtype expr_type = exprtype::cnst;
 };
 
 struct range : base_expr<range>
@@ -123,7 +113,7 @@ struct range : base_expr<range>
 
     static expr make(dimension);
 
-    static const exprtype etype = exprtype::range;
+    static const exprtype expr_type = exprtype::range;
 };
 
 struct index : base_expr<index>
@@ -134,7 +124,7 @@ struct index : base_expr<index>
 
     static expr make(exprs, expr, exprs);
 
-    static const exprtype etype = exprtype::index;
+    static const exprtype expr_type = exprtype::index;
 };
 
 struct select : base_expr<select>
@@ -146,7 +136,7 @@ struct select : base_expr<select>
 
     static expr make(exprs, expr, expr, expr);
 
-    static const exprtype etype = exprtype::select;
+    static const exprtype expr_type = exprtype::select;
 };
 
 struct reshape : base_expr<reshape>
@@ -155,115 +145,7 @@ struct reshape : base_expr<reshape>
 
     static expr make(dimensions, expr);
 
-    static const exprtype etype = exprtype::reshape;
-};
-
-struct exp : base_expr<exp>
-{
-    expr x;
-
-    static expr make(expr);
-
-    static const exprtype etype = exprtype::exp;
-};
-
-struct sqrt : base_expr<sqrt>
-{
-    expr x;
-
-    static expr make(expr);
-
-    static const exprtype etype = exprtype::sqrt;
-};
-
-struct add : base_expr<add>
-{
-    expr x;
-    expr y;
-
-    static expr make(expr, expr);
-
-    static const exprtype etype = exprtype::add;
-};
-
-struct sub : base_expr<sub>
-{
-    expr x;
-    expr y;
-
-    static expr make(expr, expr);
-
-    static const exprtype etype = exprtype::sub;
-};
-
-struct mul : base_expr<mul>
-{
-    expr x;
-    expr y;
-
-    static expr make(expr, expr);
-
-    static const exprtype etype = exprtype::mul;
-};
-
-struct div : base_expr<div>
-{
-    expr x;
-    expr y;
-
-    static expr make(expr, expr);
-
-    static const exprtype etype = exprtype::div;
-};
-
-struct mod : base_expr<mod>
-{
-    expr x;
-    expr y;
-
-    static expr make(expr, expr);
-
-    static const exprtype etype = exprtype::mod;
-};
-
-struct greater : base_expr<greater>
-{
-    expr x;
-    expr y;
-
-    static expr make(expr, expr);
-
-    static const exprtype etype = exprtype::greater;
-};
-
-struct greater_equal : base_expr<greater_equal>
-{
-    expr x;
-    expr y;
-
-    static expr make(expr, expr);
-
-    static const exprtype etype = exprtype::greater_equal;
-};
-
-struct less : base_expr<less>
-{
-    expr x;
-    expr y;
-
-    static expr make(expr, expr);
-
-    static const exprtype etype = exprtype::less;
-};
-
-struct logical_and : base_expr<logical_and>
-{
-    expr x;
-    expr y;
-
-    static expr make(expr, expr);
-
-    static const exprtype etype = exprtype::logical_and;
+    static const exprtype expr_type = exprtype::reshape;
 };
 
 struct reduce : base_expr<reduce>
@@ -281,7 +163,62 @@ struct reduce : base_expr<reduce>
 
     static expr make(type, std::unordered_set<unsigned>, expr);
 
-    static const exprtype etype = exprtype::reduce;
+    static const exprtype expr_type = exprtype::reduce;
+};
+
+struct unary : base_expr<unary>
+{
+    enum class type
+    {
+        exp,
+        sqrt
+    };
+
+    type unary_type;
+    expr x;
+
+    static expr make(type, expr);
+
+    static const exprtype expr_type = exprtype::unary;
+};
+
+struct binary : base_expr<binary>
+{
+    enum class type
+    {
+        add,
+        sub,
+        mul,
+        div,
+        mod
+    };
+
+    type binary_type;
+    expr x;
+    expr y;
+
+    static expr make(type, expr, expr);
+
+    static const exprtype expr_type = exprtype::binary;
+};
+
+struct logical : base_expr<logical>
+{
+    enum class type
+    {
+        greater,
+        greater_equal,
+        less,
+        and_
+    };
+
+    type logical_type;
+    expr x;
+    expr y;
+
+    static expr make(type, expr, expr);
+
+    static const exprtype expr_type = exprtype::logical;
 };
 
 typedef std::shared_ptr<const var> var_expr;
@@ -290,58 +227,10 @@ typedef std::shared_ptr<const range> range_expr;
 typedef std::shared_ptr<const index> index_expr;
 typedef std::shared_ptr<const select> select_expr;
 typedef std::shared_ptr<const reshape> reshape_expr;
-typedef std::shared_ptr<const exp> exp_expr;
-typedef std::shared_ptr<const sqrt> sqrt_expr;
-typedef std::shared_ptr<const add> add_expr;
-typedef std::shared_ptr<const sub> sub_expr;
-typedef std::shared_ptr<const mul> mul_expr;
-typedef std::shared_ptr<const div> div_expr;
-typedef std::shared_ptr<const mod> mod_expr;
-typedef std::shared_ptr<const greater> greater_expr;
-typedef std::shared_ptr<const greater_equal> greater_equal_expr;
-typedef std::shared_ptr<const less> less_expr;
-typedef std::shared_ptr<const logical_and> logical_and_expr;
 typedef std::shared_ptr<const reduce> reduce_expr;
-
-expr operator+(expr lhs, expr rhs);
-expr operator-(expr lhs, expr rhs);
-expr operator*(expr lhs, expr rhs);
-expr operator/(expr lhs, expr rhs);
-expr operator%(expr lhs, expr rhs);
-expr operator>(expr lhs, expr rhs);
-expr operator>=(expr lhs, expr rhs);
-expr operator<(expr lhs, expr rhs);
-expr operator&&(expr lhs, expr rhs);
-
-/* downcast casts expr to core expr. */
-template<typename T>
-std::shared_ptr<const T> downcast(expr e)
-{
-    tcc_assert(e && e->type == T::etype, "illegal downcast.");
-    return std::static_pointer_cast<const T>(e);
-}
-
-/* to_ranges construct ranges from shape. */
-inline exprs to_ranges(dimensions shape)
-{
-    exprs ranges;
-    for (dimension dim : shape)
-    {
-        ranges.push_back(range::make(dim));
-    }
-    return ranges;
-}
-
-/* to_shape construct shape from ranges. */
-inline dimensions to_shape(exprs ranges)
-{
-    dimensions shape;
-    for (expr e : ranges)
-    {
-        shape.push_back(downcast<range>(e)->bound);
-    }
-    return shape;
-}
+typedef std::shared_ptr<const unary> unary_expr;
+typedef std::shared_ptr<const binary> binary_expr;
+typedef std::shared_ptr<const logical> logical_expr;
 
 } // namespace tcc
 

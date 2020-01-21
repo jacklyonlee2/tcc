@@ -19,18 +19,10 @@ struct ir_visitor : std::enable_shared_from_this<ir_visitor>
     virtual void visit(index_expr);
     virtual void visit(select_expr);
     virtual void visit(reshape_expr);
-    virtual void visit(exp_expr);
-    virtual void visit(sqrt_expr);
-    virtual void visit(add_expr);
-    virtual void visit(sub_expr);
-    virtual void visit(mul_expr);
-    virtual void visit(div_expr);
-    virtual void visit(mod_expr);
-    virtual void visit(greater_expr);
-    virtual void visit(greater_equal_expr);
-    virtual void visit(less_expr);
-    virtual void visit(logical_and_expr);
     virtual void visit(reduce_expr);
+    virtual void visit(unary_expr);
+    virtual void visit(binary_expr);
+    virtual void visit(logical_expr);
 
     std::unordered_set<expr> visited;
 

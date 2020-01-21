@@ -7,7 +7,8 @@ bool index_validator::apply(exprs ranges, exprs indices)
     std::shared_ptr<index_validator> v(new index_validator);
     v->valid_ranges = std::unordered_set<expr>(ranges.begin(), ranges.end());
 
-    for (expr idx : indices) {
+    for (expr idx : indices)
+    {
         idx->accept(v);
     }
 
@@ -20,6 +21,61 @@ void index_validator::visit(range_expr e)
     {
         found_invalid_range = false;
     }
+}
+
+expr exp(expr e)
+{
+    return unary::make(unary::type::exp, e);
+}
+
+expr sqrt(expr e)
+{
+    return unary::make(unary::type::sqrt, e);
+}
+
+expr operator+(expr lhs, expr rhs)
+{
+    return binary::make(binary::type::add, lhs, rhs);
+}
+
+expr operator-(expr lhs, expr rhs)
+{
+    return binary::make(binary::type::sub, lhs, rhs);
+}
+
+expr operator*(expr lhs, expr rhs)
+{
+    return binary::make(binary::type::mul, lhs, rhs);
+}
+
+expr operator/(expr lhs, expr rhs)
+{
+    return binary::make(binary::type::div, lhs, rhs);
+}
+
+expr operator%(expr lhs, expr rhs)
+{
+    return binary::make(binary::type::mod, lhs, rhs);
+}
+
+expr operator>(expr lhs, expr rhs)
+{
+    return logical::make(logical::type::greater, lhs, rhs);
+}
+
+expr operator>=(expr lhs, expr rhs)
+{
+    return logical::make(logical::type::greater_equal, lhs, rhs);
+}
+
+expr operator<(expr lhs, expr rhs)
+{
+    return logical::make(logical::type::less, lhs, rhs);
+}
+
+expr operator&&(expr lhs, expr rhs)
+{
+    return logical::make(logical::type::and_, lhs, rhs);
 }
 
 } // namespace tcc

@@ -44,73 +44,26 @@ void ir_visitor::visit(reshape_expr e)
     visit(e->x);
 }
 
-void ir_visitor::visit(exp_expr e)
-{
-    visit(e->x);
-}
-
-void ir_visitor::visit(sqrt_expr e)
-{
-    visit(e->x);
-}
-
-void ir_visitor::visit(add_expr e)
-{
-    visit(e->x);
-    visit(e->y);
-}
-
-void ir_visitor::visit(sub_expr e)
-{
-    visit(e->x);
-    visit(e->y);
-}
-
-void ir_visitor::visit(mul_expr e)
-{
-    visit(e->x);
-    visit(e->y);
-}
-
-void ir_visitor::visit(div_expr e)
-{
-    visit(e->x);
-    visit(e->y);
-}
-
-void ir_visitor::visit(mod_expr e)
-{
-    visit(e->x);
-    visit(e->y);
-}
-
-void ir_visitor::visit(greater_expr e)
-{
-    visit(e->x);
-    visit(e->y);
-}
-
-void ir_visitor::visit(greater_equal_expr e)
-{
-    visit(e->x);
-    visit(e->y);
-}
-
-void ir_visitor::visit(less_expr e)
-{
-    visit(e->x);
-    visit(e->y);
-}
-
-void ir_visitor::visit(logical_and_expr e)
-{
-    visit(e->x);
-    visit(e->y);
-}
-
 void ir_visitor::visit(reduce_expr e)
 {
     visit(e->x);
+}
+
+void ir_visitor::visit(unary_expr e)
+{
+    visit(e->x);
+}
+
+void ir_visitor::visit(binary_expr e)
+{
+    visit(e->x);
+    visit(e->y);
+}
+
+void ir_visitor::visit(logical_expr e)
+{
+    visit(e->x);
+    visit(e->y);
 }
 
 } // namespace tcc

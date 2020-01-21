@@ -1,4 +1,5 @@
 #include "tcc/core/ir_codegen.h"
+#include "tcc/core/ir_util.h"
 
 namespace tcc {
 
@@ -69,59 +70,67 @@ void ir_flatten::visit(index_expr e)
     add_symbol(e, get_symbol(e->x) + "[" + get_symbols(e->indices) + "]");
 }
 
-void ir_flatten::visit(exp_expr e)
+void ir_flatten::visit(unary_expr e)
 {
-    add_symbol(e, "exp(" + get_symbol(e->x) + ")");
+    std::string expr_symbol = ([&]() {
+        switch (e->unary_type)
+        {
+            case unary::type::exp:
+                return "exp";
+            case unary::type::sqrt:
+                return "sqrt";
+            default:
+                tcc_error("unknown unary type.");
+        }
+    }());
+
+    add_symbol(e, expr_symbol + "(" + get_symbol(e->x) + ")");
 }
 
-void ir_flatten::visit(sqrt_expr e)
+void ir_flatten::visit(binary_expr e)
 {
-    add_symbol(e, "sqrt(" + get_symbol(e->x) + ")");
+    std::string expr_symbol = ([&]() {
+        switch (e->binary_type)
+        {
+            case binary::type::add:
+                return "+";
+            case binary::type::sub:
+                return "-";
+            case binary::type::mul:
+                return "*";
+            case binary::type::div:
+                return "/";
+            case binary::type::mod:
+                return "%";
+            default:
+                tcc_error("unknown binary type.");
+        }
+    }());
+
+    add_symbol(e,
+               "(" + get_symbol(e->x) + expr_symbol + get_symbol(e->y) + ")");
 }
 
-void ir_flatten::visit(add_expr e)
+void ir_flatten::visit(logical_expr e)
 {
-    add_symbol(e, "(" + get_symbol(e->x) + "+" + get_symbol(e->y) + ")");
-}
+    std::string expr_symbol = ([&]() {
+        switch (e->logical_type)
+        {
+            case logical::type::greater:
+                return ">";
+            case logical::type::greater_equal:
+                return ">=";
+            case logical::type::less:
+                return "<";
+            case logical::type::and_:
+                return "&&";
+            default:
+                tcc_error("unknown logical type.");
+        }
+    }());
 
-void ir_flatten::visit(sub_expr e)
-{
-    add_symbol(e, "(" + get_symbol(e->x) + "-" + get_symbol(e->y) + ")");
-}
-
-void ir_flatten::visit(mul_expr e)
-{
-    add_symbol(e, "(" + get_symbol(e->x) + "*" + get_symbol(e->y) + ")");
-}
-
-void ir_flatten::visit(div_expr e)
-{
-    add_symbol(e, "(" + get_symbol(e->x) + "/" + get_symbol(e->y) + ")");
-}
-
-void ir_flatten::visit(mod_expr e)
-{
-    add_symbol(e, "(" + get_symbol(e->x) + "%" + get_symbol(e->y) + ")");
-}
-
-void ir_flatten::visit(greater_expr e)
-{
-    add_symbol(e, "(" + get_symbol(e->x) + ">" + get_symbol(e->y) + ")");
-}
-
-void ir_flatten::visit(greater_equal_expr e)
-{
-    add_symbol(e, "(" + get_symbol(e->x) + ">=" + get_symbol(e->y) + ")");
-}
-
-void ir_flatten::visit(less_expr e)
-{
-    add_symbol(e, "(" + get_symbol(e->x) + "<" + get_symbol(e->y) + ")");
-}
-
-void ir_flatten::visit(logical_and_expr e)
-{
-    add_symbol(e, "(" + get_symbol(e->x) + "&&" + get_symbol(e->y) + ")");
+    add_symbol(e,
+               "(" + get_symbol(e->x) + expr_symbol + get_symbol(e->y) + ")");
 }
 
 void ir_codegen::apply(std::string output_path, expr ir)
@@ -255,84 +264,29 @@ void ir_codegen::visit(reshape_expr e)
     alias_variable(e, e->x);
 }
 
-void ir_codegen::visit(exp_expr e)
-{
-    ir_visitor::visit(e->x);
-    add_variable(e);
-}
-
-void ir_codegen::visit(sqrt_expr e)
-{
-    ir_visitor::visit(e->x);
-    add_variable(e);
-}
-
-void ir_codegen::visit(add_expr e)
-{
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-    add_variable(e);
-}
-
-void ir_codegen::visit(sub_expr e)
-{
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-    add_variable(e);
-}
-
-void ir_codegen::visit(mul_expr e)
-{
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-    add_variable(e);
-}
-
-void ir_codegen::visit(div_expr e)
-{
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-    add_variable(e);
-}
-
-void ir_codegen::visit(mod_expr e)
-{
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-    add_variable(e);
-}
-
-void ir_codegen::visit(greater_expr e)
-{
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-    add_variable(e);
-}
-
-void ir_codegen::visit(greater_equal_expr e)
-{
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-    add_variable(e);
-}
-
-void ir_codegen::visit(less_expr e)
-{
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-    add_variable(e);
-}
-
-void ir_codegen::visit(logical_and_expr e)
-{
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-    add_variable(e);
-}
-
 void ir_codegen::visit(reduce_expr e)
 {
     ir_visitor::visit(e->x);
+    add_variable(e);
+}
+
+void ir_codegen::visit(unary_expr e)
+{
+    ir_visitor::visit(e->x);
+    add_variable(e);
+}
+
+void ir_codegen::visit(binary_expr e)
+{
+    ir_visitor::visit(e->x);
+    ir_visitor::visit(e->y);
+    add_variable(e);
+}
+
+void ir_codegen::visit(logical_expr e)
+{
+    ir_visitor::visit(e->x);
+    ir_visitor::visit(e->y);
     add_variable(e);
 }
 
