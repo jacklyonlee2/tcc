@@ -1,7 +1,6 @@
 list(APPEND CORE_SRC
     ${TCC_INCLUDE_DIR}/tcc/common/logging.h
-    ${TCC_INCLUDE_DIR}/tcc/common/datatype.h
-    ${TCC_INCLUDE_DIR}/tcc/common/util.h
+    ${TCC_INCLUDE_DIR}/tcc/common/data.h
     ${TCC_INCLUDE_DIR}/tcc/core/ir.h
     ${TCC_INCLUDE_DIR}/tcc/core/ir_visitor.h
     ${TCC_INCLUDE_DIR}/tcc/core/ir_util.h

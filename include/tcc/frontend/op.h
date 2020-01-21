@@ -1,7 +1,7 @@
 #ifndef TCC_FRONTEND_OP_H
 #define TCC_FRONTEND_OP_H
 
-#include "tcc/common/datatype.h"
+#include "tcc/common/data.h"
 #include "tcc/core/ir.h"
 
 namespace tcc {

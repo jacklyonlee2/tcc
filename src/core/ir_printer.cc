@@ -1,7 +1,14 @@
 #include "tcc/core/ir_printer.h"
-#include "tcc/common/util.h"
+#include <sstream>
 
 namespace tcc {
+
+static std::string ptr_to_addr(const void* p)
+{
+    std::stringstream ss;
+    ss << p;
+    return ss.str();
+}
 
 void ir_printer::apply(std::string output_path, expr ir)
 {
@@ -20,7 +27,7 @@ void ir_printer::print_node(expr e,
                             std::string label,
                             std::vector<std::pair<expr, std::string>> inputs)
 {
-    file << "\t\"" << std::to_string(e.get()) << "\" ";
+    file << "\t\"" << ptr_to_addr(e.get()) << "\" ";
     file << "[label=\"{";
 
     if (!inputs.empty())
@@ -28,13 +35,27 @@ void ir_printer::print_node(expr e,
         file << "{";
         for (unsigned i = 0; i < inputs.size(); i++)
         {
-            file << "<f" << std::to_string(inputs[i].first.get()) << "> "
+            file << "<f" << ptr_to_addr(inputs[i].first.get()) << "> "
                  << inputs[i].second << ((i < inputs.size() - 1) ? "|" : "");
         }
         file << "}|";
     }
 
-    file << label << "|" << std::to_string(e->dtype);
+    file << label << "|" << ([&]() {
+        switch (e->dtype)
+        {
+            case datatype::BOOL:
+                return "BOOL";
+            case datatype::FP32:
+                return "FP32";
+            case datatype::INT32:
+                return "INT32";
+            case datatype::INT64:
+                return "INT64";
+            default:
+                tcc_error("unknown data type.");
+        }
+    }());
 
     if (!e->shape.empty())
     {
@@ -51,9 +72,8 @@ void ir_printer::print_node(expr e,
 
 void ir_printer::print_edge(expr src, expr dst)
 {
-    file << "\t\"" << std::to_string(src.get()) << "\" -> \""
-         << std::to_string(dst.get()) << "\":f" << std::to_string(src.get())
-         << ";\n";
+    file << "\t\"" << ptr_to_addr(src.get()) << "\" -> \""
+         << ptr_to_addr(dst.get()) << "\":f" << ptr_to_addr(src.get()) << ";\n";
 }
 
 void ir_printer::visit(var_expr e)
@@ -68,11 +88,9 @@ void ir_printer::visit(cnst_expr e)
         switch (e->dtype)
         {
             case datatype::FP32:
-                print_node(e, std::to_string(e->to_scalar<float>()));
-                break;
+                return print_node(e, std::to_string(e->to_scalar<float>()));
             case datatype::INT64:
-                print_node(e, std::to_string(e->to_scalar<int64_t>()));
-                break;
+                return print_node(e, std::to_string(e->to_scalar<int64_t>()));
             default:
                 print_node(e, "cnst");
         }

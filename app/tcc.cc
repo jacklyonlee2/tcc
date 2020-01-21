@@ -1,4 +1,4 @@
-#include "tcc/common/datatype.h"
+#include "tcc/common/data.h"
 #include "tcc/common/logging.h"
 #include "tcc/core/ir_codegen.h"
 #include "tcc/core/ir_printer.h"

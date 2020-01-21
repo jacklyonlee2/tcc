@@ -1,8 +1,6 @@
 #include "tcc/core/ir.h"
-#include "tcc/common/util.h"
 #include "tcc/core/ir_util.h"
 #include "tcc/core/ir_visitor.h"
-#include <numeric>
 
 namespace tcc {
 

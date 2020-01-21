@@ -1,9 +1,8 @@
 #ifndef TCC_CORE_IR_H
 #define TCC_CORE_IR_H
 
-#include "tcc/common/datatype.h"
+#include "tcc/common/data.h"
 #include "tcc/common/logging.h"
-#include "tcc/common/util.h"
 #include <memory>
 #include <numeric>
 #include <unordered_set>
