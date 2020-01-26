@@ -33,18 +33,18 @@
 
 #define tcc_assert_has_key(map, key)                                           \
     tcc_assert((map).find((key)) != (map).end(),                               \
-               "key \"" #key "\" is not found in \"" #map "\".")
+               #key " is not found in " #map ".")
 
 #define tcc_assert_no_key(map, key)                                            \
     tcc_assert((map).find((key)) == (map).end(),                               \
-               "key \"" #key "\" already exists in \"" #map "\".")
+               #key " already exists in " #map ".")
 
 #define tcc_assert_not_null(ptr)                                               \
-    tcc_assert((ptr) != nullptr, "\"" #ptr "\" can not be null.")
+    tcc_assert((ptr) != nullptr, "" #ptr " can not be null.")
 
 #define tcc_assert_size_eq(obj, sz)                                            \
     tcc_assert((obj).size() == (sz),                                           \
-               "\"" #obj "\" has size " + std::to_string((obj).size()) +       \
+               #obj " has size " + std::to_string((obj).size()) +           \
                    "; expected size of " + std::to_string((sz)) + ".")
 
 #endif // TCC_COMMON_LOGGING_H

@@ -10,9 +10,7 @@ namespace tcc {
 struct ir_visitor : std::enable_shared_from_this<ir_visitor>
 {
   protected:
-    virtual void visit(expr);
-    virtual void visit(exprs);
-
+    void visit(expr);
     virtual void visit(var_expr);
     virtual void visit(cnst_expr);
     virtual void visit(range_expr);
@@ -22,7 +20,6 @@ struct ir_visitor : std::enable_shared_from_this<ir_visitor>
     virtual void visit(reduce_expr);
     virtual void visit(unary_expr);
     virtual void visit(binary_expr);
-    virtual void visit(logical_expr);
 
     std::unordered_set<expr> visited;
 

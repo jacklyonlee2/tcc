@@ -29,7 +29,6 @@ struct ir_printer : ir_visitor
     void visit(reduce_expr) override;
     void visit(unary_expr) override;
     void visit(binary_expr) override;
-    void visit(logical_expr) override;
 
     std::ofstream file;
 };

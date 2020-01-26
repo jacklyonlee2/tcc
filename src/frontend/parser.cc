@@ -11,8 +11,7 @@ static tensorflow::GraphDef load_graph(std::string input_path)
     std::fstream file;
     file.open(input_path, std::ios::in | std::ios::binary);
     tcc_assert(file,
-               "failed to open tensorflow frozen graph at \"" + input_path +
-                   "\".");
+               "failed to open tensorflow frozen graph at " + input_path + ".");
 
     tensorflow::GraphDef graph;
     tcc_assert(graph.ParseFromIstream(&file),
@@ -31,8 +30,8 @@ static datatype parse_dtype(tensorflow::DataType dtype)
         case tensorflow::DT_INT32:
             return datatype::INT32;
         default:
-            tcc_error("unsupported tensorflow data type \"" +
-                      std::to_string(dtype) + "\".");
+            tcc_error("unsupported tensorflow data type " +
+                      std::to_string(dtype) + ".");
     }
 }
 
@@ -43,7 +42,7 @@ static datatype parse_tensor_dtype(
     tensorflow::AttrValue value = attrs.at("value");
 
     tcc_assert(value.value_case() == tensorflow::AttrValue::kTensor,
-               "tensorflow attribute \"value\" must be of type \"kTensor\".");
+               "tensorflow attribute value must be of type kTensor.");
     return parse_dtype(value.tensor().dtype());
 }
 
@@ -54,7 +53,7 @@ static const std::string parse_tensor_data(
     tensorflow::AttrValue value = attrs.at("value");
 
     tcc_assert(value.value_case() == tensorflow::AttrValue::kTensor,
-               "tensorflow attribute \"value\" must be of type \"kTensor\".");
+               "tensorflow attribute value must be of type kTensor.");
     return value.tensor().tensor_content();
 }
 
@@ -65,7 +64,7 @@ static dimensions parse_tensor_shape(
     tensorflow::AttrValue value = attrs.at("value");
 
     tcc_assert(value.value_case() == tensorflow::AttrValue::kTensor,
-               "tensorflow attribute \"value\" must be of type \"kTensor\".");
+               "tensorflow attribute value must be of type kTensor.");
     tensorflow::TensorProto tensor = value.tensor();
 
     tcc_assert(tensor.has_tensor_shape(),
@@ -92,7 +91,7 @@ static datatype parse_attr_dtype(
     tensorflow::AttrValue dtype = attrs.at("dtype");
 
     tcc_assert(dtype.value_case() == tensorflow::AttrValue::kType,
-               "tensorflow attribute \"dtype\" must be of type \"kType\".");
+               "tensorflow attribute dtype must be of type kType.");
 
     return parse_dtype(dtype.type());
 }
@@ -105,8 +104,7 @@ static std::string parse_attr_string(
     tensorflow::AttrValue attr_val = attrs.at(attr_name);
 
     tcc_assert(attr_val.value_case() == tensorflow::AttrValue::kS,
-               "tensorflow attribute \"" + attr_name +
-                   "\" must be of type \"kS\".");
+               "tensorflow attribute " + attr_name + " must be of type kS.");
 
     return attr_val.s();
 }
@@ -119,8 +117,7 @@ static float parse_attr_float(
     tensorflow::AttrValue attr_val = attrs.at(attr_name);
 
     tcc_assert(attr_val.value_case() == tensorflow::AttrValue::kF,
-               "tensorflow attribute \"" + attr_name +
-                   "\" must be of type \"kF\".");
+               "tensorflow attribute " + attr_name + " must be of type kF.");
 
     return attr_val.f();
 }
@@ -133,13 +130,12 @@ static dimensions parse_attr_int_vec(
     tensorflow::AttrValue attr_val = attrs.at(attr_name);
 
     tcc_assert(attr_val.value_case() == tensorflow::AttrValue::kList,
-               "tensorflow attribute \"" + attr_name +
-                   "\" must be of type \"kList\".");
+               "tensorflow attribute " + attr_name + " must be of type kList.");
     tensorflow::AttrValue_ListValue attr_val_list = attr_val.list();
 
     tcc_assert(attr_val_list.i_size() > 0,
-               "tensorflow integer list attribute \"" + attr_name +
-                   "\" can not be empty.");
+               "tensorflow integer list attribute " + attr_name +
+                   " can not be empty.");
     const int64_t* val = attr_val_list.i().data();
 
     return dimensions(val, val + attr_val_list.i_size());
@@ -291,7 +287,7 @@ static void parse_node(
     }
     else
     {
-        tcc_error("unsupported tensorflow op \"" + node.op() + "\".");
+        tcc_error("unsupported tensorflow op " + node.op() + ".");
     }
 
     /* save core output to parsed nodes. */
@@ -369,7 +365,7 @@ static expr parse_graph(
 }
 
 expr parse(std::string input_path,
-                 std::unordered_map<std::string, dimensions>& input_shapes)
+           std::unordered_map<std::string, dimensions>& input_shapes)
 {
     tensorflow::GraphDef graph = load_graph(input_path);
     return parse_graph(graph, input_shapes);

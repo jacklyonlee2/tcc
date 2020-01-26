@@ -26,9 +26,8 @@ expr build_avgpool(std::string data_format,
                    expr value)
 {
     tcc_assert(data_format == "NHWC",
-               "\"" + data_format + "\" data format is not supported.");
-    tcc_assert(padding == "VALID",
-               "\"" + padding + "\" padding is not supported.");
+               data_format + " data format is not supported.");
+    tcc_assert(padding == "VALID", padding + " padding is not supported.");
     tcc_assert(ksize.size() == 4 && ksize[0] == 1 && ksize[3] == 1,
                "pooling along batch or channel dimension are not supported.");
     tcc_assert(strides.size() == 4 && strides[0] == 1 && strides[3] == 1,
@@ -73,7 +72,7 @@ expr build_avgpool(std::string data_format,
 expr build_biasadd(std::string data_format, expr input, expr bias)
 {
     tcc_assert(data_format == "NHWC",
-               "\"" + data_format + "\" data format is not supported.");
+               data_format + " data format is not supported.");
     tcc_assert_not_null(input);
     tcc_assert_not_null(bias);
     tcc_assert_size_eq(input->shape, 4);
@@ -92,9 +91,8 @@ expr build_conv2d(std::string data_format,
                   expr filter)
 {
     tcc_assert(data_format == "NHWC",
-               "\"" + data_format + "\" data format is not supported.");
-    tcc_assert(padding == "SAME",
-               "\"" + padding + "\" padding is not supported.");
+               data_format + " data format is not supported.");
+    tcc_assert(padding == "SAME", padding + " padding is not supported.");
     tcc_assert(strides.size() == 4 && strides[0] == 1 && strides[3] == 1,
                "strides along batch or channel dimension are not supported.");
     tcc_assert(dilations == dimensions({ 1, 1, 1, 1 }),
@@ -166,9 +164,8 @@ expr build_depthwiseconv2dnative(std::string data_format,
                                  expr filter)
 {
     tcc_assert(data_format == "NHWC",
-               "\"" + data_format + "\" data format is not supported.");
-    tcc_assert(padding == "SAME",
-               "\"" + padding + "\" padding is not supported.");
+               data_format + " data format is not supported.");
+    tcc_assert(padding == "SAME", padding + " padding is not supported.");
     tcc_assert(strides.size() == 4 && strides[0] == 1 && strides[3] == 1,
                "strides along batch or channel dimension are not supported.");
     tcc_assert(dilations == dimensions({ 1, 1, 1, 1 }),
@@ -243,7 +240,7 @@ expr build_fusedbatchnorm(float epsilon,
                           expr variance)
 {
     tcc_assert(data_format == "NHWC",
-               "\"" + data_format + "\" data format is not supported.");
+               data_format + " data format is not supported.");
     tcc_assert_not_null(x);
     tcc_assert_not_null(scale);
     tcc_assert_not_null(offset);
@@ -284,7 +281,7 @@ expr build_reshape(expr tensor, expr shape)
     dimensions to_shape;
     if (shape->dtype == datatype::INT64)
     {
-        for (int64_t dim : downcast<cnst>(shape)->to_vector<int64_t>())
+        for (dimension dim : downcast<cnst>(shape)->to_vector<dimension>())
         {
             to_shape.push_back(dim < 0 ? 1 : static_cast<dimension>(dim));
         }

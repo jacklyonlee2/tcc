@@ -82,7 +82,7 @@ static tcc_config parse_config(int argc, char** argv)
         }
         else
         {
-            tcc_error("unknown command line argument \"" + arg + "\".");
+            tcc_error("unknown command line argument " + arg + ".");
         }
     }
 
@@ -103,7 +103,7 @@ int main(int argc, char** argv)
     tcc::expr ir = tcc::parse(conf.input_path, conf.input_shapes);
 
     tcc_info("generating ir dot file ...");
-    tcc::ir_printer::apply("./core.dot", ir);
+    tcc::ir_printer::apply("./ir.dot", ir);
 
     tcc_info("generating c code from ir ...");
     tcc::ir_codegen::apply("./out.cc", ir);

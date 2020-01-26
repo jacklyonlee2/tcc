@@ -14,7 +14,7 @@ void ir_printer::apply(std::string output_path, expr ir)
 {
     std::shared_ptr<ir_printer> v(new ir_printer);
     v->file = std::ofstream(output_path, std::ios::trunc);
-    tcc_assert(v->file, "failed to open file at \"" + output_path + "\".");
+    tcc_assert(v->file, "failed to open file at " + output_path + ".");
 
     v->file << "digraph core {\n";
     v->file << "\tnode [shape=record]\n";
@@ -117,7 +117,10 @@ void ir_printer::visit(index_expr e)
     print_node(e, "index", inputs);
 
     ir_visitor::visit(e->x);
-    ir_visitor::visit(e->indices);
+    for (expr index : e->indices)
+    {
+        ir_visitor::visit(index);
+    }
 
     print_edge(e->x, e);
 
@@ -152,7 +155,21 @@ void ir_printer::visit(reshape_expr e)
 
 void ir_printer::visit(reduce_expr e)
 {
-    print_node(e, "reduce", { { e->x, "x" } });
+    std::string expr_symbol = ([&]() {
+        switch (e->reduce_type)
+        {
+            case reduce::type::avg:
+                return "reduce avg";
+            case reduce::type::max:
+                return "reduce max";
+            case reduce::type::sum:
+                return "reduce sum";
+            default:
+                tcc_error("unknown reduce type.");
+        }
+    }());
+
+    print_node(e, expr_symbol, { { e->x, "x" } });
 
     ir_visitor::visit(e->x);
 
@@ -192,42 +209,23 @@ void ir_printer::visit(binary_expr e)
             case binary::type::mul:
                 return "*";
             case binary::type::div:
-                return "//";
+                return "/";
             case binary::type::mod:
                 return "%";
+            case binary::type::logical_and:
+                return "&&";
+            case binary::type::greater:
+                return "\\>";
+            case binary::type::greater_eq:
+                return "\\>=";
+            case binary::type::less:
+                return "\\<";
             default:
                 tcc_error("unknown binary type.");
         }
     }());
 
     print_node(e, expr_symbol, { { e->x, "x" }, { e->y, "y" } });
-
-    ir_visitor::visit(e->x);
-    ir_visitor::visit(e->y);
-
-    print_edge(e->x, e);
-    print_edge(e->y, e);
-}
-
-void ir_printer::visit(logical_expr e)
-{
-    std::string expr_symbol = ([&]() {
-        switch (e->logical_type)
-        {
-            case logical::type::greater:
-                return "\\>";
-            case logical::type::greater_equal:
-                return "\\>=";
-            case logical::type::less:
-                return "\\<";
-            case logical::type::and_:
-                return "&&";
-            default:
-                tcc_error("unknown logical type.");
-        }
-    }());
-
-    print_node(e, "\\>", { { e->x, "x" }, { e->y, "y" } });
 
     ir_visitor::visit(e->x);
     ir_visitor::visit(e->y);

@@ -2,32 +2,10 @@
 #define TCC_CORE_IR_CODEGEN_H
 
 #include "tcc/core/ir_visitor.h"
-#include <fstream>
 #include <functional>
 #include <unordered_map>
 
 namespace tcc {
-
-typedef std::unordered_map<expr, std::string> symbol_map;
-
-/* ir_flatten flattens scalar expr into strings. */
-struct ir_flatten : ir_visitor
-{
-  public:
-    static std::string apply(symbol_map, expr);
-
-  protected:
-    std::string get_symbol(expr);
-    std::string get_symbols(exprs);
-    void add_symbol(expr, std::string);
-
-    void visit(index_expr) override;
-    void visit(unary_expr) override;
-    void visit(binary_expr) override;
-    void visit(logical_expr) override;
-
-    symbol_map symbols;
-};
 
 /* ir_codegen generates c code from ir. */
 struct ir_codegen : ir_visitor
@@ -36,9 +14,14 @@ struct ir_codegen : ir_visitor
     static void apply(std::string, expr);
 
   protected:
-    std::string add_variable(expr);
-    void alias_variable(expr, expr);
-    void nest(exprs, expr, std::function<std::string(symbol_map)>);
+    void add_local_symbol(expr, std::string);
+    std::string add_global_symbol(expr, std::string = {});
+    std::string get_indices(exprs, exprs = {});
+    std::string get_symbol(expr);
+    void nest(exprs,
+              expr,
+              std::function<std::string()> = nullptr,
+              bool force_append = false);
 
     void visit(var_expr) override;
     void visit(cnst_expr) override;
@@ -48,10 +31,15 @@ struct ir_codegen : ir_visitor
     void visit(reduce_expr) override;
     void visit(unary_expr) override;
     void visit(binary_expr) override;
-    void visit(logical_expr) override;
 
-    symbol_map symbols;
-    std::string source;
+    std::unordered_map<expr, std::string> global_symbols;
+    std::unordered_map<expr, std::string> local_symbols;
+    exprs local_ranges;
+
+    std::unordered_set<expr> reused;
+    expr output;
+
+    std::string body;
 };
 
 } // namespace tcc

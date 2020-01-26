@@ -5,11 +5,13 @@ list(APPEND CORE_SRC
     ${TCC_INCLUDE_DIR}/tcc/core/ir_visitor.h
     ${TCC_INCLUDE_DIR}/tcc/core/ir_util.h
     ${TCC_INCLUDE_DIR}/tcc/core/ir_printer.h
+    ${TCC_INCLUDE_DIR}/tcc/core/ir_dep_analysis.h
     ${TCC_INCLUDE_DIR}/tcc/core/ir_codegen.h
     core/ir.cc
     core/ir_visitor.cc
     core/ir_util.cc
     core/ir_printer.cc
+    core/ir_dep_analysis.cc
     core/ir_codegen.cc)
 
 add_library(core

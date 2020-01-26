@@ -3,11 +3,14 @@
 
 #include "tcc/common/logging.h"
 #include <cstdint>
-#include <string.h>
+#include <sstream>
 #include <typeinfo>
 #include <vector>
 
 namespace tcc {
+
+typedef int64_t dimension;
+typedef std::vector<dimension> dimensions;
 
 enum class datatype
 {
@@ -35,50 +38,40 @@ datatype to_datatype()
 }
 
 template<typename T>
-std::string scalar_serialize(T data)
+std::vector<T> vector_deserialize(std::string str, size_t size)
 {
-    char* p = reinterpret_cast<char*>(&data);
-    return std::string(p, p + sizeof(data));
-}
+    static_assert(std::is_trivial<T>::value &&
+                      std::is_standard_layout<T>::value,
+                  "T must be a POD type.");
 
-template<typename T>
-T scalar_deserialize(std::string str)
-{
-    T* p = reinterpret_cast<T*>(const_cast<char*>(str.data()));
-    return *p;
+    std::vector<T> vec(size);
+    std::stringstream ss(str);
+    ss.read(reinterpret_cast<char*>(vec.data()), vec.size() * sizeof(T));
+    return vec;
 }
 
 template<typename T>
 std::string vector_serialize(std::vector<T> vec)
 {
-    char* p = reinterpret_cast<char*>(vec.data());
-    return std::string(p, p + vec.size());
+    static_assert(std::is_trivial<T>::value &&
+                      std::is_standard_layout<T>::value,
+                  "T must be a POD type.");
+
+    std::stringstream ss;
+    ss.write(reinterpret_cast<char const*>(vec.data()), vec.size() * sizeof(T));
+    return ss.str();
 }
 
 template<typename T>
-std::vector<T> vector_deserialize(std::string str, size_t size)
+std::string scalar_serialize(T data)
 {
-    T* p = reinterpret_cast<T*>(strdup(str.data()));
-    return std::vector<T>(p, p + size);
+    return vector_serialize<T>({ data });
 }
 
-typedef int64_t dimension;
-typedef std::vector<dimension> dimensions;
-
-inline dimensions boardcast(dimensions x, dimensions y)
+template<typename T>
+T scalar_deserialize(std::string str)
 {
-    tcc_assert(x.size() >= y.size(), "y can not be boardcasted to x.");
-
-    unsigned diff = x.size() - y.size();
-    for (unsigned i = diff; i < x.size(); i++)
-    {
-        if (x[i] != y[i - diff] && y[i - diff] != 1)
-        {
-            tcc_error("y can not be boardcasted to x.");
-        }
-    }
-
-    return x;
+    return vector_deserialize<T>(str, 1)[0];
 }
 
 } // namespace tcc

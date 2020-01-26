@@ -58,24 +58,24 @@ expr operator%(expr lhs, expr rhs)
     return binary::make(binary::type::mod, lhs, rhs);
 }
 
+expr operator&&(expr lhs, expr rhs)
+{
+    return binary::make(binary::type::logical_and, lhs, rhs);
+}
+
 expr operator>(expr lhs, expr rhs)
 {
-    return logical::make(logical::type::greater, lhs, rhs);
+    return binary::make(binary::type::greater, lhs, rhs);
 }
 
 expr operator>=(expr lhs, expr rhs)
 {
-    return logical::make(logical::type::greater_equal, lhs, rhs);
+    return binary::make(binary::type::greater_eq, lhs, rhs);
 }
 
 expr operator<(expr lhs, expr rhs)
 {
-    return logical::make(logical::type::less, lhs, rhs);
-}
-
-expr operator&&(expr lhs, expr rhs)
-{
-    return logical::make(logical::type::and_, lhs, rhs);
+    return binary::make(binary::type::less, lhs, rhs);
 }
 
 } // namespace tcc

@@ -12,14 +12,6 @@ void ir_visitor::visit(expr e)
     }
 }
 
-void ir_visitor::visit(exprs es)
-{
-    for (expr e : es)
-    {
-        visit(e);
-    }
-}
-
 void ir_visitor::visit(var_expr) {}
 
 void ir_visitor::visit(cnst_expr) {}
@@ -29,7 +21,10 @@ void ir_visitor::visit(range_expr) {}
 void ir_visitor::visit(index_expr e)
 {
     visit(e->x);
-    visit(e->indices);
+    for (expr index : e->indices)
+    {
+        visit(index);
+    }
 }
 
 void ir_visitor::visit(select_expr e)
@@ -55,12 +50,6 @@ void ir_visitor::visit(unary_expr e)
 }
 
 void ir_visitor::visit(binary_expr e)
-{
-    visit(e->x);
-    visit(e->y);
-}
-
-void ir_visitor::visit(logical_expr e)
 {
     visit(e->x);
     visit(e->y);

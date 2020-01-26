@@ -21,7 +21,6 @@ enum class exprtype
     reduce,
     unary,
     binary,
-    logical
 };
 
 struct ir_visitor;
@@ -35,9 +34,12 @@ struct abstract_expr
     virtual void accept(std::shared_ptr<ir_visitor> v) const = 0;
 
     exprtype type;
-    mutable datatype dtype;
-    mutable dimensions shape;
+    datatype dtype;
+    dimensions shape;
 };
+
+typedef std::shared_ptr<const abstract_expr> expr;
+typedef std::vector<expr> exprs;
 
 template<typename T>
 struct base_expr
@@ -50,9 +52,6 @@ struct base_expr
 
     void accept(std::shared_ptr<ir_visitor> v) const override;
 };
-
-typedef std::shared_ptr<const abstract_expr> expr;
-typedef std::vector<expr> exprs;
 
 struct var : base_expr<var>
 {
@@ -97,7 +96,7 @@ struct cnst : base_expr<cnst>
         std::shared_ptr<cnst> e(new cnst);
         e->data = vector_serialize<T>(data);
         e->dtype = to_datatype<T>();
-        e->shape = dimensions({ static_cast<dimension>(data.size()) });
+        e->shape = { static_cast<dimension>(data.size()) };
         return e;
     }
 
@@ -158,6 +157,7 @@ struct reduce : base_expr<reduce>
 
     type reduce_type;
     std::unordered_set<unsigned> reduce_dims;
+    dimension reduce_size;
     expr x;
 
     static expr make(type, std::unordered_set<unsigned>, expr);
@@ -189,7 +189,11 @@ struct binary : base_expr<binary>
         sub,
         mul,
         div,
-        mod
+        mod,
+        logical_and,
+        greater,
+        greater_eq,
+        less
     };
 
     type binary_type;
@@ -201,25 +205,6 @@ struct binary : base_expr<binary>
     static const exprtype expr_type = exprtype::binary;
 };
 
-struct logical : base_expr<logical>
-{
-    enum class type
-    {
-        greater,
-        greater_equal,
-        less,
-        and_
-    };
-
-    type logical_type;
-    expr x;
-    expr y;
-
-    static expr make(type, expr, expr);
-
-    static const exprtype expr_type = exprtype::logical;
-};
-
 typedef std::shared_ptr<const var> var_expr;
 typedef std::shared_ptr<const cnst> cnst_expr;
 typedef std::shared_ptr<const range> range_expr;
@@ -229,7 +214,6 @@ typedef std::shared_ptr<const reshape> reshape_expr;
 typedef std::shared_ptr<const reduce> reduce_expr;
 typedef std::shared_ptr<const unary> unary_expr;
 typedef std::shared_ptr<const binary> binary_expr;
-typedef std::shared_ptr<const logical> logical_expr;
 
 } // namespace tcc
 
