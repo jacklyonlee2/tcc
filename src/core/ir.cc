@@ -39,10 +39,13 @@ expr index::make(exprs ranges, expr x, exprs indices)
 {
     tcc_assert_not_null(x);
     tcc_assert(!ranges.empty(), "ranges is empty.");
+    tcc_assert(!x->shape.empty(), "x is a scalar.");
     tcc_assert(x->shape.size() == indices.size(),
                "rank of x and size of indices do not agree.");
     tcc_assert(index_validator::apply(ranges, indices),
                "indices contain unspecified range that is not in ranges.");
+    tcc_assert(!(ranges.size() == indices.size() && ranges == indices),
+               "redundant index expr (element-wise index).");
 
     std::shared_ptr<index> e(new index);
     e->ranges = ranges;
@@ -61,12 +64,18 @@ expr select::make(exprs ranges, expr cond, expr t, expr f)
     tcc_assert(!ranges.empty(), "ranges is empty.");
     tcc_assert(cond->dtype == datatype::BOOL, "dtype of cond is not BOOL.");
     tcc_assert(t->dtype == f->dtype, "dtypes of t and f do not agree.");
-    tcc_assert(t->shape.empty() || (t->type == exprtype::index &&
-                                    downcast<index>(t)->ranges == ranges),
-               "t is not a scalar or index expr with equivalent ranges.");
-    tcc_assert(f->shape.empty() || (f->type == exprtype::index &&
-                                    downcast<index>(f)->ranges == ranges),
-               "f is not a scalar or index expr with equivalent ranges.");
+    tcc_assert(cond->shape.empty() || cond->shape == to_shape(ranges),
+               "cond is not a scalar or expr with equivalent shape.");
+    tcc_assert(t->shape.empty() || t->shape == to_shape(ranges) ||
+                   (t->type == exprtype::index &&
+                    downcast<index>(t)->ranges == ranges),
+               "t is not a scalar, expr with equivalent shape, or index expr "
+               "with equivalent ranges.");
+    tcc_assert(f->shape.empty() || f->shape == to_shape(ranges) ||
+                   (f->type == exprtype::index &&
+                    downcast<index>(f)->ranges == ranges),
+               "f is not a scalar, expr with equivalent shape, or index expr "
+               "with equivalent ranges.");
 
     std::shared_ptr<select> e(new select);
     e->ranges = ranges;
@@ -105,12 +114,14 @@ expr reduce::make(type reduce_type,
     tcc_assert(!x->shape.empty(), "x is scalar.");
     tcc_assert(!reduce_dims.empty(), "reduce_dims is empty.");
 
-    dimension reduce_size = 1;
-    for (unsigned i : reduce_dims)
-    {
-        tcc_assert(i < x->shape.size(), "i is out of bound.");
-        reduce_size *= x->shape[i];
-    }
+    dimension reduce_size = std::accumulate(
+        reduce_dims.begin(),
+        reduce_dims.end(),
+        1,
+        [&](dimension sz, unsigned i) {
+            tcc_assert(i < x->shape.size(), "i is out of bound.");
+            return sz *= x->shape[i];
+        });
 
     dimensions shape;
     for (unsigned i = 0; i < x->shape.size(); i++)
@@ -152,7 +163,7 @@ expr binary::make(type binary_type, expr x, expr y)
                "y can not be boardcasted to x.");
 
     /* broadcast non-scalar inputs with non-equivalent shapes. */
-    if (!x->shape.empty() && x->shape != y->shape)
+    if (!x->shape.empty() && !y->shape.empty() && x->shape != y->shape)
     {
         exprs x_ranges = to_ranges(x->shape), y_ranges;
         unsigned idiff = x->shape.size() - y->shape.size();

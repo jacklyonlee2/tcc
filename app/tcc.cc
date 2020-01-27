@@ -1,8 +1,8 @@
-#include "tcc/common/data.h"
 #include "tcc/common/logging.h"
 #include "tcc/core/ir_codegen.h"
 #include "tcc/core/ir_printer.h"
 #include "tcc/frontend/parser.h"
+#include <dlfcn.h>
 #include <iostream>
 #include <unordered_map>
 #include <vector>
@@ -106,5 +106,15 @@ int main(int argc, char** argv)
     tcc::ir_printer::apply("./ir.dot", ir);
 
     tcc_info("generating c code from ir ...");
-    tcc::ir_codegen::apply("./out.cc", ir);
+    tcc::ir_codegen::apply("./nn.c", ir);
+
+    tcc_info("compiling shared library from c code ...");
+    system("gcc -c -Wall -Werror -fPIC ./nn.c");
+    system("gcc -march=native -Ofast -shared -o ./nn.so ./nn.o -lm");
+
+    tcc_info("validating shared library ...");
+    void* shared_lib = dlopen("./nn.so", RTLD_NOW);
+    tcc_assert(shared_lib, "can not open shared library.");
+    void* func_sym = dlsym(shared_lib, "nn");
+    tcc_assert(func_sym, "can not find function pointer.");
 }

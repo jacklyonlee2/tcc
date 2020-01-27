@@ -265,10 +265,8 @@ expr build_relu6(expr features)
     tcc_assert_not_null(features);
 
     exprs i = to_ranges(features->shape);
-    return select::make(i,
-                        index::make(i, features, i) > cnst::make(0.0f),
-                        index::make(i, features, i),
-                        cnst::make(0.0f));
+    return select::make(
+        i, features > cnst::make(0.0f), features, cnst::make(0.0f));
 }
 
 expr build_reshape(expr tensor, expr shape)

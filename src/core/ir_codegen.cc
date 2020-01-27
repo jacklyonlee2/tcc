@@ -5,6 +5,7 @@
 
 namespace tcc {
 
+/* remove all cnst dimensions from ranges. */
 static exprs squeeze_ranges(exprs ranges)
 {
     exprs squeezed_ranges;
@@ -16,42 +17,136 @@ static exprs squeeze_ranges(exprs ranges)
     return squeezed_ranges;
 }
 
+/* count coalesable dimensions of given ranges. */
 static unsigned match_ranges(exprs old, exprs current)
 {
     unsigned matched_dims = 0;
     for (expr dim : current)
     {
-        if (matched_dims >= old.size() ||
-            downcast<range>(dim)->bound !=
-                downcast<range>(old[matched_dims])->bound)
+        if (matched_dims < old.size())
         {
-            break;
+            tcc_assert(dim->type == exprtype::range &&
+                           old[matched_dims]->type == exprtype::range,
+                       "non-squeezed dimension is found.");
+            if (downcast<range>(dim)->bound !=
+                downcast<range>(old[matched_dims])->bound)
+            {
+                break;
+            }
+            matched_dims++;
         }
-        matched_dims++;
     }
     return matched_dims;
 }
 
-void ir_codegen::apply(std::string output_path, expr ir)
+/* convert tcc datatype to C datatype. */
+static std::string datatype_to_ctype_str(datatype dtype)
+{
+    switch (dtype)
+    {
+        case datatype::FP32:
+            return "float";
+        case datatype::INT64:
+            return "int";
+        case datatype::INT32:
+            return "int";
+        default:
+            tcc_error("unsupported datatype.");
+    }
+}
+
+static std::string shape_to_size_str(dimensions shape)
+{
+    return shape.empty() ? ""
+                         : ("[" +
+                            std::to_string(std::accumulate(
+                                shape.begin(),
+                                shape.end(),
+                                1l,
+                                [](dimension size, dimension dim) {
+                                    return size * dim;
+                                })) +
+                            "]");
+}
+
+exprs ir_codegen::apply(std::string output_path, expr ir)
 {
     /* dependency analysis. */
     ir_dep_analysis_result result = ir_dep_analysis::apply(ir);
 
     /* initialize and apply codegen visitor */
     std::shared_ptr<ir_codegen> v(new ir_codegen);
-    v->reused = result.reused;
+    v->reused_non_scalars = result.reused_non_scalars;
     v->output = ir;
     ir->accept(v);
 
-    /* open output file and write generated code to file. */
-    std::ofstream file(output_path, std::ios::trunc);
-    tcc_assert(file, "failed to open file at " + output_path + ".");
-    file << "void func() {" + v->body + "}";
-    file.close();
+    /* generate static global variables. */
+    std::function<std::string(expr)> generate_var_signature = [&v](expr e) {
+        tcc_assert_has_key(v->global_symbols, e);
+        return datatype_to_ctype_str(e->dtype) + " " + v->global_symbols.at(e) +
+               shape_to_size_str(e->shape);
+    };
+
+    /* generate function signature. */
+    std::function<std::string()> generate_func_signature = [&]() {
+        exprs func_inputs = result.inputs;
+        func_inputs.push_back(v->output);
+        return "void nn(" +
+               std::accumulate(func_inputs.begin() + 1,
+                               func_inputs.end(),
+                               generate_var_signature(func_inputs[0]),
+                               [&](std::string str, expr e) {
+                                   return str + "," + generate_var_signature(e);
+                               }) +
+               ")";
+    };
+
+    /* generate header file. */
+    std::string header_path = output_path + ".h";
+    std::ofstream hfile(header_path, std::ios::trunc);
+    tcc_assert(hfile, "failed to open file at " + header_path + ".");
+    hfile << "#pragma once\n"
+          << "extern " << generate_func_signature() << ";";
+    hfile.close();
+
+    /* generate source file. */
+    std::ofstream sfile(output_path, std::ios::trunc);
+    tcc_assert(sfile, "failed to open file at " + output_path + ".");
+
+    sfile << "#include <math.h>\n"
+          << "#include \"" + header_path + "\"\n";
+
+    std::unordered_set<expr> input_set(result.inputs.begin(),
+                                       result.inputs.end());
+    tcc_assert_has_key(v->global_symbols, v->output);
+    for (auto global : v->global_symbols)
+    {
+        expr e = global.first;
+        if (!(e->shape.empty() &&
+              (e->type == exprtype::cnst || e->type == exprtype::range)) &&
+            global.second != v->global_symbols.at(v->output) &&
+            input_set.find(e) == input_set.end())
+        {
+            sfile << "static " << generate_var_signature(e);
+            if (e->type == exprtype::cnst)
+            {
+                sfile << "={0}"; // TODO: serialize constants
+                /* file << "=\"" + downcast<cnst>(e)->data + "\""; */
+            }
+            sfile << ";\n";
+        }
+    }
+
+    sfile << generate_func_signature() << "{" + v->body + "}";
+    sfile.close();
+
+    /* return function inputs. */
+    return result.inputs;
 }
 
 void ir_codegen::add_local_symbol(expr e, std::string symbol)
 {
+    tcc_assert(!symbol.empty(), "symbol is empty.");
     tcc_assert(local_symbols.find(e) == local_symbols.end() ||
                    local_symbols.at(e) == symbol,
                "a different symbol for e already exists.");
@@ -62,8 +157,8 @@ std::string ir_codegen::add_global_symbol(expr e, std::string symbol)
 {
     if (symbol.empty())
     {
-        tcc_assert_no_key(global_symbols, e);
         static unsigned vcount = 1;
+        tcc_assert_no_key(global_symbols, e);
         global_symbols.insert({ e, "v" + std::to_string(vcount++) });
         return global_symbols.at(e);
     }
@@ -74,18 +169,47 @@ std::string ir_codegen::add_global_symbol(expr e, std::string symbol)
     }
 }
 
-std::string ir_codegen::get_indices(exprs ranges, exprs indices)
+std::string ir_codegen::get_indices(exprs ranges,
+                                    dimensions shape,
+                                    exprs indices)
 {
-    // TODO flatten indices.
+    ranges = squeeze_ranges(ranges);
     tcc_assert(!ranges.empty(), "ranges is empty.");
-    if (indices.empty())
+
+    unsigned matched_dims = match_ranges(local_ranges, ranges);
+    tcc_assert(matched_dims == ranges.size(), "unmatched index ranges.");
+
+    /* alias index symbols. */
+    for (unsigned i = 0; i < ranges.size(); i++)
     {
-        return "[...]";
+        tcc_assert_has_key(global_symbols, local_ranges[i]);
+        if (ranges[i] != local_ranges[i])
+        {
+            add_global_symbol(ranges[i], global_symbols.at(local_ranges[i]));
+        }
     }
-    else
+
+    shape = indices.empty() ? to_shape(ranges) : shape;
+    indices = indices.empty() ? ranges : indices;
+    tcc_assert(indices.size() == shape.size(),
+               "size of indices does not equal to size of shape.");
+
+    std::string flattened_index;
+    dimension index_multiplier = 1;
+    for (int i = shape.size() - 1; i >= 0; i--)
     {
-        return "[...]";
+        std::string multiplier_symbol =
+            index_multiplier == 1 ? ""
+                                  : ("*" + std::to_string(index_multiplier));
+        std::string remainder_symbol =
+            flattened_index.empty() ? "" : ("+" + flattened_index);
+        flattened_index = "(" + get_symbol(indices[i]) + multiplier_symbol +
+                          ")" + remainder_symbol;
+
+        index_multiplier *= shape[i];
     }
+
+    return "[" + flattened_index + "]";
 }
 
 std::string ir_codegen::get_symbol(expr e)
@@ -99,11 +223,15 @@ std::string ir_codegen::get_symbol(expr e)
     }
     else if (global_symbols.find(e) != global_symbols.end())
     {
-        symbol = global_symbols.at(e);
+        symbol =
+            (e->shape.empty()
+                 ? global_symbols.at(e)
+                 : (global_symbols.at(e) + get_indices(to_ranges(e->shape))));
     }
     else if (ir_visitor::visited.find(e) == ir_visitor::visited.end())
     {
         ir_visitor::visit(e);
+        symbol = get_symbol(e);
     }
     else
     {
@@ -144,8 +272,9 @@ void ir_codegen::nest(exprs ranges,
             std::string index_symbol = get_symbol(local_ranges[i]);
             std::string index_bound =
                 std::to_string(downcast<range>(local_ranges[i])->bound);
-            body += "for (int64_t " + index_symbol + " = 0;" + index_symbol +
-                    " < " + index_bound + "; " + index_symbol + "++ ) {\n";
+            body += "for (" + datatype_to_ctype_str(local_ranges[i]->dtype) +
+                    " " + index_symbol + "=0;" + index_symbol + "<" +
+                    index_bound + ";" + index_symbol + "++){\n";
         }
     };
 
@@ -153,11 +282,13 @@ void ir_codegen::nest(exprs ranges,
         [&](unsigned matched_dims) {
             for (auto it = local_symbols.cbegin(); it != local_symbols.cend();)
             {
-                if (!it->first->shape.empty())
+                if (!it->first->shape.empty() || it->first == output)
                 {
                     body += add_global_symbol(it->first) +
-                            get_indices(local_ranges) + " = " + it->second +
-                            ";";
+                            (it->first->shape.empty()
+                                 ? ""
+                                 : get_indices(to_ranges(it->first->shape)) +
+                                       "=" + it->second + ";");
                     it = local_symbols.erase(it);
                 }
                 else
@@ -167,38 +298,9 @@ void ir_codegen::nest(exprs ranges,
             }
 
             close_loop(matched_dims);
-
-            /* flush scalar exprs. */
-            if (matched_dims == 0)
-            {
-                for (auto it = local_symbols.cbegin();
-                     it != local_symbols.cend();
-                     it = local_symbols.erase(it))
-                {
-                    if (it->first == output)
-                    {
-                        body += add_global_symbol(it->first) + " = " +
-                                it->second + ";";
-                    }
-                }
-            }
         };
 
-    if (e->shape.empty())
-    {
-        if (generate_stmt != nullptr)
-        {
-            if (force_append)
-            {
-                body += generate_stmt();
-            }
-            else
-            {
-                add_local_symbol(e, generate_stmt());
-            }
-        }
-    }
-    else // TODO Force global @ index, coalesce for in-place computes only
+    if (!e->shape.empty())
     {
         ranges = squeeze_ranges(ranges);
         unsigned matched_dims = match_ranges(local_ranges, ranges);
@@ -214,22 +316,22 @@ void ir_codegen::nest(exprs ranges,
 
         update_local(matched_dims, ranges);
         open_loop(matched_dims);
+    }
 
-        if (generate_stmt != nullptr)
+    if (generate_stmt != nullptr)
+    {
+        if (force_append)
         {
-            if (force_append)
-            {
-                body += generate_stmt();
-            }
-            else if (reused.find(e) != reused.end())
-            {
-                body += add_global_symbol(e) + get_indices(local_ranges) +
-                        " = " + generate_stmt() + ";";
-            }
-            else
-            {
-                add_local_symbol(e, generate_stmt());
-            }
+            body += generate_stmt();
+        }
+        else if (reused_non_scalars.find(e) != reused_non_scalars.end())
+        {
+            body += add_global_symbol(e) + get_indices(ranges) + " = " +
+                    generate_stmt() + ";";
+        }
+        else
+        {
+            add_local_symbol(e, generate_stmt());
         }
     }
 
@@ -246,7 +348,6 @@ void ir_codegen::visit(var_expr e)
 
 void ir_codegen::visit(cnst_expr e)
 {
-
     if (e->shape.empty())
     {
         switch (e->dtype)
@@ -256,8 +357,7 @@ void ir_codegen::visit(cnst_expr e)
                                   std::to_string(e->to_scalar<float>()) + "f");
                 break;
             case datatype::INT64:
-                add_global_symbol(
-                    e, std::to_string(e->to_scalar<int64_t>()) + "l");
+                add_global_symbol(e, std::to_string(e->to_scalar<int64_t>()));
                 break;
             default:
                 tcc_error("unsupported dtype.");
@@ -273,8 +373,24 @@ void ir_codegen::visit(index_expr e)
 {
     ir_visitor::visit(e->x);
 
+    nest(e->ranges, e);
+
+    if (local_symbols.find(e->x) != local_symbols.end())
+    {
+        exprs x_ranges = to_ranges(e->x->shape);
+        nest(e->ranges,
+             e,
+             [&]() {
+                 return add_global_symbol(e->x) + get_indices(x_ranges) + "=" +
+                        get_symbol(e->x) + ";";
+             },
+             true);
+    }
+
+    tcc_assert_has_key(global_symbols, e->x);
     nest(e->ranges, e, [&]() {
-        return get_symbol(e->x) + get_indices(e->ranges, e->indices);
+        return global_symbols.at(e->x) +
+               get_indices(e->ranges, e->x->shape, e->indices);
     });
 }
 
@@ -284,17 +400,8 @@ void ir_codegen::visit(select_expr e)
     ir_visitor::visit(e->f);
 
     nest(e->ranges, e, [&]() {
-        std::string t_symbol =
-            e->t->shape.empty()
-                ? get_symbol(e->t)
-                : (get_symbol(e->t) + get_indices(to_ranges(e->t->shape)));
-        std::string f_symbol =
-            e->f->shape.empty()
-                ? get_symbol(e->f)
-                : (get_symbol(e->f) + get_indices(to_ranges(e->f->shape)));
-
-        return "(" + get_symbol(e->cond) + "?" + t_symbol + ":" + f_symbol +
-               ")";
+        return "(" + get_symbol(e->cond) + "?" + get_symbol(e->t) + ":" +
+               get_symbol(e->f) + ")";
     });
 }
 
@@ -302,11 +409,27 @@ void ir_codegen::visit(reshape_expr e)
 {
     ir_visitor::visit(e->x);
 
-    // TODO Force global + inplace assignments
-    /* alias symbol with e->x. */
-    add_global_symbol(e, get_symbol(e->x));
+    exprs e_ranges = to_ranges(e->shape);
+    nest(e_ranges, e);
 
-    nest(to_ranges(e->shape), e);
+    if (global_symbols.find(e->x) != global_symbols.end())
+    {
+        add_global_symbol(e, global_symbols.at(e->x));
+    }
+    else if (reused_non_scalars.find(e) != reused_non_scalars.end())
+    {
+        nest(e_ranges,
+             e,
+             [&]() {
+                 return add_global_symbol(e) + get_indices(e_ranges) + "=" +
+                        get_symbol(e->x) + ";";
+             },
+             true);
+    }
+    else
+    {
+        add_local_symbol(e, get_symbol(e->x));
+    }
 }
 
 void ir_codegen::visit(reduce_expr e)
@@ -314,24 +437,31 @@ void ir_codegen::visit(reduce_expr e)
     ir_visitor::visit(e->x);
 
     exprs unreduced_ranges = to_ranges(e->x->shape);
-    exprs reduced_ranges; // TODO compute reduced range
+    exprs reduced_ranges;
+    for (unsigned i = 0; i < unreduced_ranges.size(); i++)
+    {
+        if (e->reduce_dims.find(i) == e->reduce_dims.end())
+        {
+            reduced_ranges.push_back(unreduced_ranges[i]);
+        }
+    }
 
     nest(unreduced_ranges,
          e,
          [&]() {
+             std::string x_symbol = get_symbol(e->x);
              std::string e_symbol =
                  e->shape.empty()
                      ? add_global_symbol(e)
-                     : (add_global_symbol(e) +
-                        get_indices(unreduced_ranges, reduced_ranges));
-             std::string x_symbol =
-                 get_symbol(e->x) + get_indices(unreduced_ranges);
+                     : add_global_symbol(e) + get_indices(unreduced_ranges,
+                                                          e->shape,
+                                                          reduced_ranges);
 
              switch (e->reduce_type)
              {
                  case reduce::type::avg:
                      return e_symbol + "+=" + x_symbol + "/" +
-                            std::to_string(e->reduce_size) + "f;";
+                            std::to_string(e->reduce_size) + ".f;";
                  case reduce::type::max:
                      return e_symbol + "=" + x_symbol + ">" + e_symbol + "?" +
                             x_symbol + ":" + e_symbol + ";";
@@ -362,14 +492,8 @@ void ir_codegen::visit(unary_expr e)
         }
     }());
 
-    exprs e_ranges = to_ranges(e->shape);
-
-    nest(e_ranges, e, [&]() {
-        std::string x_symbol = e->shape.empty()
-                                   ? get_symbol(e->x)
-                                   : get_symbol(e->x) + get_indices(e_ranges);
-
-        return expr_symbol + "(" + x_symbol + ")";
+    nest(to_ranges(e->shape), e, [&]() {
+        return expr_symbol + "(" + get_symbol(e->x) + ")";
     });
 }
 
@@ -404,17 +528,8 @@ void ir_codegen::visit(binary_expr e)
         }
     }());
 
-    exprs e_ranges = to_ranges(e->shape);
-
-    nest(e_ranges, e, [&]() {
-        std::string x_symbol = e->x->shape.empty()
-                                   ? get_symbol(e->x)
-                                   : get_symbol(e->x) + get_indices(e_ranges);
-        std::string y_symbol = e->y->shape.empty()
-                                   ? get_symbol(e->y)
-                                   : get_symbol(e->y) + get_indices(e_ranges);
-
-        return "(" + x_symbol + expr_symbol + y_symbol + ")";
+    nest(to_ranges(e->shape), e, [&]() {
+        return "(" + get_symbol(e->x) + expr_symbol + get_symbol(e->y) + ")";
     });
 }
 

@@ -11,25 +11,21 @@ ir_dep_analysis_result ir_dep_analysis::apply(expr ir)
 
 void ir_dep_analysis::analyze(expr e)
 {
-    if (ir_visitor::visited.count(e))
+    if (ir_visitor::visited.count(e) && !e->shape.empty())
     {
-        result.reused.insert(e);
+        result.reused_non_scalars.insert(e);
     }
     ir_visitor::visit(e);
 }
 
 void ir_dep_analysis::visit(var_expr e)
 {
-    result.inputs.insert(e);
+    result.inputs.push_back(e);
 }
 
 void ir_dep_analysis::visit(index_expr e)
 {
     analyze(e->x);
-    for (expr index : e->indices)
-    {
-        analyze(index);
-    }
 }
 
 void ir_dep_analysis::visit(select_expr e)

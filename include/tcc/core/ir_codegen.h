@@ -11,12 +11,12 @@ namespace tcc {
 struct ir_codegen : ir_visitor
 {
   public:
-    static void apply(std::string, expr);
+    static exprs apply(std::string, expr);
 
   protected:
     void add_local_symbol(expr, std::string);
     std::string add_global_symbol(expr, std::string = {});
-    std::string get_indices(exprs, exprs = {});
+    std::string get_indices(exprs, dimensions = {}, exprs = {});
     std::string get_symbol(expr);
     void nest(exprs,
               expr,
@@ -36,7 +36,7 @@ struct ir_codegen : ir_visitor
     std::unordered_map<expr, std::string> local_symbols;
     exprs local_ranges;
 
-    std::unordered_set<expr> reused;
+    std::unordered_set<expr> reused_non_scalars;
     expr output;
 
     std::string body;
