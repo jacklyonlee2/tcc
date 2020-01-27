@@ -80,7 +80,7 @@ void cnst_to_file(std::ofstream& f, expr e)
     f << "}";
 }
 
-exprs ir_codegen::apply(std::string output_path, expr ir)
+exprs ir_codegen::apply(std::string func_name, expr ir)
 {
     /* dependency analysis. */
     ir_dep_analysis_result result = ir_dep_analysis::apply(ir);
@@ -102,7 +102,7 @@ exprs ir_codegen::apply(std::string output_path, expr ir)
     std::function<std::string()> generate_func_signature = [&]() {
         exprs func_inputs = result.inputs;
         func_inputs.push_back(v->output);
-        return "void nn(" +
+        return "void " + func_name + "(" +
                std::accumulate(func_inputs.begin() + 1,
                                func_inputs.end(),
                                generate_var_signature(func_inputs[0]),
@@ -113,7 +113,7 @@ exprs ir_codegen::apply(std::string output_path, expr ir)
     };
 
     /* generate header file. */
-    std::string header_path = output_path + ".h";
+    std::string header_path = func_name + ".h";
     std::ofstream hfile(header_path, std::ios::trunc);
     tcc_assert(hfile, "failed to open file at " + header_path + ".");
     hfile << "#pragma once\n"
@@ -121,8 +121,9 @@ exprs ir_codegen::apply(std::string output_path, expr ir)
     hfile.close();
 
     /* generate source file. */
-    std::ofstream sfile(output_path, std::ios::trunc);
-    tcc_assert(sfile, "failed to open file at " + output_path + ".");
+    std::string source_path = func_name + ".c";
+    std::ofstream sfile(source_path, std::ios::trunc);
+    tcc_assert(sfile, "failed to open file at " + source_path + ".");
 
     sfile << "#include <math.h>\n"
           << "#include \"" + header_path + "\"\n";
