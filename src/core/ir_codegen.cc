@@ -69,6 +69,17 @@ static std::string shape_to_size_str(dimensions shape)
                             "]");
 }
 
+template<typename T>
+void cnst_to_file(std::ofstream& f, expr e)
+{
+    f << "{";
+    for (T ele : downcast<cnst>(e)->to_vector<T>())
+    {
+        f << std::to_string(ele) << ",";
+    }
+    f << "}";
+}
+
 exprs ir_codegen::apply(std::string output_path, expr ir)
 {
     /* dependency analysis. */
@@ -130,8 +141,18 @@ exprs ir_codegen::apply(std::string output_path, expr ir)
             sfile << "static " << generate_var_signature(e);
             if (e->type == exprtype::cnst)
             {
-                sfile << "={0}"; // TODO: serialize constants
-                /* file << "=\"" + downcast<cnst>(e)->data + "\""; */
+                sfile << "=";
+                switch (e->dtype)
+                {
+                    case datatype::FP32:
+                        cnst_to_file<float>(sfile, e);
+                        break;
+                    case datatype::INT32:
+                        cnst_to_file<int32_t>(sfile, e);
+                        break;
+                    default:
+                        tcc_error("unsupported datatype.");
+                }
             }
             sfile << ";\n";
         }
@@ -272,7 +293,7 @@ void ir_codegen::nest(exprs ranges,
             std::string index_symbol = get_symbol(local_ranges[i]);
             std::string index_bound =
                 std::to_string(downcast<range>(local_ranges[i])->bound);
-            body += "for (" + datatype_to_ctype_str(local_ranges[i]->dtype) +
+            body += "for(" + datatype_to_ctype_str(local_ranges[i]->dtype) +
                     " " + index_symbol + "=0;" + index_symbol + "<" +
                     index_bound + ";" + index_symbol + "++){\n";
         }
