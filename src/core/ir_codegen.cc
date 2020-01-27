@@ -2,6 +2,7 @@
 #include "tcc/core/ir_dep_analysis.h"
 #include "tcc/core/ir_util.h"
 #include <fstream>
+#include <iomanip>
 
 namespace tcc {
 
@@ -72,14 +73,16 @@ static std::string shape_to_size_str(dimensions shape)
 
 /* convert non-scalar cnst to c initializer list. */
 template<typename T>
-void cnst_to_file(std::ofstream& f, expr e)
+std::stringstream cnst_to_file(expr e)
 {
-    f << "{";
+    std::stringstream ss;
+    ss << "{";
     for (T ele : downcast<cnst>(e)->to_vector<T>())
     {
-        f << std::to_string(ele) << ",";
+        ss << std::fixed << std::setprecision(7) << ele << ",";
     }
-    f << "}";
+    ss << "}";
+    return ss;
 }
 
 void ir_codegen::apply(const std::string target_name, expr ir)
@@ -147,10 +150,10 @@ void ir_codegen::apply(const std::string target_name, expr ir)
                 switch (symbol.first->dtype)
                 {
                     case datatype::FP32:
-                        cnst_to_file<float>(sfile, symbol.first);
+                        sfile << cnst_to_file<float>(symbol.first).rdbuf();
                         break;
                     case datatype::INT32:
-                        cnst_to_file<int32_t>(sfile, symbol.first);
+                        sfile << cnst_to_file<int32_t>(symbol.first).rdbuf();
                         break;
                     default:
                         tcc_error("unsupported datatype.");
@@ -165,7 +168,7 @@ void ir_codegen::apply(const std::string target_name, expr ir)
         }
     }
 
-    sfile << generate_func_signature() << "{" + v->body + "}";
+    sfile << generate_func_signature() << "{" << v->body.rdbuf() << "}";
     sfile.close();
 }
 
@@ -287,7 +290,7 @@ void ir_codegen::nest(exprs ranges,
     std::function<void(unsigned)> close_loop = [&](unsigned matched_dims) {
         for (unsigned i = matched_dims; i < local_ranges.size(); i++)
         {
-            body += "}\n";
+            body << "}\n";
         }
     };
 
@@ -295,11 +298,10 @@ void ir_codegen::nest(exprs ranges,
         for (unsigned i = matched_dims; i < local_ranges.size(); i++)
         {
             std::string index_symbol = get_symbol(local_ranges[i]);
-            std::string index_bound =
-                std::to_string(downcast<range>(local_ranges[i])->bound);
-            body += "for(" + datatype_to_ctype_str(local_ranges[i]->dtype) +
-                    " " + index_symbol + "=0;" + index_symbol + "<" +
-                    index_bound + ";" + index_symbol + "++){\n";
+            body << "for(" << datatype_to_ctype_str(local_ranges[i]->dtype)
+                 << " " << index_symbol << "=0;" << index_symbol << "<"
+                 << downcast<range>(local_ranges[i])->bound << ";"
+                 << index_symbol << "++){\n";
         }
     };
 
@@ -309,11 +311,11 @@ void ir_codegen::nest(exprs ranges,
             {
                 if (!it->first->shape.empty() || it->first == output)
                 {
-                    body += add_global_symbol(it->first) +
-                            (it->first->shape.empty()
+                    body << add_global_symbol(it->first)
+                         << (it->first->shape.empty()
                                  ? ""
-                                 : get_indices(to_ranges(it->first->shape)) +
-                                       "=" + it->second + ";");
+                                 : get_indices(to_ranges(it->first->shape)))
+                         << "=" << it->second << ";";
                     it = local_symbols.erase(it);
                 }
                 else
@@ -347,12 +349,12 @@ void ir_codegen::nest(exprs ranges,
     {
         if (force_append)
         {
-            body += generate_stmt();
+            body << generate_stmt();
         }
         else if (reused_non_scalars.find(e) != reused_non_scalars.end())
         {
-            body += add_global_symbol(e) + get_indices(ranges) + " = " +
-                    generate_stmt() + ";";
+            body << add_global_symbol(e) << get_indices(ranges) << "="
+                 << generate_stmt() << ";";
         }
         else
         {

@@ -3,6 +3,7 @@
 
 #include "tcc/core/ir_visitor.h"
 #include <functional>
+#include <sstream>
 #include <unordered_map>
 
 namespace tcc {
@@ -39,7 +40,7 @@ struct ir_codegen : ir_visitor
     std::unordered_set<expr> reused_non_scalars;
     expr output;
 
-    std::string body;
+    std::stringstream body;
 };
 
 } // namespace tcc
