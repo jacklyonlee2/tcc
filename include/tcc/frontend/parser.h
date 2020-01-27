@@ -7,7 +7,7 @@
 namespace tcc {
 
 /* parse deserializes the tensorflow frozen graph and parses it into core ir. */
-expr parse(std::string, std::unordered_map<std::string, dimensions>&);
+expr parse(const std::string, std::unordered_map<std::string, dimensions>&);
 
 } // namespace tcc
 

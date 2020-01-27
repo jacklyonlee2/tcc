@@ -20,7 +20,7 @@ void ir_dep_analysis::analyze(expr e)
 
 void ir_dep_analysis::visit(var_expr e)
 {
-    result.inputs.push_back(e);
+    result.inputs.insert(e);
 }
 
 void ir_dep_analysis::visit(index_expr e)

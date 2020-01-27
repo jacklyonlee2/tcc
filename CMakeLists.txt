@@ -17,3 +17,4 @@ include_directories(${TCC_INCLUDE_DIR})
 
 add_subdirectory(src)
 add_subdirectory(app)
+add_subdirectory(test)

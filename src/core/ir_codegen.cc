@@ -39,7 +39,7 @@ static unsigned match_ranges(exprs old, exprs current)
     return matched_dims;
 }
 
-/* convert tcc datatype to C datatype. */
+/* convert tcc datatype to c datatype string. */
 static std::string datatype_to_ctype_str(datatype dtype)
 {
     switch (dtype)
@@ -55,6 +55,7 @@ static std::string datatype_to_ctype_str(datatype dtype)
     }
 }
 
+/* convert shape to array size string. */
 static std::string shape_to_size_str(dimensions shape)
 {
     return shape.empty() ? ""
@@ -69,6 +70,7 @@ static std::string shape_to_size_str(dimensions shape)
                             "]");
 }
 
+/* convert non-scalar cnst to c initializer list. */
 template<typename T>
 void cnst_to_file(std::ofstream& f, expr e)
 {
@@ -80,7 +82,7 @@ void cnst_to_file(std::ofstream& f, expr e)
     f << "}";
 }
 
-exprs ir_codegen::apply(std::string func_name, expr ir)
+void ir_codegen::apply(const std::string target_name, expr ir)
 {
     /* dependency analysis. */
     ir_dep_analysis_result result = ir_dep_analysis::apply(ir);
@@ -99,13 +101,13 @@ exprs ir_codegen::apply(std::string func_name, expr ir)
     };
 
     /* generate function signature. */
+    exprs inouts(result.inputs.begin(), result.inputs.end());
+    inouts.push_back(v->output);
     std::function<std::string()> generate_func_signature = [&]() {
-        exprs func_inputs = result.inputs;
-        func_inputs.push_back(v->output);
-        return "void " + func_name + "(" +
-               std::accumulate(func_inputs.begin() + 1,
-                               func_inputs.end(),
-                               generate_var_signature(func_inputs[0]),
+        return "void " + target_name + "(" +
+               std::accumulate(inouts.begin() + 1,
+                               inouts.end(),
+                               generate_var_signature(inouts[0]),
                                [&](std::string str, expr e) {
                                    return str + "," + generate_var_signature(e);
                                }) +
@@ -113,57 +115,58 @@ exprs ir_codegen::apply(std::string func_name, expr ir)
     };
 
     /* generate header file. */
-    std::string header_path = func_name + ".h";
+    std::string header_path = target_name + "/" + target_name + ".h";
     std::ofstream hfile(header_path, std::ios::trunc);
-    tcc_assert(hfile, "failed to open file at " + header_path + ".");
+    tcc_assert(hfile, "failed to open file at " + header_path);
+
     hfile << "#pragma once\n"
           << "extern " << generate_func_signature() << ";";
     hfile.close();
 
     /* generate source file. */
-    std::string source_path = func_name + ".c";
+    std::string source_path = target_name + "/" + target_name + ".c";
     std::ofstream sfile(source_path, std::ios::trunc);
-    tcc_assert(sfile, "failed to open file at " + source_path + ".");
+    tcc_assert(sfile, "failed to open file at " + source_path);
 
     sfile << "#include <math.h>\n"
-          << "#include \"" + header_path + "\"\n";
+          << "#include \"" + target_name + ".h\"\n";
 
-    std::unordered_set<expr> input_set(result.inputs.begin(),
-                                       result.inputs.end());
     tcc_assert_has_key(v->global_symbols, v->output);
-    for (auto global : v->global_symbols)
+    for (auto symbol : v->global_symbols)
     {
-        expr e = global.first;
-        if (!(e->shape.empty() &&
-              (e->type == exprtype::cnst || e->type == exprtype::range)) &&
-            global.second != v->global_symbols.at(v->output) &&
-            input_set.find(e) == input_set.end())
+        if (!(symbol.first->shape.empty() &&
+              (symbol.first->type == exprtype::cnst ||
+               symbol.first->type == exprtype::range)) &&
+            symbol.second != v->global_symbols.at(v->output) &&
+            result.inputs.find(symbol.first) == result.inputs.end())
         {
-            sfile << "static " << generate_var_signature(e);
-            if (e->type == exprtype::cnst)
+            if (symbol.first->type == exprtype::cnst)
             {
-                sfile << "=";
-                switch (e->dtype)
+                sfile << "static const " << generate_var_signature(symbol.first)
+                      << "=";
+                switch (symbol.first->dtype)
                 {
                     case datatype::FP32:
-                        cnst_to_file<float>(sfile, e);
+                        cnst_to_file<float>(sfile, symbol.first);
                         break;
                     case datatype::INT32:
-                        cnst_to_file<int32_t>(sfile, e);
+                        cnst_to_file<int32_t>(sfile, symbol.first);
                         break;
                     default:
                         tcc_error("unsupported datatype.");
                 }
+                sfile << ";\n";
             }
-            sfile << ";\n";
+            else
+            {
+                sfile << "static " << generate_var_signature(symbol.first)
+                      << ";\n";
+            }
         }
     }
 
     sfile << generate_func_signature() << "{" + v->body + "}";
     sfile.close();
-
-    /* return function inputs. */
-    return result.inputs;
 }
 
 void ir_codegen::add_local_symbol(expr e, std::string symbol)

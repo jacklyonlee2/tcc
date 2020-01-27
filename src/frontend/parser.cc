@@ -6,7 +6,7 @@
 
 namespace tcc {
 
-static tensorflow::GraphDef load_graph(std::string input_path)
+static tensorflow::GraphDef load_graph(const std::string input_path)
 {
     std::fstream file;
     file.open(input_path, std::ios::in | std::ios::binary);
@@ -364,7 +364,7 @@ static expr parse_graph(
     return parsed_nodes.at(output_name);
 }
 
-expr parse(std::string input_path,
+expr parse(const std::string input_path,
            std::unordered_map<std::string, dimensions>& input_shapes)
 {
     tensorflow::GraphDef graph = load_graph(input_path);

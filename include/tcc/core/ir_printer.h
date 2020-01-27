@@ -12,7 +12,7 @@ namespace tcc {
 struct ir_printer : ir_visitor
 {
   public:
-    static void apply(std::string, expr);
+    static void apply(const std::string, expr);
 
   protected:
     void print_node(expr,

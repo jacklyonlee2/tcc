@@ -4,5 +4,4 @@ add_executable(tcc
 target_link_libraries(tcc
     PRIVATE
     frontend
-    core
-    dl)
+    core)

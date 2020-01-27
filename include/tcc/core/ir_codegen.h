@@ -11,7 +11,7 @@ namespace tcc {
 struct ir_codegen : ir_visitor
 {
   public:
-    static exprs apply(std::string, expr);
+    static void apply(const std::string, expr);
 
   protected:
     void add_local_symbol(expr, std::string);

@@ -1,9 +1,8 @@
 #include "tcc/common/logging.h"
 #include "tcc/core/ir_codegen.h"
-#include "tcc/core/ir_printer.h"
 #include "tcc/frontend/parser.h"
-#include <dlfcn.h>
 #include <iostream>
+#include <sys/stat.h>
 #include <unordered_map>
 #include <vector>
 
@@ -11,23 +10,24 @@ struct tcc_config
 {
     std::string input_path;
     std::unordered_map<std::string, tcc::dimensions> input_shapes;
-    std::string func_name;
+    std::string target_name;
 };
 
 static void print_usage_and_exit()
 {
-    std::cout << "Usage: tcc -input-path=\"./example.pb\" "
-                 "-input-shapes=\"{a:[1,2],b:[3,4]}\" -func-name=\"example\"\n"
-              << "\t-input-path\t- Path to frozen tensorflow graph.\n"
-              << "\t-input-shapes\t- A map of input placeholder names to "
-                 "placeholder shapes.\n"
-              << "\t-func-name\t- Function name contained within the generated "
-                 "shared library (needed for `dlsym`).\n"
-              << "\t-help\t\t- Displays command line options.\n";
+    std::cout
+        << "Usage: tcc -input-path=\"./example.pb\" "
+           "-input-shapes=\"{a:[1,2],b:[3,4]}\" -target-name=\"example\"\n"
+        << "\t-input-path\t- Path to frozen tensorflow graph.\n"
+        << "\t-input-shapes\t- A map of input placeholder names to "
+           "placeholder shapes.\n"
+        << "\t-target-name\t- A string used as path of the output folder and "
+           "file and function name for the generated header and source files.\n"
+        << "\t-help\t\t- Displays command line options.\n";
     exit(0);
 }
 
-static void parse_input_shapes(tcc_config& cf, std::string arg)
+static void parse_input_shapes(tcc_config& config, std::string arg)
 {
     size_t pos;
     std::string value = arg.substr(arg.rfind("=") + 1);
@@ -55,13 +55,13 @@ static void parse_input_shapes(tcc_config& cf, std::string arg)
         }
         shape.push_back(stol(val));
 
-        cf.input_shapes[key] = shape;
+        config.input_shapes[key] = shape;
     }
 }
 
 static tcc_config parse_config(int argc, char** argv)
 {
-    tcc_config cf;
+    tcc_config config;
 
     for (int i = 1; i < argc; i++)
     {
@@ -72,15 +72,15 @@ static tcc_config parse_config(int argc, char** argv)
         }
         else if (arg.rfind("-input-path", 0) == 0)
         {
-            cf.input_path = arg.substr(arg.rfind("=") + 1);
+            config.input_path = arg.substr(arg.rfind("=") + 1);
         }
         else if (arg.rfind("-input-shapes", 0) == 0)
         {
-            parse_input_shapes(cf, arg);
+            parse_input_shapes(config, arg);
         }
-        else if (arg.rfind("-func-name", 0) == 0)
+        else if (arg.rfind("-target-name", 0) == 0)
         {
-            cf.func_name = arg.substr(arg.rfind("=") + 1);
+            config.target_name = arg.substr(arg.rfind("=") + 1);
         }
         else
         {
@@ -88,43 +88,29 @@ static tcc_config parse_config(int argc, char** argv)
         }
     }
 
-    if (cf.input_path.empty() || cf.func_name.empty())
+    if (config.input_path.empty() || config.target_name.empty())
     {
         print_usage_and_exit();
     }
 
-    return cf;
+    return config;
 }
 
 int main(int argc, char** argv)
 {
-    tcc_info("parsing command line flags ...");
-    tcc_config cf = parse_config(argc, argv);
+    tcc_config config = parse_config(argc, argv);
+    tcc_info("successfully parsed command line arguments.");
 
-    tcc_info("parsing tensorflow graph into ir ...");
-    tcc::expr ir = tcc::parse(cf.input_path, cf.input_shapes);
+    tcc_assert(!system(("rm -rf " + config.target_name).c_str()),
+               "failed to remove existing directory at " + config.target_name);
+    tcc_assert(!mkdir(config.target_name.c_str(),
+                      S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH),
+               "failed to create output directory at " + config.target_name);
+    tcc_info("successfully created target directory at " + config.target_name);
 
-    tcc_info("generating ir dot file ...");
-    tcc::ir_printer::apply("./ir.dot", ir);
+    tcc::expr ir = tcc::parse(config.input_path, config.input_shapes);
+    tcc_info("successfully parsed tensorflow graph into tcc ir.");
 
-    tcc_info("generating c code from ir ...");
-    tcc::ir_codegen::apply(cf.func_name, ir);
-
-    {
-        std::string source_path = "./" + cf.func_name + ".c",
-                    obj_path = "./" + cf.func_name + ".o",
-                    lib_path = "./" + cf.func_name + ".so";
-
-        tcc_info("compiling shared library from c code ...");
-        system(("gcc -c -Wall -Werror -fPIC " + source_path).c_str());
-        system(("gcc -march=native -Ofast -shared -o " + lib_path + " " +
-                obj_path + " -lm")
-                   .c_str());
-
-        tcc_info("validating shared library ...");
-        void* shared_lib = dlopen(lib_path.c_str(), RTLD_NOW);
-        tcc_assert(shared_lib, "can not open shared library at " + lib_path);
-        void* func_sym = dlsym(shared_lib, cf.func_name.c_str());
-        tcc_assert(func_sym, "can not find function symbol at " + cf.func_name);
-    }
+    tcc::ir_codegen::apply(config.target_name, ir);
+    tcc_info("successfully generated source files.");
 }

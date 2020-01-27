@@ -10,14 +10,16 @@ static std::string ptr_to_addr(const void* p)
     return ss.str();
 }
 
-void ir_printer::apply(std::string output_path, expr ir)
+void ir_printer::apply(const std::string target_name, expr ir)
 {
-    std::shared_ptr<ir_printer> v(new ir_printer);
-    v->file = std::ofstream(output_path, std::ios::trunc);
-    tcc_assert(v->file, "failed to open file at " + output_path + ".");
+    std::string dot_path = target_name + "/" + target_name + ".dot";
+    std::ofstream file = std::ofstream(dot_path, std::ios::trunc);
+    tcc_assert(file, "failed to open file at " + dot_path + ".");
 
-    v->file << "digraph core {\n";
-    v->file << "\tnode [shape=record]\n";
+    std::shared_ptr<ir_printer> v(new ir_printer);
+    v->file = std::move(file);
+    v->file << "digraph core {\n"
+            << "\tnode [shape=record]\n";
     ir->accept(v);
     v->file << "}";
     v->file.close();

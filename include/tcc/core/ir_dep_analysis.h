@@ -7,7 +7,7 @@ namespace tcc {
 
 struct ir_dep_analysis_result
 {
-    exprs inputs;
+    std::unordered_set<expr> inputs;
     std::unordered_set<expr> reused_non_scalars;
 };
 
