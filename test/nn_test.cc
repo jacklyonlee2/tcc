@@ -2,7 +2,10 @@
 #include "tcc/core/ir_codegen.h"
 #include "tcc/core/ir_printer.h"
 #include "tcc/frontend/parser.h"
+#include <chrono>
 #include <dlfcn.h>
+#include <iostream>
+#include <random>
 #include <sys/stat.h>
 
 static_assert(__unix__, "nn_test is only compatible with unix systems.");
@@ -80,6 +83,25 @@ static void* util_compile_model(
     }
 }
 
+static float* util_zero_array(unsigned size)
+{
+    return (float*)calloc(size, sizeof(float));
+}
+
+static float* util_random_array(unsigned size, float max = 255.0)
+{
+    static std::default_random_engine generator;
+    static std::uniform_real_distribution<float> distribution(0., max);
+
+    float* array = (float*)malloc(size * sizeof(float));
+    for (unsigned i = 0; i < size; i++)
+    {
+        array[i] = distribution(generator);
+    }
+
+    return array;
+}
+
 static void test_mobilenetv2()
 {
     static const std::string model_url =
@@ -88,8 +110,31 @@ static void test_mobilenetv2()
     static const std::string file_name = "mobilenet_v2_1.4_224";
     static const std::string target_name = "mobilenetv2";
 
-    void* model = util_compile_model(
-        model_url, file_name, target_name, { { "input", { 1, 224, 224, 3 } } });
+    void (*model)(float*, float*) = (void (*)(
+        float*, float*))util_compile_model(model_url,
+                                           file_name,
+                                           target_name,
+                                           { { "input", { 1, 224, 224, 3 } } });
+
+    std::chrono::steady_clock::time_point begin;
+    std::chrono::steady_clock::time_point end;
+
+    float* input = util_random_array(150528);
+    float* output = util_zero_array(1001);
+
+    begin = std::chrono::steady_clock::now();
+    model(input, output);
+    end = std::chrono::steady_clock::now();
+
+    tcc_info(
+        "inference time: " +
+        std::to_string(
+            std::chrono::duration_cast<std::chrono::milliseconds>(end - begin)
+                .count()) +
+        " ms.");
+
+    free(input);
+    free(output);
 }
 
 int main()
