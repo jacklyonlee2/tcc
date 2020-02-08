@@ -1,6 +1,7 @@
 #include "tcc/core/ir_codegen.h"
 #include "tcc/core/ir_dep_analysis.h"
 #include "tcc/core/ir_util.h"
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
 
@@ -40,51 +41,6 @@ static unsigned match_ranges(exprs old, exprs current)
     return matched_dims;
 }
 
-/* convert tcc datatype to c datatype string. */
-static std::string datatype_to_ctype_str(datatype dtype)
-{
-    switch (dtype)
-    {
-        case datatype::FP32:
-            return "float";
-        case datatype::INT64:
-            return "int";
-        case datatype::INT32:
-            return "int";
-        default:
-            tcc_error("unsupported datatype.");
-    }
-}
-
-/* convert shape to array size string. */
-static std::string shape_to_size_str(dimensions shape)
-{
-    return shape.empty() ? ""
-                         : ("[" +
-                            std::to_string(std::accumulate(
-                                shape.begin(),
-                                shape.end(),
-                                1l,
-                                [](dimension size, dimension dim) {
-                                    return size * dim;
-                                })) +
-                            "]");
-}
-
-/* convert non-scalar cnst to c initializer list. */
-template<typename T>
-std::stringstream cnst_to_file(expr e)
-{
-    std::stringstream ss;
-    ss << "{";
-    for (T ele : downcast<cnst>(e)->to_vector<T>())
-    {
-        ss << std::fixed << std::setprecision(7) << ele << ",";
-    }
-    ss << "}";
-    return ss;
-}
-
 void ir_codegen::apply(const std::string target_name, expr ir)
 {
     /* dependency analysis. */
@@ -99,8 +55,35 @@ void ir_codegen::apply(const std::string target_name, expr ir)
     /* generate static global variables. */
     std::function<std::string(expr)> generate_var_signature = [&v](expr e) {
         tcc_assert_has_key(v->global_symbols, e);
-        return datatype_to_ctype_str(e->dtype) + " " + v->global_symbols.at(e) +
-               shape_to_size_str(e->shape);
+
+        std::string ctype = [&]() -> std::string {
+            switch (e->dtype)
+            {
+                case datatype::FP32:
+                    return "float";
+                case datatype::INT64:
+                    return "int";
+                case datatype::INT32:
+                    return "int";
+                default:
+                    tcc_error("unsupported datatype.");
+            }
+        }();
+
+        std::string size = [&]() -> std::string {
+            return e->shape.empty() ? ""
+                                    : ("[" +
+                                       std::to_string(std::accumulate(
+                                           e->shape.begin(),
+                                           e->shape.end(),
+                                           1l,
+                                           [](dimension size, dimension dim) {
+                                               return size * dim;
+                                           })) +
+                                       "]");
+        }();
+
+        return ctype + " " + v->global_symbols.at(e) + size;
     };
 
     /* generate function signature. */
@@ -145,20 +128,16 @@ void ir_codegen::apply(const std::string target_name, expr ir)
         {
             if (symbol.first->type == exprtype::cnst)
             {
+                tcc_assert(symbol.first->dtype == datatype::FP32,
+                           "cnst datatype is not FP32.");
                 sfile << "static const " << generate_var_signature(symbol.first)
-                      << "=";
-                switch (symbol.first->dtype)
+                      << "= {";
+                for (float ele :
+                     downcast<cnst>(symbol.first)->to_vector<float>())
                 {
-                    case datatype::FP32:
-                        sfile << cnst_to_file<float>(symbol.first).rdbuf();
-                        break;
-                    case datatype::INT32:
-                        sfile << cnst_to_file<int32_t>(symbol.first).rdbuf();
-                        break;
-                    default:
-                        tcc_error("unsupported datatype.");
+                    sfile << std::fixed << std::setprecision(6) << ele << ",";
                 }
-                sfile << ";\n";
+                sfile << "};\n";
             }
             else
             {
@@ -298,8 +277,7 @@ void ir_codegen::nest(exprs ranges,
         for (unsigned i = matched_dims; i < local_ranges.size(); i++)
         {
             std::string index_symbol = get_symbol(local_ranges[i]);
-            body << "for(" << datatype_to_ctype_str(local_ranges[i]->dtype)
-                 << " " << index_symbol << "=0;" << index_symbol << "<"
+            body << "for(int " << index_symbol << "=0;" << index_symbol << "<"
                  << downcast<range>(local_ranges[i])->bound << ";"
                  << index_symbol << "++){\n";
         }
@@ -315,7 +293,7 @@ void ir_codegen::nest(exprs ranges,
                          << (it->first->shape.empty()
                                  ? ""
                                  : get_indices(to_ranges(it->first->shape)))
-                         << "=" << it->second << ";";
+                         << "=" << it->second << ";\n";
                     it = local_symbols.erase(it);
                 }
                 else
@@ -349,12 +327,12 @@ void ir_codegen::nest(exprs ranges,
     {
         if (force_append)
         {
-            body << generate_stmt();
+            body << generate_stmt() << ";\n";
         }
         else if (reused_non_scalars.find(e) != reused_non_scalars.end())
         {
             body << add_global_symbol(e) << get_indices(ranges) << "="
-                 << generate_stmt() << ";";
+                 << generate_stmt() << ";\n";
         }
         else
         {
@@ -409,7 +387,7 @@ void ir_codegen::visit(index_expr e)
              e,
              [&]() {
                  return add_global_symbol(e->x) + get_indices(x_ranges) + "=" +
-                        get_symbol(e->x) + ";";
+                        get_symbol(e->x);
              },
              true);
     }
@@ -449,7 +427,7 @@ void ir_codegen::visit(reshape_expr e)
              e,
              [&]() {
                  return add_global_symbol(e) + get_indices(e_ranges) + "=" +
-                        get_symbol(e->x) + ";";
+                        get_symbol(e->x);
              },
              true);
     }
@@ -483,17 +461,16 @@ void ir_codegen::visit(reduce_expr e)
                      : add_global_symbol(e) + get_indices(unreduced_ranges,
                                                           e->shape,
                                                           reduced_ranges);
-
              switch (e->reduce_type)
              {
                  case reduce::type::avg:
                      return e_symbol + "+=" + x_symbol + "/" +
-                            std::to_string(e->reduce_size) + ".f;";
+                            std::to_string(e->reduce_size) + ".f";
                  case reduce::type::max:
                      return e_symbol + "=" + x_symbol + ">" + e_symbol + "?" +
-                            x_symbol + ":" + e_symbol + ";";
+                            x_symbol + ":" + e_symbol;
                  case reduce::type::sum:
-                     return e_symbol + "+=" + x_symbol + ";";
+                     return e_symbol + "+=" + x_symbol;
                  default:
                      tcc_error("unknown reduce type");
              }
@@ -511,9 +488,7 @@ void ir_codegen::visit(unary_expr e)
         switch (e->unary_type)
         {
             case unary::type::exp:
-                return "exp";
-            case unary::type::sqrt:
-                return "sqrt";
+                return "expf";
             default:
                 tcc_error("unknown unary type.");
         }

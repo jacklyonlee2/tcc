@@ -1,36 +1,11 @@
 #include "tcc/core/ir_util.h"
+#include <algorithm>
 
 namespace tcc {
-
-bool index_validator::apply(exprs ranges, exprs indices)
-{
-    std::shared_ptr<index_validator> v(new index_validator);
-    v->valid_ranges = std::unordered_set<expr>(ranges.begin(), ranges.end());
-
-    for (expr idx : indices)
-    {
-        idx->accept(v);
-    }
-
-    return !v->found_invalid_range;
-}
-
-void index_validator::visit(range_expr e)
-{
-    if (valid_ranges.find(e) == valid_ranges.end())
-    {
-        found_invalid_range = false;
-    }
-}
 
 expr exp(expr e)
 {
     return unary::make(unary::type::exp, e);
-}
-
-expr sqrt(expr e)
-{
-    return unary::make(unary::type::sqrt, e);
 }
 
 expr operator+(expr lhs, expr rhs)
@@ -76,6 +51,54 @@ expr operator>=(expr lhs, expr rhs)
 expr operator<(expr lhs, expr rhs)
 {
     return binary::make(binary::type::less, lhs, rhs);
+}
+
+exprs to_ranges(dimensions shape)
+{
+    exprs ranges;
+    std::transform(shape.begin(),
+                   shape.end(),
+                   std::back_inserter(ranges),
+                   [](dimension dim) -> expr {
+                       tcc_assert(dim > 0, "dimension of shape is negative.");
+                       return dim == 1 ? cnst::make(0l) : range::make(dim);
+                   });
+    return ranges;
+}
+
+dimensions to_shape(exprs ranges)
+{
+    dimensions shape;
+    std::transform(ranges.begin(),
+                   ranges.end(),
+                   std::back_inserter(shape),
+                   [](expr e) -> dimension {
+                       return e->type == exprtype::cnst
+                                  ? 1l
+                                  : downcast<range>(e)->bound;
+                   });
+    return shape;
+}
+
+bool index_validator::apply(exprs ranges, exprs indices)
+{
+    std::shared_ptr<index_validator> v(new index_validator);
+    v->valid_ranges = std::unordered_set<expr>(ranges.begin(), ranges.end());
+
+    for (expr idx : indices)
+    {
+        idx->accept(v);
+    }
+
+    return !v->found_invalid_range;
+}
+
+void index_validator::visit(range_expr e)
+{
+    if (valid_ranges.find(e) == valid_ranges.end())
+    {
+        found_invalid_range = false;
+    }
 }
 
 } // namespace tcc

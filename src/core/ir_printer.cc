@@ -185,8 +185,6 @@ void ir_printer::visit(unary_expr e)
         {
             case unary::type::exp:
                 return "exp";
-            case unary::type::sqrt:
-                return "sqrt";
             default:
                 tcc_error("unknown unary type.");
         }

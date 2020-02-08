@@ -170,7 +170,6 @@ struct unary : base_expr<unary>
     enum class type
     {
         exp,
-        sqrt
     };
 
     type unary_type;
