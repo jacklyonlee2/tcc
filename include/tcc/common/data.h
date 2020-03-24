@@ -27,13 +27,13 @@ datatype to_datatype()
     {
         return datatype::FP32;
     }
-    else if (typeid(T) == typeid(int64_t))
+    else if (typeid(T) == typeid(int64_t) || typeid(T) == typeid(long))
     {
         return datatype::INT64;
     }
     else
     {
-        tcc_error("unsupported C++ type.");
+        tcc_error("unsupported C++ type " + std::string(typeid(T).name()) + ".");
     }
 }
 

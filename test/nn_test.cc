@@ -8,8 +8,6 @@
 #include <random>
 #include <sys/stat.h>
 
-static_assert(__unix__, "nn_test is only compatible with unix systems.");
-
 static void* util_compile_model(
     const std::string model_url,
     const std::string file_name,

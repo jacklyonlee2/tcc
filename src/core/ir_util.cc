@@ -61,7 +61,7 @@ exprs to_ranges(dimensions shape)
                    std::back_inserter(ranges),
                    [](dimension dim) -> expr {
                        tcc_assert(dim > 0, "dimension of shape is negative.");
-                       return dim == 1 ? cnst::make(0l) : range::make(dim);
+                       return dim == 1 ? cnst::make(0ll) : range::make(dim);
                    });
     return ranges;
 }
