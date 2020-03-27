@@ -4,3 +4,6 @@ build/
 # vim
 *.swo
 *.swp
+
+# macos
+.DS_Store

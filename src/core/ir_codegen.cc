@@ -50,7 +50,9 @@ void ir_codegen::apply(const std::string target_name, expr ir)
     std::shared_ptr<ir_codegen> v(new ir_codegen);
     v->reused_non_scalars = result.reused_non_scalars;
     v->output = ir;
+    v->body << v->newline(1);
     ir->accept(v);
+    v->body << v->newline(-1);
 
     /* generate static global variables. */
     std::function<std::string(expr)> generate_var_signature = [&v](expr e) {
@@ -105,8 +107,8 @@ void ir_codegen::apply(const std::string target_name, expr ir)
     std::ofstream hfile(header_path, std::ios::trunc);
     tcc_assert(hfile, "failed to open file at " + header_path);
 
-    hfile << "#pragma once\n"
-          << "extern " << generate_func_signature() << ";";
+    hfile << "#pragma once" << v->newline() << "extern "
+          << generate_func_signature() << ";";
     hfile.close();
 
     /* generate source file. */
@@ -114,8 +116,8 @@ void ir_codegen::apply(const std::string target_name, expr ir)
     std::ofstream sfile(source_path, std::ios::trunc);
     tcc_assert(sfile, "failed to open file at " + source_path);
 
-    sfile << "#include <math.h>\n"
-          << "#include \"" + target_name + ".h\"\n";
+    sfile << "#include <math.h>" << v->newline()
+          << "#include \"" + target_name + ".h\"" << v->newline();
 
     tcc_assert_has_key(v->global_symbols, v->output);
     for (auto symbol : v->global_symbols)
@@ -137,17 +139,25 @@ void ir_codegen::apply(const std::string target_name, expr ir)
                 {
                     sfile << std::fixed << std::setprecision(6) << ele << ",";
                 }
-                sfile << "};\n";
+                sfile << "};" << v->newline();
             }
             else
             {
                 sfile << "static " << generate_var_signature(symbol.first)
-                      << ";\n";
+                      << ";" << v->newline();
             }
         }
     }
 
-    sfile << generate_func_signature() << "{" << v->body.rdbuf() << "}";
+    /* write function body to file and remove any empty lines */
+    sfile << generate_func_signature() << " {";
+
+    std::string line;
+    while (std::getline(v->body, line))
+        if (line.find_first_not_of(' ') != std::string::npos)
+            sfile << line << '\n';
+
+    sfile << "}";
     sfile.close();
 }
 
@@ -248,6 +258,18 @@ std::string ir_codegen::get_symbol(expr e)
     return symbol;
 }
 
+std::string ir_codegen::newline(int indent)
+{
+    tcc_assert(!(indent < 0 && indent_offset.empty()),
+               "can not unindent while indent offset is zero.");
+
+    if (indent != 0)
+        indent_offset = indent > 0
+                            ? indent_offset + "    "
+                            : indent_offset.substr(0, indent_offset.size() - 4);
+    return "\n" + indent_offset;
+}
+
 void ir_codegen::nest(exprs ranges,
                       expr e,
                       std::function<std::string()> generate_stmt,
@@ -269,7 +291,7 @@ void ir_codegen::nest(exprs ranges,
     std::function<void(unsigned)> close_loop = [&](unsigned matched_dims) {
         for (unsigned i = matched_dims; i < local_ranges.size(); i++)
         {
-            body << "}\n";
+            body << newline(-1) << "}";
         }
     };
 
@@ -277,9 +299,10 @@ void ir_codegen::nest(exprs ranges,
         for (unsigned i = matched_dims; i < local_ranges.size(); i++)
         {
             std::string index_symbol = get_symbol(local_ranges[i]);
-            body << "for(int " << index_symbol << "=0;" << index_symbol << "<"
+            body << newline(0) << "for (int " << index_symbol << "=0;"
+                 << index_symbol << "<"
                  << downcast<range>(local_ranges[i])->bound << ";"
-                 << index_symbol << "++){\n";
+                 << index_symbol << "++) {" << newline(1);
         }
     };
 
@@ -289,11 +312,11 @@ void ir_codegen::nest(exprs ranges,
             {
                 if (!it->first->shape.empty() || it->first == output)
                 {
-                    body << add_global_symbol(it->first)
+                    body << newline() << add_global_symbol(it->first)
                          << (it->first->shape.empty()
                                  ? ""
                                  : get_indices(to_ranges(it->first->shape)))
-                         << "=" << it->second << ";\n";
+                         << "=" << it->second << ";";
                     it = local_symbols.erase(it);
                 }
                 else
@@ -327,12 +350,12 @@ void ir_codegen::nest(exprs ranges,
     {
         if (force_append)
         {
-            body << generate_stmt() << ";\n";
+            body << generate_stmt() << ";" << newline();
         }
         else if (reused_non_scalars.find(e) != reused_non_scalars.end())
         {
             body << add_global_symbol(e) << get_indices(ranges) << "="
-                 << generate_stmt() << ";\n";
+                 << generate_stmt() << ";" << newline();
         }
         else
         {
@@ -383,13 +406,14 @@ void ir_codegen::visit(index_expr e)
     if (local_symbols.find(e->x) != local_symbols.end())
     {
         exprs x_ranges = to_ranges(e->x->shape);
-        nest(e->ranges,
-             e,
-             [&]() {
-                 return add_global_symbol(e->x) + get_indices(x_ranges) + "=" +
-                        get_symbol(e->x);
-             },
-             true);
+        nest(
+            e->ranges,
+            e,
+            [&]() {
+                return add_global_symbol(e->x) + get_indices(x_ranges) + "=" +
+                       get_symbol(e->x);
+            },
+            true);
     }
 
     tcc_assert_has_key(global_symbols, e->x);
@@ -423,13 +447,14 @@ void ir_codegen::visit(reshape_expr e)
     }
     else if (reused_non_scalars.find(e) != reused_non_scalars.end())
     {
-        nest(e_ranges,
-             e,
-             [&]() {
-                 return add_global_symbol(e) + get_indices(e_ranges) + "=" +
-                        get_symbol(e->x);
-             },
-             true);
+        nest(
+            e_ranges,
+            e,
+            [&]() {
+                return add_global_symbol(e) + get_indices(e_ranges) + "=" +
+                       get_symbol(e->x);
+            },
+            true);
     }
     else
     {
@@ -451,31 +476,32 @@ void ir_codegen::visit(reduce_expr e)
         }
     }
 
-    nest(unreduced_ranges,
-         e,
-         [&]() {
-             std::string x_symbol = get_symbol(e->x);
-             std::string e_symbol =
-                 e->shape.empty()
-                     ? add_global_symbol(e)
-                     : add_global_symbol(e) + get_indices(unreduced_ranges,
-                                                          e->shape,
-                                                          reduced_ranges);
-             switch (e->reduce_type)
-             {
-                 case reduce::type::avg:
-                     return e_symbol + "+=" + x_symbol + "/" +
-                            std::to_string(e->reduce_size) + ".f";
-                 case reduce::type::max:
-                     return e_symbol + "=" + x_symbol + ">" + e_symbol + "?" +
-                            x_symbol + ":" + e_symbol;
-                 case reduce::type::sum:
-                     return e_symbol + "+=" + x_symbol;
-                 default:
-                     tcc_error("unknown reduce type");
-             }
-         },
-         true);
+    nest(
+        unreduced_ranges,
+        e,
+        [&]() {
+            std::string x_symbol = get_symbol(e->x);
+            std::string e_symbol =
+                e->shape.empty()
+                    ? add_global_symbol(e)
+                    : add_global_symbol(e) + get_indices(unreduced_ranges,
+                                                         e->shape,
+                                                         reduced_ranges);
+            switch (e->reduce_type)
+            {
+                case reduce::type::avg:
+                    return e_symbol + "+=" + x_symbol + "/" +
+                           std::to_string(e->reduce_size) + ".f";
+                case reduce::type::max:
+                    return e_symbol + "=" + x_symbol + ">" + e_symbol + "?" +
+                           x_symbol + ":" + e_symbol;
+                case reduce::type::sum:
+                    return e_symbol + "+=" + x_symbol;
+                default:
+                    tcc_error("unknown reduce type");
+            }
+        },
+        true);
 
     nest(reduced_ranges, e);
 }

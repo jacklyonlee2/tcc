@@ -19,6 +19,7 @@ struct ir_codegen : ir_visitor
     std::string add_global_symbol(expr, std::string = {});
     std::string get_indices(exprs, dimensions = {}, exprs = {});
     std::string get_symbol(expr);
+    std::string newline(int = 0);
     void nest(exprs,
               expr,
               std::function<std::string()> = nullptr,
@@ -40,6 +41,7 @@ struct ir_codegen : ir_visitor
     std::unordered_set<expr> reused_non_scalars;
     expr output;
 
+    std::string indent_offset;
     std::stringstream body;
 };
 
