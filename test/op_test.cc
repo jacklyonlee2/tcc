@@ -2,6 +2,7 @@
 #include "tcc/core/ir_codegen.h"
 #include "tcc/core/ir_printer.h"
 #include "tcc/frontend/op.h"
+#include <chrono>
 #include <dlfcn.h>
 #include <iostream>
 #include <sys/stat.h>
@@ -80,15 +81,27 @@ static void test_conv2d(std::string target_name)
     void (*conv2d)(float*) =
         (void (*)(float*))util_compile_expr(target_name, output);
 
-    float* data = util_zero_array(7 * 7);
+    std::chrono::steady_clock::time_point begin;
+    std::chrono::steady_clock::time_point end;
 
-    conv2d(data);
+    float* out = util_zero_array(7 * 7);
+
+    begin = std::chrono::steady_clock::now();
+    conv2d(out);
+    end = std::chrono::steady_clock::now();
+
+    tcc_info(
+        "inference time: " +
+        std::to_string(
+            std::chrono::duration_cast<std::chrono::microseconds>(end - begin)
+                .count()) +
+        " us.");
 
     for (int i = 0; i < 7 * 7; i++)
-        std::cout << data[i] << " ";
+        std::cout << out[i] << " ";
     std::cout << std::endl;
 
-    free(data);
+    free(out);
 }
 
 #define TEST(target_name)                                                      \
