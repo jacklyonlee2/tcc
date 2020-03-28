@@ -55,10 +55,11 @@ static void* util_compile_model(
 
     {
         const std::string gcc_compile_cmd =
-            "gcc -c -fPIC -Wall -Werror " + target_name + ".c";
+            "gcc -c -fPIC -Wall -Werror -Xpreprocessor -fopenmp " +
+            target_name + ".c";
         const std::string gcc_link_cmd =
             "gcc -march=native -Ofast -shared -o " + target_name + ".so " +
-            target_name + ".o -lm";
+            target_name + ".o -lm -lomp";
 
         tcc_assert(
             !system(("cd " + target_name + " && " + gcc_compile_cmd).c_str()),
@@ -100,13 +101,12 @@ static float* util_random_array(unsigned size, float max = 255.0)
     return array;
 }
 
-static void test_mobilenetv2()
+static void test_mobilenetv2(std::string target_name)
 {
     static const std::string model_url =
         "https://storage.googleapis.com/mobilenet_v2/checkpoints/"
         "mobilenet_v2_1.4_224.tgz";
     static const std::string file_name = "mobilenet_v2_1.4_224";
-    static const std::string target_name = "mobilenetv2";
 
     void (*model)(float*, float*) = (void (*)(
         float*, float*))util_compile_model(model_url,
@@ -135,9 +135,12 @@ static void test_mobilenetv2()
     free(output);
 }
 
+#define TEST(target_name)                                                      \
+    tcc_info("starting " #target_name " test.");                               \
+    test_##target_name(#target_name);                                          \
+    tcc_info("completed " #target_name " test.")
+
 int main()
 {
-    tcc_info("starting mobilenetv2 test.");
-    test_mobilenetv2();
-    tcc_info("completed mobilenetv2 test.");
+    TEST(mobilenetv2);
 }

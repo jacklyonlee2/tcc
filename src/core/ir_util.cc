@@ -53,6 +53,33 @@ expr operator<(expr lhs, expr rhs)
     return binary::make(binary::type::less, lhs, rhs);
 }
 
+std::string to_string(exprtype et)
+{
+    switch (et)
+    {
+        case exprtype::var:
+            return "var";
+        case exprtype::cnst:
+            return "cnst";
+        case exprtype::range:
+            return "range";
+        case exprtype::index:
+            return "index";
+        case exprtype::select:
+            return "select";
+        case exprtype::reshape:
+            return "reshape";
+        case exprtype::reduce:
+            return "reduce";
+        case exprtype::unary:
+            return "unary";
+        case exprtype::binary:
+            return "binary";
+        default:
+            tcc_error("unknown exprtype.");
+    }
+}
+
 exprs to_ranges(dimensions shape)
 {
     exprs ranges;

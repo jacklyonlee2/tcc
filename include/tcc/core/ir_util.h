@@ -26,6 +26,9 @@ expr operator>(expr, expr);
 expr operator>=(expr, expr);
 expr operator<(expr, expr);
 
+/* convert exprtype to string. */
+std::string to_string(exprtype);
+
 /* to_ranges construct array of range from shape. */
 exprs to_ranges(dimensions);
 

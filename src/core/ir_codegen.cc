@@ -1,5 +1,4 @@
 #include "tcc/core/ir_codegen.h"
-#include "tcc/core/ir_dep_analysis.h"
 #include "tcc/core/ir_util.h"
 #include <algorithm>
 #include <fstream>
@@ -43,16 +42,16 @@ static unsigned match_ranges(exprs old, exprs current)
 
 void ir_codegen::apply(const std::string target_name, expr ir)
 {
-    /* dependency analysis. */
-    ir_dep_analysis_result result = ir_dep_analysis::apply(ir);
-
-    /* initialize and apply codegen visitor */
+    /* initialize and apply codegen visitor. */
     std::shared_ptr<ir_codegen> v(new ir_codegen);
-    v->reused_non_scalars = result.reused_non_scalars;
+    v->opt_parallelize = false;
+    v->opt_locality = true;
+    v->dep_analysis = ir_dep_analysis::apply(ir);
     v->output = ir;
     v->body << v->newline(1);
     ir->accept(v);
     v->body << v->newline(-1);
+    tcc_assert_has_key(v->global_symbols, v->output);
 
     /* generate static global variables. */
     std::function<std::string(expr)> generate_var_signature = [&v](expr e) {
@@ -74,22 +73,14 @@ void ir_codegen::apply(const std::string target_name, expr ir)
 
         std::string size = [&]() -> std::string {
             return e->shape.empty() ? ""
-                                    : ("[" +
-                                       std::to_string(std::accumulate(
-                                           e->shape.begin(),
-                                           e->shape.end(),
-                                           1l,
-                                           [](dimension size, dimension dim) {
-                                               return size * dim;
-                                           })) +
-                                       "]");
+                                    : ("[" + std::to_string(e->size()) + "]");
         }();
 
         return ctype + " " + v->global_symbols.at(e) + size;
     };
 
     /* generate function signature. */
-    exprs inouts(result.inputs.begin(), result.inputs.end());
+    exprs inouts(v->dep_analysis.inputs.begin(), v->dep_analysis.inputs.end());
     inouts.push_back(v->output);
     std::function<std::string()> generate_func_signature = [&]() {
         return "void " + target_name + "(" +
@@ -117,40 +108,59 @@ void ir_codegen::apply(const std::string target_name, expr ir)
     tcc_assert(sfile, "failed to open file at " + source_path);
 
     sfile << "#include <math.h>" << v->newline()
+          << (v->opt_parallelize ? "#include <omp.h>" : "") << v->newline()
           << "#include \"" + target_name + ".h\"" << v->newline();
 
-    tcc_assert_has_key(v->global_symbols, v->output);
-    for (auto symbol : v->global_symbols)
+    std::unordered_map<std::string, expr> reused_symbols;
+    for (auto sym : v->global_symbols)
     {
-        if (!(symbol.first->shape.empty() &&
-              (symbol.first->type == exprtype::cnst ||
-               symbol.first->type == exprtype::range)) &&
-            symbol.second != v->global_symbols.at(v->output) &&
-            result.inputs.find(symbol.first) == result.inputs.end())
+        if (!(sym.first->shape.empty() &&
+              (sym.first->type == exprtype::cnst ||
+               sym.first->type == exprtype::range)) &&
+            sym.second != v->global_symbols.at(v->output) &&
+            v->dep_analysis.inputs.find(sym.first) ==
+                v->dep_analysis.inputs.end())
         {
-            if (symbol.first->type == exprtype::cnst)
+            if (sym.first->type == exprtype::cnst)
             {
-                tcc_assert(symbol.first->dtype == datatype::FP32,
+                tcc_assert(sym.first->dtype == datatype::FP32,
                            "cnst datatype is not FP32.");
-                sfile << "static const " << generate_var_signature(symbol.first)
+                sfile << "static const " << generate_var_signature(sym.first)
                       << "= {";
-                for (float ele :
-                     downcast<cnst>(symbol.first)->to_vector<float>())
+                for (float ele : downcast<cnst>(sym.first)->to_vector<float>())
                 {
                     sfile << std::fixed << std::setprecision(6) << ele << ",";
                 }
                 sfile << "};" << v->newline();
             }
+            else if (sym.first->shape.empty())
+            {
+                sfile << "static " << generate_var_signature(sym.first) << ";"
+                      << v->newline();
+            }
             else
             {
-                sfile << "static " << generate_var_signature(symbol.first)
-                      << ";" << v->newline();
+                if (reused_symbols.find(sym.second) == reused_symbols.end())
+                {
+                    reused_symbols.insert({ sym.second, sym.first });
+                }
+                else if (reused_symbols.at(sym.second)->size() <
+                         sym.first->size())
+                {
+                    reused_symbols.at(sym.second) = sym.first;
+                }
             }
         }
     }
 
+    for (auto sym : reused_symbols)
+    {
+        sfile << "static " << generate_var_signature(sym.second) << ";"
+              << v->newline();
+    }
+
     /* write function body to file and remove any empty lines */
-    sfile << generate_func_signature() << " {";
+    sfile << generate_func_signature() << " {\n";
 
     std::string line;
     while (std::getline(v->body, line))
@@ -174,16 +184,29 @@ std::string ir_codegen::add_global_symbol(expr e, std::string symbol)
 {
     if (symbol.empty())
     {
-        static unsigned vcount = 1;
         tcc_assert_no_key(global_symbols, e);
-        global_symbols.insert({ e, "v" + std::to_string(vcount++) });
-        return global_symbols.at(e);
+
+        if (opt_locality && e->type != exprtype::cnst &&
+            e->type != exprtype::reduce && !e->shape.empty() &&
+            !reusable_symbols.empty())
+        {
+            symbol = *reusable_symbols.begin();
+            reusable_symbols.erase(reusable_symbols.begin());
+        }
+        else
+        {
+            static unsigned vcount = 1;
+            symbol = "v" + std::to_string(vcount++);
+            if (e->type != exprtype::cnst && !e->shape.empty() &&
+                !dep_analysis.inputs.count(e) && output != e &&
+                dep_analysis.reused.find(e) == dep_analysis.reused.end())
+            {
+                reusable_symbols.insert(symbol);
+            }
+        }
     }
-    else
-    {
-        global_symbols.insert({ e, symbol });
-        return symbol;
-    }
+    global_symbols.insert({ e, symbol });
+    return symbol;
 }
 
 std::string ir_codegen::get_indices(exprs ranges,
@@ -255,6 +278,21 @@ std::string ir_codegen::get_symbol(expr e)
         tcc_error("symbol for e is not found.");
     }
 
+    if (dep_analysis.reused.find(e) != dep_analysis.reused.end())
+    {
+        tcc_assert(dep_analysis.reused.at(e) > 0,
+                   "referencing reused variable too many times.");
+        dep_analysis.reused[e]--;
+
+        tcc_assert(global_symbols.find(e) != global_symbols.end(),
+                   "reused must be global.");
+        if (dep_analysis.reused.at(e) == 0 && !dep_analysis.inputs.count(e) &&
+            output != e)
+        {
+            reusable_symbols.insert(global_symbols.at(e));
+        }
+    }
+
     return symbol;
 }
 
@@ -296,6 +334,11 @@ void ir_codegen::nest(exprs ranges,
     };
 
     std::function<void(unsigned)> open_loop = [&](unsigned matched_dims) {
+        if (opt_parallelize && matched_dims == 0 && !local_ranges.empty())
+        {
+            body << newline(0) << "#pragma omp parallel" << newline(0);
+        }
+
         for (unsigned i = matched_dims; i < local_ranges.size(); i++)
         {
             std::string index_symbol = get_symbol(local_ranges[i]);
@@ -350,9 +393,10 @@ void ir_codegen::nest(exprs ranges,
     {
         if (force_append)
         {
-            body << generate_stmt() << ";" << newline();
+            body << generate_stmt() << newline();
         }
-        else if (reused_non_scalars.find(e) != reused_non_scalars.end())
+        else if (dep_analysis.reused.find(e) != dep_analysis.reused.end() &&
+                 dep_analysis.reused[e] != 0)
         {
             body << add_global_symbol(e) << get_indices(ranges) << "="
                  << generate_stmt() << ";" << newline();
@@ -411,7 +455,7 @@ void ir_codegen::visit(index_expr e)
             e,
             [&]() {
                 return add_global_symbol(e->x) + get_indices(x_ranges) + "=" +
-                       get_symbol(e->x);
+                       get_symbol(e->x) + ";";
             },
             true);
     }
@@ -445,14 +489,15 @@ void ir_codegen::visit(reshape_expr e)
     {
         add_global_symbol(e, global_symbols.at(e->x));
     }
-    else if (reused_non_scalars.find(e) != reused_non_scalars.end())
+    else if (dep_analysis.reused.find(e) != dep_analysis.reused.end() &&
+             dep_analysis.reused.at(e) != 0)
     {
         nest(
             e_ranges,
             e,
             [&]() {
                 return add_global_symbol(e) + get_indices(e_ranges) + "=" +
-                       get_symbol(e->x);
+                       get_symbol(e->x) + ";";
             },
             true);
     }
@@ -476,6 +521,8 @@ void ir_codegen::visit(reduce_expr e)
         }
     }
 
+    nest({}, e);
+
     nest(
         unreduced_ranges,
         e,
@@ -487,23 +534,34 @@ void ir_codegen::visit(reduce_expr e)
                     : add_global_symbol(e) + get_indices(unreduced_ranges,
                                                          e->shape,
                                                          reduced_ranges);
-            switch (e->reduce_type)
-            {
-                case reduce::type::avg:
-                    return e_symbol + "+=" + x_symbol + "/" +
-                           std::to_string(e->reduce_size) + ".f";
-                case reduce::type::max:
-                    return e_symbol + "=" + x_symbol + ">" + e_symbol + "?" +
-                           x_symbol + ":" + e_symbol;
-                case reduce::type::sum:
-                    return e_symbol + "+=" + x_symbol;
-                default:
-                    tcc_error("unknown reduce type");
-            }
+
+            std::string reduce_stmt = ([&]() {
+                switch (e->reduce_type)
+                {
+                    case reduce::type::avg:
+                        return e_symbol + "+=" + x_symbol + "/" +
+                               std::to_string(e->reduce_size) + ".f";
+                    case reduce::type::max:
+                        return e_symbol + "=" + x_symbol + ">" + e_symbol +
+                               "?" + x_symbol + ":" + e_symbol;
+                    case reduce::type::sum:
+                        return e_symbol + "+=" + x_symbol;
+                    default:
+                        tcc_error("unknown reduce type");
+                }
+            })();
+
+            return opt_parallelize
+                       ? ("#pragma omp critical" + newline() + "{" +
+                          newline(1) + reduce_stmt + ";" + newline(-1) + "}")
+                       : reduce_stmt + ";";
         },
         true);
 
-    nest(reduced_ranges, e);
+    if (e != output)
+    { // fixed bug: extra closing braces when reduce is output
+        nest(reduced_ranges, e);
+    }
 }
 
 void ir_codegen::visit(unary_expr e)

@@ -1,6 +1,7 @@
 #ifndef TCC_CORE_IR_CODEGEN_H
 #define TCC_CORE_IR_CODEGEN_H
 
+#include "tcc/core/ir_dep_analysis.h"
 #include "tcc/core/ir_visitor.h"
 #include <functional>
 #include <sstream>
@@ -34,11 +35,14 @@ struct ir_codegen : ir_visitor
     void visit(unary_expr) override;
     void visit(binary_expr) override;
 
+    bool opt_parallelize, opt_locality;
+
+    std::unordered_set<std::string> reusable_symbols;
     std::unordered_map<expr, std::string> global_symbols;
     std::unordered_map<expr, std::string> local_symbols;
     exprs local_ranges;
 
-    std::unordered_set<expr> reused_non_scalars;
+    ir_dep_analysis_result dep_analysis;
     expr output;
 
     std::string indent_offset;

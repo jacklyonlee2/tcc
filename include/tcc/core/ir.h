@@ -33,6 +33,12 @@ struct abstract_expr
 
     virtual void accept(std::shared_ptr<ir_visitor> v) const = 0;
 
+    dimension size() const
+    {
+        return std::accumulate(
+            shape.begin(), shape.end(), 1, std::multiplies<dimension>());
+    }
+
     exprtype type;
     datatype dtype;
     dimensions shape;
@@ -75,10 +81,7 @@ struct cnst : base_expr<cnst>
     std::vector<T> to_vector() const
     {
         tcc_assert(!shape.empty(), "can not convert scalar to vector.");
-        return vector_deserialize<T>(
-            data,
-            std::accumulate(
-                shape.begin(), shape.end(), 1, std::multiplies<dimension>()));
+        return vector_deserialize<T>(data, size());
     }
 
     template<typename T>
@@ -91,12 +94,14 @@ struct cnst : base_expr<cnst>
     }
 
     template<typename T>
-    static expr make(std::vector<T> data)
+    static expr make(std::vector<T> data, dimensions shape = {})
     {
         std::shared_ptr<cnst> e(new cnst);
         e->data = vector_serialize<T>(data);
         e->dtype = to_datatype<T>();
-        e->shape = { static_cast<dimension>(data.size()) };
+        e->shape = shape.empty()
+                       ? dimensions({ static_cast<dimension>(data.size()) })
+                       : shape;
         return e;
     }
 

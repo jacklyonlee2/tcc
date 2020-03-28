@@ -13,7 +13,9 @@ void ir_dep_analysis::analyze(expr e)
 {
     if (ir_visitor::visited.count(e) && !e->shape.empty())
     {
-        result.reused_non_scalars.insert(e);
+        result.reused[e] = (result.reused.find(e) != result.reused.end())
+                               ? result.reused.at(e) + 1
+                               : 2;
     }
     ir_visitor::visit(e);
 }

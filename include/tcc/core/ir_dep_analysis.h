@@ -2,13 +2,14 @@
 #define TCC_CORE_IR_DEP_ANALYSIS_H
 
 #include "tcc/core/ir_visitor.h"
+#include <unordered_map>
 
 namespace tcc {
 
 struct ir_dep_analysis_result
 {
     std::unordered_set<expr> inputs;
-    std::unordered_set<expr> reused_non_scalars;
+    std::unordered_map<expr, int> reused;
 };
 
 struct ir_dep_analysis : ir_visitor
