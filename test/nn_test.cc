@@ -144,3 +144,5 @@ int main()
 {
     TEST(mobilenetv2);
 }
+
+#undef TEST
