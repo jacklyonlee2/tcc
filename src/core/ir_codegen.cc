@@ -521,7 +521,7 @@ void ir_codegen::visit(reduce_expr e)
         }
     }
 
-    nest({}, e);
+    //nest({}, e);
 
     nest(
         unreduced_ranges,
@@ -552,7 +552,7 @@ void ir_codegen::visit(reduce_expr e)
             })();
 
             return opt_parallelize
-                       ? ("#pragma omp critical" + newline() + "{" +
+                       ? ("#pragma omp single" + newline() + "{" +
                           newline(1) + reduce_stmt + ";" + newline(-1) + "}")
                        : reduce_stmt + ";";
         },
