@@ -55,10 +55,10 @@ static void* util_compile_model(
 
     {
         const std::string gcc_compile_cmd =
-            "gcc -c -fPIC -Wall -Werror -Xpreprocessor -fopenmp " +
+            "gcc -c -fPIC -Wall -Werror -Xpreprocessor -fopenmp -Ofast -march=native " +
             target_name + ".c";
         const std::string gcc_link_cmd =
-            "gcc -march=native -Ofast -shared -o " + target_name + ".so " +
+            "gcc -shared -o " + target_name + ".so " +
             target_name + ".o -lm -lomp";
 
         tcc_assert(
@@ -119,6 +119,8 @@ static void test_mobilenetv2(std::string target_name)
 
     float* input = util_random_array(150528);
     float* output = util_zero_array(1001);
+
+    model(input, output);
 
     begin = std::chrono::steady_clock::now();
     model(input, output);
